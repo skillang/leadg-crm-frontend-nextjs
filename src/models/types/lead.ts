@@ -15,6 +15,60 @@ export interface Lead {
   notes: string;
 }
 
+// Extended lead details interface
+export interface LeadDetails extends Lead {
+  leadId: string; // Formatted ID like LD-1029
+  phoneNumber: string;
+  countryOfInterest: string[];
+  courseLevel: string;
+  tags: string[];
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    zipCode?: string;
+  };
+  socialMedia?: {
+    linkedin?: string;
+    facebook?: string;
+    twitter?: string;
+  };
+  preferences?: {
+    communicationMethod: "email" | "phone" | "whatsapp" | "any";
+    bestTimeToContact: string;
+    timezone: string;
+  };
+  leadHistory: LeadActivity[];
+  documents: LeadDocument[];
+}
+
+export interface LeadActivity {
+  id: string;
+  type:
+    | "call"
+    | "email"
+    | "meeting"
+    | "note"
+    | "stage_change"
+    | "document_upload";
+  title: string;
+  description: string;
+  timestamp: string;
+  performedBy: string;
+  metadata?: Record<string, any>;
+}
+
+export interface LeadDocument {
+  id: string;
+  name: string;
+  type: "pdf" | "doc" | "image" | "other";
+  size: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  url?: string;
+}
+
 export interface LeadFilters {
   name: string;
   stage: string;

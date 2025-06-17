@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   ListFilter,
@@ -119,6 +120,7 @@ const StageSelectCell = ({ row }: { row: any }) => {
 // Actions Cell
 const ActionsCell = ({ row }: { row: any }) => {
   const [deleteLead] = useDeleteLeadMutation();
+  const router = useRouter();
   const lead = row.original;
 
   const handleDelete = async () => {
@@ -131,6 +133,10 @@ const ActionsCell = ({ row }: { row: any }) => {
         alert("Failed to delete lead");
       }
     }
+  };
+
+  const handleViewDetails = () => {
+    router.push(`/sample-table/${lead.id}`);
   };
 
   return (
@@ -153,10 +159,15 @@ const ActionsCell = ({ row }: { row: any }) => {
           Copy Email
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>View Details</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleViewDetails}>
+          View Details
+        </DropdownMenuItem>
         <DropdownMenuItem>Edit Lead</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+        <DropdownMenuItem
+          onClick={handleDelete}
+          className="text-red-600 hover:text-red-700"
+        >
           Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
