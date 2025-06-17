@@ -1,0 +1,100 @@
+// src/redux/slices/leadsApi.ts
+import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
+import { Lead, CreateLeadRequest } from "@/models/types/lead";
+import { mockApi } from "@/services/mockApi";
+
+// RTK Query API slice - much simpler!
+export const leadsApi = createApi({
+  reducerPath: "leadsApi",
+  baseQuery: fakeBaseQuery(), // Use fake base query for mock API
+  tagTypes: ["Lead"],
+  endpoints: (builder) => ({
+    // Get all leads
+    getLeads: builder.query<Lead[], void>({
+      queryFn: async () => {
+        try {
+          const data = await mockApi.getLeads();
+          return { data };
+        } catch (error) {
+          return { error: { status: "FETCH_ERROR", error: String(error) } };
+        }
+      },
+      providesTags: ["Lead"],
+    }),
+
+    // Get single lead
+    getLead: builder.query<Lead, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await mockApi.getLead(id);
+          return { data };
+        } catch (error) {
+          return { error: { status: "FETCH_ERROR", error: String(error) } };
+        }
+      },
+      providesTags: (result, error, id) => [{ type: "Lead", id }],
+    }),
+
+    // Update lead stage
+    updateLeadStage: builder.mutation<Lead, { id: string; stage: string }>({
+      queryFn: async ({ id, stage }) => {
+        try {
+          const data = await mockApi.updateLeadStage(id, stage);
+          return { data };
+        } catch (error) {
+          return { error: { status: "FETCH_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: ["Lead"],
+    }),
+
+    // Create new lead
+    createLead: builder.mutation<Lead, CreateLeadRequest>({
+      queryFn: async (leadData) => {
+        try {
+          const data = await mockApi.createLead(leadData);
+          return { data };
+        } catch (error) {
+          return { error: { status: "FETCH_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: ["Lead"],
+    }),
+
+    // Delete lead
+    deleteLead: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          await mockApi.deleteLead(id);
+          return { data: undefined };
+        } catch (error) {
+          return { error: { status: "FETCH_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: ["Lead"],
+    }),
+
+    // Update lead notes
+    updateLeadNotes: builder.mutation<Lead, { id: string; notes: string }>({
+      queryFn: async ({ id, notes }) => {
+        try {
+          const data = await mockApi.updateLeadNotes(id, notes);
+          return { data };
+        } catch (error) {
+          return { error: { status: "FETCH_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: (result, error, { id }) => [{ type: "Lead", id }],
+    }),
+  }),
+});
+
+// Export hooks for use in components
+export const {
+  useGetLeadsQuery,
+  useGetLeadQuery,
+  useUpdateLeadStageMutation,
+  useCreateLeadMutation,
+  useDeleteLeadMutation,
+  useUpdateLeadNotesMutation,
+} = leadsApi;
