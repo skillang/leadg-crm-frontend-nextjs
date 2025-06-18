@@ -62,7 +62,10 @@ const items = [
 ];
 
 const SideNavBarComp = () => {
-  const [notificationCount, setNotificationCount] = useState(3);
+  const [
+    notificationCount,
+    // setNotificationCount
+  ] = useState(3);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Mock user data - replace with actual user context

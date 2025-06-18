@@ -5,16 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Phone, Mail, ExternalLink, Edit } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ArrowLeft, Star, Phone, Mail, ExternalLink } from "lucide-react";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 // Simple Card components
 const Card = ({
@@ -70,19 +62,6 @@ const tabs = [
   { id: "activity", label: "Activity log" },
   { id: "contacts", label: "Contacts" },
 ];
-
-// Stage color mapping
-const getStageColor = (stage: string) => {
-  const colors: Record<string, string> = {
-    contacted: "bg-orange-100 text-orange-800",
-    "first-call": "bg-yellow-100 text-yellow-800",
-    qualified: "bg-purple-100 text-purple-800",
-    proposal: "bg-indigo-100 text-indigo-800",
-    "closed-won": "bg-green-100 text-green-800",
-    "closed-lost": "bg-red-100 text-red-800",
-  };
-  return colors[stage] || "bg-gray-100 text-gray-800";
-};
 
 // Format date
 const formatDate = (dateString: string) => {
@@ -147,7 +126,7 @@ export default function LeadDetailsPage() {
             Lead Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            The lead you're looking for doesn't exist or has been removed.
+            The lead you are looking for does not exist or has been removed.
           </p>
           <Button onClick={handleBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />

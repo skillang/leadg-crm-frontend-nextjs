@@ -1,5 +1,3 @@
-// src/redux/types/lead.ts
-
 export interface Lead {
   id: string;
   stage: string;
@@ -52,8 +50,18 @@ export interface UpdateLeadNotesRequest {
   notes: string;
 }
 
-export interface CreateLeadRequest
-  extends Omit<Lead, "id" | "createdOn" | "lastActivity"> {}
+// Fixed: Added explicit properties instead of empty extending interface
+export interface CreateLeadRequest {
+  stage: string;
+  name: string;
+  leadScore: number;
+  contact: string;
+  email?: string;
+  source: string;
+  media: string;
+  department: string;
+  notes: string;
+}
 
 export interface BulkUpdateRequest {
   leadIds: string[];

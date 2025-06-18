@@ -1,5 +1,3 @@
-// src/models/types/lead.ts
-
 export interface Lead {
   id: string;
   stage: string;
@@ -56,7 +54,7 @@ export interface LeadActivity {
   description: string;
   timestamp: string;
   performedBy: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>; // Fixed: was 'any'
 }
 
 export interface LeadDocument {
@@ -89,8 +87,18 @@ export interface UpdateLeadStageRequest {
   newStage: string;
 }
 
-export interface CreateLeadRequest
-  extends Omit<Lead, "id" | "createdOn" | "lastActivity"> {}
+// Fixed: Added explicit properties instead of empty extending interface
+export interface CreateLeadRequest {
+  stage: string;
+  name: string;
+  leadScore: number;
+  contact: string;
+  email?: string;
+  source: string;
+  media: string;
+  department: string;
+  notes: string;
+}
 
 export interface LeadStats {
   total: number;

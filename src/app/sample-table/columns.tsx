@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { Row } from "@tanstack/react-table";
 import {
   ArrowUpDown,
   ListFilter,
@@ -93,7 +94,7 @@ const handleEmail = (email: string) => {
 };
 
 // Stage Select Cell - SUPER SIMPLE with RTK Query
-const StageSelectCell = ({ row }: { row: any }) => {
+const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage] = useUpdateLeadStageMutation();
   const stage = row.getValue("stage") as string;
   const leadId = row.original.id;
@@ -116,9 +117,8 @@ const StageSelectCell = ({ row }: { row: any }) => {
     />
   );
 };
-
-// Actions Cell
-const ActionsCell = ({ row }: { row: any }) => {
+// Replace the ActionsCell component (around line 121)
+const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const [deleteLead] = useDeleteLeadMutation();
   const router = useRouter();
   const lead = row.original;
@@ -154,7 +154,7 @@ const ActionsCell = ({ row }: { row: any }) => {
           Copy ID
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => navigator.clipboard.writeText(lead.email)}
+          onClick={() => navigator.clipboard.writeText(lead.email!)}
         >
           Copy Email
         </DropdownMenuItem>

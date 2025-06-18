@@ -4,84 +4,23 @@ import { columns } from "./columns";
 import { DataTable } from "./data-table";
 import { useAppSelector } from "@/redux/hooks";
 import {
-  selectFilters,
+  // selectFilters,
   createFilteredLeadsSelector,
-  calculateLeadStats,
+  // calculateLeadStats,
 } from "@/redux/selectors/leadsSelectors";
 import { useGetLeadsQuery } from "@/redux/slices/leadsApi";
-import { Button } from "@/components/ui/button";
-import {
-  RefreshCw,
-  Plus,
-  Users,
-  TrendingUp,
-  Target,
-  Award,
-} from "lucide-react";
-
-// Simple card components (if you don't have shadcn/ui card installed)
-const Card = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div
-    className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`}
-  >
-    {children}
-  </div>
-);
-
-const CardHeader = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
-);
-
-const CardTitle = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <h3
-    className={`text-2xl font-semibold leading-none tracking-tight ${className}`}
-  >
-    {children}
-  </h3>
-);
-
-const CardDescription = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <p className={`text-sm text-muted-foreground ${className}`}>{children}</p>
-);
-
-const CardContent = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
+import { RefreshCw } from "lucide-react";
 
 export default function DemoPage() {
   // RTK Query hook - handles loading, error, and data automatically!
-  const { data: leads = [], error, isLoading, refetch } = useGetLeadsQuery();
+  const {
+    data: leads = [],
+    isLoading,
+    // refetch
+  } = useGetLeadsQuery();
 
   // Get filters from Redux
-  const filters = useAppSelector(selectFilters);
+  // const filters = useAppSelector(selectFilters);
 
   // Create filtered leads selector with current leads data
   const filteredLeadsSelector = useMemo(
@@ -91,12 +30,12 @@ export default function DemoPage() {
   const filteredLeads = useAppSelector(filteredLeadsSelector);
 
   // Calculate stats
-  const stats = useMemo(() => calculateLeadStats(leads), [leads]);
-  const filteredCount = filteredLeads.length;
+  // const stats = useMemo(() => calculateLeadStats(leads), [leads]);
+  // const filteredCount = filteredLeads.length;
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  // const handleRefresh = () => {
+  //   refetch();
+  // };
 
   const handleAddLead = () => {
     console.log("Add new lead clicked");
@@ -126,15 +65,21 @@ export default function DemoPage() {
         onExportCsv={() => console.log("Export CSV from DataTable")}
       />
 
-      {/* Footer Stats */}
+      {/* Footer Stats - Uncomment when ready to use */}
       {/* <div className="flex items-center justify-between text-sm text-gray-500 px-2">
         <div>
           Showing {filteredCount} of {stats.total} leads
         </div>
         <div className="flex gap-4">
-          <span>Sales: {stats.byDepartment["Sales"] || 0}</span>
-          <span>Marketing: {stats.byDepartment["Marketing"] || 0}</span>
+          <span>Sales: {stats.byDepartment?.["Sales"] || 0}</span>
+          <span>Marketing: {stats.byDepartment?.["Marketing"] || 0}</span>
           {isLoading && <span className="text-blue-600">Syncing...</span>}
+          <button
+            onClick={handleRefresh}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Refresh
+          </button>
         </div>
       </div> */}
     </div>

@@ -1,6 +1,6 @@
 // constants/stageConfig.ts
 
-import { StageOption } from "@/components/ui/stage-select";
+import { StageOption } from "@/components/StageSelectComponent";
 
 // Lead stage configurations
 export const LEAD_STAGES: StageOption[] = [

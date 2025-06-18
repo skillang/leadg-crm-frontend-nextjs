@@ -4,11 +4,10 @@ import {
   LeadDetails,
   CreateLeadRequest,
   LeadActivity,
-  LeadDocument,
 } from "@/models/types/lead";
 
 // Enhanced mock data with detailed information
-let MOCK_LEADS: Lead[] = [
+const MOCK_LEADS: Lead[] = [
   {
     id: "728ed52f",
     name: "Rahul Sharma",

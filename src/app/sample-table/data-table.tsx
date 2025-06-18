@@ -47,16 +47,10 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
-  Filter,
   X,
   CalendarDaysIcon,
   DownloadIcon,
@@ -155,18 +149,44 @@ export function DataTable<TData, TValue>({
   ].reduce((a, b) => a + b, 0);
 
   // Handler functions
+  // Replace the handleExportCsv function (around lines 161-163)
   const handleExportCsv = () => {
     if (onExportCsv) {
       onExportCsv();
     } else {
       console.log("Export CSV clicked");
+
+      // Type-safe CSV export
+      if (data.length === 0) {
+        console.warn("No data to export");
+        return;
+      }
+
+      // Get headers from the first data item
+      const firstItem = data[0] as Record<string, unknown>;
+      const headers = Object.keys(firstItem);
+
+      // Convert data to CSV format with proper typing
       const csvContent =
         "data:text/csv;charset=utf-8," +
         [
-          Object.keys(data[0] || {}),
-          ...data.map((row) => Object.values(row as any)),
+          headers, // Header row
+          ...data.map((row) => {
+            const typedRow = row as Record<string, unknown>;
+            return headers.map((header) => {
+              const value = typedRow[header];
+              // Handle different data types safely
+              if (value === null || value === undefined) {
+                return "";
+              }
+              if (typeof value === "string" && value.includes(",")) {
+                return `"${value}"`;
+              }
+              return String(value);
+            });
+          }),
         ]
-          .map((row) => (row as any[]).join(","))
+          .map((row) => (Array.isArray(row) ? row.join(",") : row))
           .join("\n");
 
       const link = document.createElement("a");
