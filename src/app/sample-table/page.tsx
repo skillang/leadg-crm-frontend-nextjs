@@ -124,7 +124,6 @@ export default function DemoPage() {
         description="A comprehensive view of all your leads with sorting, filtering, and actions"
         onAddNew={handleAddLead}
         onExportCsv={() => console.log("Export CSV from DataTable")}
-        onCustomize={() => console.log("Customize from DataTable")}
       />
 
       {/* Footer Stats */}

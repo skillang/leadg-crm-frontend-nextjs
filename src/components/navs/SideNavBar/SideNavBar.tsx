@@ -36,7 +36,7 @@ const items = [
   },
   {
     title: "My Leads",
-    url: "/my-leads",
+    url: "/sample-table",
     icon: Users,
   },
   {

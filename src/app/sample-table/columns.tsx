@@ -160,7 +160,7 @@ const ActionsCell = ({ row }: { row: any }) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleViewDetails}>
-          View Details
+          View Lead
         </DropdownMenuItem>
         <DropdownMenuItem>Edit Lead</DropdownMenuItem>
         <DropdownMenuSeparator />

@@ -1,26 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Star, Phone, Mail, ExternalLink, Edit } from "lucide-react";
 import {
-  ArrowLeft,
-  Star,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  User,
-  Building,
-  FileText,
-  Activity,
-  Edit,
-  MessageSquare,
-  Globe,
-  Download,
-  ExternalLink,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Simple Card components
 const Card = ({
@@ -67,6 +61,16 @@ const CardContent = ({
   className?: string;
 }) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
 
+// Tab definitions
+const tabs = [
+  { id: "timeline", label: "Timeline" },
+  { id: "tasks", label: "Tasks & reminders" },
+  { id: "notes", label: "Notes" },
+  { id: "documents", label: "Documents" },
+  { id: "activity", label: "Activity log" },
+  { id: "contacts", label: "Contacts" },
+];
+
 // Stage color mapping
 const getStageColor = (stage: string) => {
   const colors: Record<string, string> = {
@@ -80,48 +84,17 @@ const getStageColor = (stage: string) => {
   return colors[stage] || "bg-gray-100 text-gray-800";
 };
 
-// Activity type icons
-const getActivityIcon = (type: string) => {
-  const icons: Record<string, any> = {
-    call: Phone,
-    email: Mail,
-    meeting: Calendar,
-    note: FileText,
-    stage_change: Activity,
-    document_upload: FileText,
-  };
-  return icons[type] || Activity;
-};
-
-// Format file size
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
 // Format date
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
     day: "numeric",
-  });
-};
-
-const formatDateTime = (dateString: string) => {
-  return new Date(dateString).toLocaleString("en-US", {
-    year: "numeric",
     month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric",
   });
 };
 
 export default function LeadDetailsPage() {
+  const [activeTab, setActiveTab] = useState("timeline");
   const params = useParams();
   const router = useRouter();
   const leadId = params?.leadId as string;
@@ -145,6 +118,13 @@ export default function LeadDetailsPage() {
   const handleEmail = () => {
     if (leadDetails?.email) {
       window.open(`mailto:${leadDetails.email}`, "_self");
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (leadDetails?.contact) {
+      const cleanNumber = leadDetails.contact.replace(/[^\d]/g, "");
+      window.open(`https://wa.me/${cleanNumber}`, "_blank");
     }
   };
 
@@ -178,324 +158,317 @@ export default function LeadDetailsPage() {
     );
   }
 
-  return (
-    <div className="container mx-auto py-8 space-y-6">
-      {/* Breadcrumb and Back Button */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Button variant="ghost" onClick={handleBack} className="p-2">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <span>My leads</span>
-        <span>/</span>
-        <span className="text-gray-900 font-medium">{leadDetails.name}</span>
-      </div>
+  // Render tab content
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "timeline":
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Timeline Content</h3>
+            <p className="text-gray-600">
+              Timeline activities and events will be displayed here...
+            </p>
+          </div>
+        );
+      case "tasks":
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              Tasks & Reminders Content
+            </h3>
+            <p className="text-gray-600">
+              Tasks and reminders will be displayed here...
+            </p>
+          </div>
+        );
+      case "notes":
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Notes Content</h3>
+            <p className="text-gray-600">
+              Lead notes will be displayed here...
+            </p>
+          </div>
+        );
+      case "documents":
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Documents Content</h3>
+            <p className="text-gray-600">
+              Uploaded documents will be displayed here...
+            </p>
+          </div>
+        );
+      case "activity":
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Activity Log Content</h3>
+            <p className="text-gray-600">
+              Activity log entries will be displayed here...
+            </p>
+          </div>
+        );
+      case "contacts":
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Contacts Content</h3>
+            <p className="text-gray-600">
+              Related contacts will be displayed here...
+            </p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container mx-auto py-8 space-y-6">
+        {/* Top Header */}
+        <div className="flex items-center">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Button variant="ghost" onClick={handleBack} className="p-2">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <span>My leads</span>
+            <span>/</span>
+            <span className="text-blue-600 font-medium">
+              {leadDetails.name}
+            </span>
+          </div>
+        </div>
+
+        {/* Lead Header */}
+        <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <Star className="h-5 w-5 text-gray-400" />
-              <h1 className="text-3xl font-bold">{leadDetails.name}</h1>
-              <Badge className={`${getStageColor(leadDetails.stage)} text-sm`}>
-                {leadDetails.stage}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="bg-green-100 text-green-800"
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
+                <Badge className="bg-green-100 text-green-800 text-sm">
+                  High Score
+                </Badge>
+                <Badge className="bg-blue-100 text-blue-800 text-sm">
+                  IELTS Ready
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Stage Dropdown */}
+              <div className="relative">
+                <select className="appearance-none bg-orange-100 text-orange-800 px-3 py-1 rounded text-sm border border-orange-200 pr-8">
+                  <option>Contacted</option>
+                  <option>First call</option>
+                  <option>Qualified</option>
+                  <option>Proposal</option>
+                  <option>Closed won</option>
+                  <option>Closed lost</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <svg
+                    className="w-4 h-4 text-orange-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <Button
+                onClick={handleCall}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                High score
-              </Badge>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                IELTS ready
-              </Badge>
+                <Phone className="mr-2 h-4 w-4" />
+                Call
+              </Button>
+              <Button
+                onClick={handleEmail}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Mail
+              </Button>
+              <Button
+                onClick={handleWhatsApp}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Phone className="mr-2 h-4 w-4" />
+                Whatsapp
+              </Button>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleCall}>
-            <Phone className="mr-2 h-4 w-4" />
-            Call
-          </Button>
-          <Button variant="outline" onClick={handleEmail}>
-            <Mail className="mr-2 h-4 w-4" />
-            Email
-          </Button>
-          <Button>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-        </div>
-      </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Overview */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Overview Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Name:
-                    </label>
-                    <p className="text-gray-900">{leadDetails.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Lead ID:
-                    </label>
-                    <p className="text-gray-900">{leadDetails.leadId}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Phone number:
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-gray-900">{leadDetails.phoneNumber}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600"
-                      >
-                        Request to view
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Email:
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-gray-900">{leadDetails.email}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600"
-                      >
-                        Request to view
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Country of interest:
-                    </label>
-                    <p className="text-gray-900">
-                      {leadDetails.countryOfInterest.join(", ")}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Course level:
-                    </label>
-                    <p className="text-gray-900">{leadDetails.courseLevel}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Source:
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-gray-900">{leadDetails.source}</p>
-                      <ExternalLink className="h-4 w-4 text-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Created on:
-                    </label>
-                    <p className="text-gray-900">
-                      {formatDate(leadDetails.createdOn)}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Tags:
-                    </label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {leadDetails.tags.map((tag, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="text-xs"
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left Column - Overview (Fixed) */}
+          <div className="col-span-12 md:col-span-5">
+            <Card>
+              <CardHeader>
+                <CardTitle>Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableBody>
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6 w-1/3">
+                        Name:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.name}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Lead ID:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.leadId}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Phone number:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-gray-600 border-gray-300"
                         >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                          Request to view
+                        </Button>
+                      </TableCell>
+                    </TableRow>
 
-          {/* Activity History */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {leadDetails.leadHistory.map((activity) => {
-                  const IconComponent = getActivityIcon(activity.type);
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex gap-3 p-3 border rounded-lg"
-                    >
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <IconComponent className="h-4 w-4 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">{activity.title}</h4>
-                          <span className="text-sm text-gray-500">
-                            {formatDateTime(activity.timestamp)}
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Email:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-gray-600 border-gray-300"
+                        >
+                          Request to view
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Country of interest:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.countryOfInterest.join(", ")}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Course level:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.courseLevel}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Source:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-900">
+                            {leadDetails.source}
                           </span>
+                          <ExternalLink className="h-4 w-4 text-blue-600" />
                         </div>
-                        <p className="text-gray-600 text-sm mt-1">
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          by {activity.performedBy}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                      </TableCell>
+                    </TableRow>
 
-        {/* Right Column - Additional Info */}
-        <div className="space-y-6">
-          {/* Lead Score */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Lead Score</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">
-                  {leadDetails.leadScore}
-                </div>
-                <p className="text-sm text-gray-500">Out of 100</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: `${leadDetails.leadScore}%` }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Created on:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {formatDate(leadDetails.createdOn)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
 
-          {/* Contact Preferences */}
-          {leadDetails.preferences && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Preferences</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Preferred method:
-                    </label>
-                    <p className="text-gray-900 capitalize">
-                      {leadDetails.preferences.communicationMethod}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Best time:
-                    </label>
-                    <p className="text-gray-900">
-                      {leadDetails.preferences.bestTimeToContact}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Timezone:
-                    </label>
-                    <p className="text-gray-900">
-                      {leadDetails.preferences.timezone}
-                    </p>
-                  </div>
-                </div>
+                    <TableRow>
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Tags:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <div className="flex flex-wrap gap-2">
+                          {leadDetails.tags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs bg-gray-100 text-gray-700"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
-          )}
+          </div>
 
-          {/* Address */}
-          {leadDetails.address && (
+          {/* Right Column - Tabbed Interface */}
+          <div className="col-span-12 md:col-span-7">
             <Card>
-              <CardHeader>
-                <CardTitle>Address</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-gray-500 mt-1" />
-                  <div>
-                    {leadDetails.address.street && (
-                      <p>{leadDetails.address.street}</p>
-                    )}
-                    <p>
-                      {leadDetails.address.city &&
-                        `${leadDetails.address.city}, `}
-                      {leadDetails.address.state &&
-                        `${leadDetails.address.state} `}
-                      {leadDetails.address.zipCode}
-                    </p>
-                    <p>{leadDetails.address.country}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Documents */}
-          {leadDetails.documents.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {leadDetails.documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-2 border rounded"
+              {/* Tab Navigation */}
+              <div className="border-b">
+                <div className="flex space-x-8 px-6">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                        activeTab === tab.id
+                          ? "border-blue-500 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium">{doc.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {formatFileSize(doc.size)} •{" "}
-                            {formatDate(doc.uploadedAt)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
+                      {tab.label}
+                    </button>
                   ))}
                 </div>
-              </CardContent>
+              </div>
+
+              {/* Tab Content */}
+              <div className="min-h-[600px]">{renderTabContent()}</div>
             </Card>
-          )}
+          </div>
         </div>
       </div>
     </div>
