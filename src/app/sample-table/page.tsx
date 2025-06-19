@@ -19,8 +19,8 @@ export default function DemoPage() {
     // refetch
   } = useGetLeadsQuery();
 
-  // Get filters from Redux
-  // const filters = useAppSelector(selectFilters);
+  //Get filters from Redux
+  //const filters = useAppSelector(selectFilters);
 
   // Create filtered leads selector with current leads data
   const filteredLeadsSelector = useMemo(
