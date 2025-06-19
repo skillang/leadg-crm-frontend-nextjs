@@ -1,3 +1,5 @@
+// src/redux/types/Leads.ts (Fixed User interface)
+
 export interface Lead {
   id: string;
   stage: string;
@@ -50,7 +52,6 @@ export interface UpdateLeadNotesRequest {
   notes: string;
 }
 
-// Fixed: Added explicit properties instead of empty extending interface
 export interface CreateLeadRequest {
   stage: string;
   name: string;
@@ -76,4 +77,44 @@ export interface LeadStats {
   bySource: Record<string, number>;
   averageScore: number;
   conversionRate: number;
+}
+
+// UPDATED: Authentication types to match FastAPI response
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  role: "admin" | "user"; // lowercase to match FastAPI
+  is_active: boolean;
+  phone: string;
+  department: string;
+  created_at: string;
+  last_login: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  remember_me?: boolean;
+}
+
+export interface RegisterData {
+  department: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  password: string;
+  phone: string;
+  role: "admin" | "user";
+  username: string;
 }

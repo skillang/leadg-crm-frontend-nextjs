@@ -7,7 +7,7 @@ import {
   // selectFilters,
   createFilteredLeadsSelector,
   // calculateLeadStats,
-} from "@/redux/selectors/leadsSelectors";
+} from "@/redux/selectors";
 import { useGetLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw } from "lucide-react";
 

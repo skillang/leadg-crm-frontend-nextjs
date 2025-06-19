@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import SideNavBarComp from "@/components/navs/SideNavBar/SideNavBar";
 import TopBarComp from "@/components/navs/TopBar/TopBar";
 import { ReduxProvider } from "@/components/providers/redux-providers";
+import AuthLayout from "@/components/layouts/AuthLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,14 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-          <SidebarProvider>
-            <SideNavBarComp />
-            <main className="w-full h-screen">
-              <SidebarTrigger />
-              <TopBarComp />
-              <div className="px-8">{children}</div>
-            </main>
-          </SidebarProvider>
+          <AuthLayout>{children}</AuthLayout>
         </ReduxProvider>
       </body>
     </html>
