@@ -74,7 +74,6 @@ export interface LeadStats {
   total: number;
   byStage: Record<string, number>;
   byDepartment: Record<string, number>;
-  bySource: Record<string, number>;
   averageScore: number;
   conversionRate: number;
 }

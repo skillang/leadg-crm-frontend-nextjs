@@ -1,3 +1,5 @@
+// src/app/sample-table/data-table.tsx
+
 "use client";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
