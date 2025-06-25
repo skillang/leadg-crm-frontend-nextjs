@@ -19,7 +19,7 @@ const baseQuery = fetchBaseQuery({
 
 // Transform backend data to frontend format
 const transformApiLead = (apiLead: any): Lead => ({
-  id: apiLead,
+  id: apiLead.id || apiLead.lead_id,
   name: apiLead.name,
   stage: apiLead.stage || apiLead.status,
   createdOn: apiLead.created_at?.split("T")[0] || "",
@@ -35,6 +35,19 @@ const transformApiLead = (apiLead: any): Lead => ({
   department: "Sales",
   notes: apiLead.notes || "",
 });
+
+// Interface for the new update endpoint
+interface UpdateLeadRequest {
+  lead_id: string;
+  name: string;
+  lead_score: number;
+  stage: string;
+  // Add other fields that might be updated
+  email?: string;
+  contact_number?: string;
+  source?: string;
+  notes?: string;
+}
 
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
@@ -63,6 +76,41 @@ export const leadsApi = createApi({
       providesTags: (result, error, id) => [{ type: "Lead", id }],
     }),
 
+    getLeadDetails: builder.query<any, string>({
+      query: (leadId) => `/leads/${leadId}`,
+      transformResponse: (response: any) => {
+        // Transform the response to match LeadDetails interface
+        const lead = response.lead || response;
+        return {
+          id: lead.id || lead.lead_id,
+          leadId: lead.lead_id || lead.id,
+          name: lead.name,
+          email: lead.email,
+          phoneNumber: lead.contact_number || lead.phone_number,
+          contact: lead.contact_number || lead.phone_number,
+          countryOfInterest: Array.isArray(lead.country_of_interest)
+            ? lead.country_of_interest
+            : lead.country_of_interest
+            ? [lead.country_of_interest]
+            : [],
+          courseLevel: lead.course_level || "Not specified",
+          source: lead.source,
+          tags: lead.tags || [],
+          createdOn: lead.created_at?.split("T")[0] || "",
+          stage: lead.stage || lead.status,
+          leadScore: lead.lead_score || 0,
+          department: "Sales",
+          notes: lead.notes || "",
+          lastActivity:
+            lead.last_contacted?.split("T")[0] ||
+            lead.updated_at?.split("T")[0] ||
+            "",
+          media: "Email",
+        };
+      },
+      providesTags: (result, error, id) => [{ type: "Lead", id }],
+    }),
+
     getLeadStats: builder.query<any, void>({
       query: () => "/leads/stats",
       transformResponse: (response: any) => ({
@@ -86,14 +134,42 @@ export const leadsApi = createApi({
       providesTags: ["LeadStats"],
     }),
 
-    updateLeadStage: builder.mutation<Lead, { id: string; stage: string }>({
-      query: ({ id, stage }) => ({
-        url: `/leads/${id}/status`,
-        method: "PATCH",
+    // UPDATED: New updateLeadStage mutation using the /leads/update endpoint
+    updateLeadStage: builder.mutation<
+      any,
+      {
+        leadId: string;
+        stage: string;
+        currentLead: Lead; // Pass the current lead data to preserve other fields
+      }
+    >({
+      query: ({ leadId, stage, currentLead }) => ({
+        url: "/leads/update",
+        method: "PUT",
         body: {
-          status: stage,
-          notes: `Stage updated to ${stage}`,
-        },
+          lead_id: leadId,
+          name: currentLead.name,
+          lead_score: currentLead.leadScore,
+          stage: stage,
+          email: currentLead.email,
+          contact_number: currentLead.contact,
+          source: currentLead.source,
+          notes: currentLead.notes,
+        } as UpdateLeadRequest,
+      }),
+      invalidatesTags: ["Lead", "LeadStats"],
+      transformResponse: (response: any) => {
+        // The API might return the updated lead
+        return response.lead || response;
+      },
+    }),
+
+    // Alternative mutation if you want to update multiple fields at once
+    updateLead: builder.mutation<any, UpdateLeadRequest>({
+      query: (updateData) => ({
+        url: "/leads/update",
+        method: "PUT",
+        body: updateData,
       }),
       invalidatesTags: ["Lead", "LeadStats"],
     }),
@@ -122,15 +198,6 @@ export const leadsApi = createApi({
       invalidatesTags: ["Lead", "LeadStats"],
     }),
 
-    updateLead: builder.mutation<Lead, { id: string; notes: string }>({
-      query: ({ id, notes }) => ({
-        url: `/leads/${id}`,
-        method: "PUT",
-        body: { notes },
-      }),
-      invalidatesTags: ["Lead"],
-    }),
-
     getAssignableUsers: builder.query<any[], void>({
       query: () => "/leads/users/assignable",
       transformResponse: (response: any) => response.users || [],
@@ -142,10 +209,11 @@ export const {
   useGetLeadsQuery,
   useGetMyLeadsQuery,
   useGetLeadQuery,
+  useGetLeadDetailsQuery,
   useGetLeadStatsQuery,
   useUpdateLeadStageMutation,
+  useUpdateLeadMutation,
   useCreateLeadMutation,
   useDeleteLeadMutation,
-  useUpdateLeadMutation,
   useGetAssignableUsersQuery,
 } = leadsApi;

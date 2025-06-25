@@ -1,4 +1,4 @@
-// src/app/sample-table/columns.tsx - COMPLETE FILE (Real API)
+// src/app/sample-table/columns.tsx - UPDATED for new API endpoint
 
 "use client";
 import { useRouter } from "next/navigation";
@@ -111,25 +111,46 @@ const handleEmail = (email: string) => {
   window.open(`mailto:${email}`, "_self");
 };
 
-// Stage Select Cell Component with Real API
+// UPDATED: Stage Select Cell Component with new API
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
   const stage = row.getValue("stage") as string;
-  const leadId = row.original.id;
+  const currentLead = row.original; // Get the full lead object
 
   const handleStageChange = async (newStage: string) => {
     if (newStage === stage) return; // No change needed
 
     try {
-      console.log(`🔄 Updating lead ${leadId} stage: ${stage} → ${newStage}`);
-      await updateStage({ id: leadId, stage: newStage }).unwrap();
+      console.log(
+        `🔄 Updating lead ${currentLead.id} stage: ${stage} → ${newStage}`
+      );
+
+      // UPDATED: Pass the current lead data along with the new stage
+      await updateStage({
+        leadId: currentLead.id,
+        stage: newStage,
+        currentLead: currentLead, // Pass the full lead object to preserve other fields
+      }).unwrap();
+
       console.log(`✅ Stage updated successfully: ${newStage}`);
     } catch (error: any) {
       console.error("Failed to update stage:", error);
 
       // Show user-friendly error message
-      const errorMessage =
-        error?.data?.detail || error?.message || "Failed to update stage";
+      let errorMessage = "Failed to update stage";
+
+      if (error?.data?.detail) {
+        if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail
+            .map((err: any) => err.msg)
+            .join(", ");
+        } else {
+          errorMessage = error.data.detail;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       alert(`Error: ${errorMessage}`);
     }
   };
@@ -146,6 +167,11 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded">
           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+        </div>
+      )}
+      {error && (
+        <div className="absolute top-full left-0 mt-1 p-2 bg-red-100 border border-red-200 rounded text-xs text-red-600 z-10">
+          Update failed. Please try again.
         </div>
       )}
     </div>
@@ -283,7 +309,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Column Definitions
+// Column Definitions (unchanged from original)
 export const columns: ColumnDef<Lead>[] = [
   // Selection Column
   {
@@ -354,7 +380,7 @@ export const columns: ColumnDef<Lead>[] = [
     },
   },
 
-  // Stage Column (with real API updates)
+  // Stage Column (UPDATED with new API logic)
   {
     accessorKey: "stage",
     header: "Stage",

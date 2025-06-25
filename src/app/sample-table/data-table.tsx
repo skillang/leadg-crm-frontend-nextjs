@@ -320,7 +320,7 @@ export function DataTable<TData, TValue>({
                   {getSortIcon("createdDate")}
                 </span>
               </DropdownMenuItem>
-              <DropdownMenuItem
+              {/* <DropdownMenuItem
                 onClick={() => handleSort("score")}
                 className="cursor-pointer"
               >
@@ -328,7 +328,7 @@ export function DataTable<TData, TValue>({
                   Lead score
                   {getSortIcon("score")}
                 </span>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem
                 onClick={() => handleSort("lastActivity")}
                 className="cursor-pointer"
