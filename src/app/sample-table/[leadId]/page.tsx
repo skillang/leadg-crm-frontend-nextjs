@@ -1,4 +1,4 @@
-// src/app/sample-table/[leadId]/page.tsx (UPDATED with Notes Integration)
+// src/app/sample-table/[leadId]/page.tsx (UPDATED with Tasks Integration)
 
 "use client";
 
@@ -30,7 +30,8 @@ import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import NotesContainer from "@/components/notes/NotesContainer"; // NEW: Import NotesContainer
+import NotesContainer from "@/components/notes/NotesContainer"; // Existing import
+import TasksContainer from "@/components/tasks/TasksContainer"; // NEW: Import TasksContainer
 
 // Simple Card components
 const Card = ({
@@ -131,7 +132,7 @@ const getPriorityColor = (priority: string) => {
 // Tab definitions
 const tabs = [
   { id: "timeline", label: "Timeline" },
-  { id: "tasks", label: "Tasks & reminders" },
+  { id: "tasks", label: "Tasks & reminders" }, // UPDATED: Changed label to match Figma
   { id: "notes", label: "Notes" },
   { id: "documents", label: "Documents" },
   { id: "activity", label: "Activity log" },
@@ -271,7 +272,7 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // UPDATED: Render tab content with real NotesContainer
+  // UPDATED: Render tab content with TasksContainer integration
   const renderTabContent = () => {
     switch (activeTab) {
       case "timeline":
@@ -286,18 +287,13 @@ export default function LeadDetailsPage() {
       case "tasks":
         return (
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              Tasks & Reminders Content
-            </h3>
-            <p className="text-gray-600">
-              Tasks and reminders will be displayed here...
-            </p>
+            {/* NEW: Use TasksContainer instead of placeholder */}
+            <TasksContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "notes":
         return (
           <div className="p-6">
-            {/* UPDATED: Replace placeholder with real NotesContainer */}
             <NotesContainer leadId={leadDetails.leadId} />
           </div>
         );

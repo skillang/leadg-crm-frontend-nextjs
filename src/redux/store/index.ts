@@ -1,11 +1,12 @@
-// src/redux/store/index.ts (UPDATED)
+// src/redux/store/index.ts (CORRECTED)
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import { combineReducers } from "@reduxjs/toolkit";
 import { leadsApi } from "../slices/leadsApi";
 import { authApi } from "../slices/authApi";
-import { notesApi } from "../slices/notesApi"; // UPDATED: Import simplified notesApi
+import { notesApi } from "../slices/notesApi";
+import { tasksApi } from "../slices/tasksApi"; // NEW: Import tasksApi
 import leadsReducer from "../slices/leadsSlices";
 import authReducer from "../slices/authSlice";
 
@@ -22,7 +23,8 @@ const rootReducer = combineReducers({
   // RTK Query APIs
   [leadsApi.reducerPath]: leadsApi.reducer,
   [authApi.reducerPath]: authApi.reducer,
-  [notesApi.reducerPath]: notesApi.reducer, // UPDATED: Add simplified notesApi reducer
+  [notesApi.reducerPath]: notesApi.reducer,
+  [tasksApi.reducerPath]: tasksApi.reducer, // NEW: Add tasksApi reducer
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -49,7 +51,8 @@ export const store = configureStore({
     }).concat(
       leadsApi.middleware,
       authApi.middleware,
-      notesApi.middleware // UPDATED: Add simplified notesApi middleware
+      notesApi.middleware,
+      tasksApi.middleware // NEW: Add tasksApi middleware
     ),
 });
 
