@@ -1,10 +1,11 @@
-// src/redux/store/index.ts
+// src/redux/store/index.ts (UPDATED)
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import { combineReducers } from "@reduxjs/toolkit";
 import { leadsApi } from "../slices/leadsApi";
 import { authApi } from "../slices/authApi";
+import { notesApi } from "../slices/notesApi"; // UPDATED: Import simplified notesApi
 import leadsReducer from "../slices/leadsSlices";
 import authReducer from "../slices/authSlice";
 
@@ -21,6 +22,7 @@ const rootReducer = combineReducers({
   // RTK Query APIs
   [leadsApi.reducerPath]: leadsApi.reducer,
   [authApi.reducerPath]: authApi.reducer,
+  [notesApi.reducerPath]: notesApi.reducer, // UPDATED: Add simplified notesApi reducer
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -44,7 +46,11 @@ export const store = configureStore({
           "persist/PAUSE",
         ],
       },
-    }).concat(leadsApi.middleware, authApi.middleware),
+    }).concat(
+      leadsApi.middleware,
+      authApi.middleware,
+      notesApi.middleware // UPDATED: Add simplified notesApi middleware
+    ),
 });
 
 export const persistor = persistStore(store);

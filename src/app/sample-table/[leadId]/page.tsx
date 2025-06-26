@@ -1,3 +1,5 @@
+// src/app/sample-table/[leadId]/page.tsx (UPDATED with Notes Integration)
+
 "use client";
 
 import { useState } from "react";
@@ -28,6 +30,7 @@ import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import NotesContainer from "@/components/notes/NotesContainer"; // NEW: Import NotesContainer
 
 // Simple Card components
 const Card = ({
@@ -268,7 +271,7 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // Render tab content
+  // UPDATED: Render tab content with real NotesContainer
   const renderTabContent = () => {
     switch (activeTab) {
       case "timeline":
@@ -294,71 +297,8 @@ export default function LeadDetailsPage() {
       case "notes":
         return (
           <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 ">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search leads..."
-                    // value={globalFilter ?? ""}
-                    // onChange={(event) =>
-                    //   setGlobalFilter(String(event.target.value))
-                    // }
-                    className="pl-8 w-40"
-                  />
-                </div>
-                <Button variant="outline">
-                  <ClipboardPenLineIcon /> Created
-                </Button>
-                <Button variant="outline">
-                  <HashIcon /> Tags
-                </Button>
-                <Button variant="outline">
-                  <AtSignIcon /> Mentions
-                </Button>{" "}
-              </div>
-
-              <Button variant="outline">
-                <PlusIcon /> New Note
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 mb-4">
-              <Button variant="outline">
-                <FolderMinusIcon /> Documents
-              </Button>
-              <Button variant="outline" className="flex items-center gap-2">
-                <SlidersHorizontalIcon className="h-4 w-4" />
-                Sort by
-                {/* <ChevronDown className="h-4 w-4" /> */}
-              </Button>
-            </div>
-            <div className="text-gray-600">
-              {leadDetails.notes && (
-                <Card className="mt-6">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Checkbox /> Notes Title
-                    </div>
-
-                    <div className="gap-2 flex items-center">
-                      <Button variant="outline" className="p-0">
-                        <Pen className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" className="p-0">
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div> Last Updated: Today, 2 PM</div>
-
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      {leadDetails.notes}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            {/* UPDATED: Replace placeholder with real NotesContainer */}
+            <NotesContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "documents":
@@ -636,20 +576,6 @@ export default function LeadDetailsPage() {
                 </Table>
               </CardContent>
             </Card>
-
-            {/* Notes Section */}
-            {/* {leadDetails.notes && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {leadDetails.notes}
-                  </p>
-                </CardContent>
-              </Card>
-            )} */}
           </div>
 
           {/* Right Column - Tabbed Interface */}

@@ -1,4 +1,4 @@
-// src/app/sample-table/page.tsx - 100% REAL API (NO MOCK)
+// src/app/sample-table/page.tsx
 
 "use client";
 import { useMemo } from "react";
