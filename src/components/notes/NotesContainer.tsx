@@ -91,25 +91,116 @@ const NotesContainer: React.FC<NotesContainerProps> = ({ leadId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header with search and new note button */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1">
-          {/* Search */}
+      {/* Updated Filtering Header - Clean Layout */}
+      <div className="space-y-4">
+        {/* First Row: Only Search + New Note Button */}
+        <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search notes..."
+              placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
+              className="pl-10 border-gray-300"
             />
           </div>
+
+          <Button
+            onClick={handleCreateNote}
+            className="gap-2 bg-gray-900 hover:bg-gray-800"
+          >
+            <PlusIcon className="h-4 w-4" />
+            New note
+          </Button>
         </div>
 
-        <Button onClick={handleCreateNote} className="gap-2">
-          <PlusIcon className="h-4 w-4" />
-          New Note
-        </Button>
+        {/* Second Row: All Filter Options */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" className="gap-2">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            Created by
+          </Button>
+
+          <Button variant="outline" className="gap-2">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+              />
+            </svg>
+            Tags
+          </Button>
+
+          <Button variant="outline" className="gap-2">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+              />
+            </svg>
+            Mentions
+          </Button>
+
+          <Button variant="outline" className="gap-2">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Documents
+          </Button>
+
+          <Button variant="outline" className="gap-2">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"
+              />
+            </svg>
+            Sort
+          </Button>
+        </div>
       </div>
 
       {/* Notes List */}

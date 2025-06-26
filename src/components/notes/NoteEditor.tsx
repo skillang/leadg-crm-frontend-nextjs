@@ -1,4 +1,4 @@
-// src/components/notes/NoteEditor.tsx (SIMPLIFIED)
+// src/components/notes/NoteEditor.tsx (UPDATED with Persistent Tags and Tick Marks)
 
 "use client";
 
@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { X, Check } from "lucide-react";
 import {
   Note,
   CreateNoteRequest,
@@ -71,6 +74,14 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     "Budget",
     "Visa",
     "Documents",
+    "Australia",
+    "New Zealand",
+    "Masters",
+    "Bachelors",
+    "PhD",
+    "Scholarship",
+    "Interview",
+    "Application",
   ];
 
   // Reset form when note changes or dialog opens
@@ -101,15 +112,30 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }));
   };
 
-  const handleTagsChange = (selectedTags: string) => {
-    // Convert comma-separated string to array
-    const tagsArray = selectedTags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag);
+  const handleTagToggle = (selectedTag: string) => {
+    setFormData((prev) => {
+      const isSelected = prev.tags.includes(selectedTag);
+
+      if (isSelected) {
+        // Remove tag if already selected
+        return {
+          ...prev,
+          tags: prev.tags.filter((tag) => tag !== selectedTag),
+        };
+      } else {
+        // Add tag if not selected
+        return {
+          ...prev,
+          tags: [...prev.tags, selectedTag],
+        };
+      }
+    });
+  };
+
+  const handleTagRemove = (tagToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
-      tags: tagsArray,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
     }));
   };
 
@@ -165,6 +191,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     onClose();
   };
 
+  const getSelectedTagsText = () => {
+    if (formData.tags.length === 0) return "Select tags";
+    if (formData.tags.length === 1)
+      return `${formData.tags.length} tag selected`;
+    return `${formData.tags.length} tags selected`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
@@ -202,37 +235,64 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             />
           </div>
 
-          {/* Tags */}
+          {/* Tags - Multi-Select with Persistent Options */}
           <div className="space-y-2">
             <Label htmlFor="tags" className="text-sm font-medium">
               Tags *
             </Label>
+
+            {/* Tag Selection Dropdown with Checkmarks */}
             <Select
-              value={formData.tags.join(", ")}
-              onValueChange={handleTagsChange}
+              onValueChange={handleTagToggle}
               disabled={isLoading}
+              value=""
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select tags" />
+                <SelectValue placeholder={getSelectedTagsText()} />
               </SelectTrigger>
               <SelectContent>
-                {tagOptions.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag}
-                  </SelectItem>
-                ))}
-                {/* Allow custom combination */}
-                <SelectItem value="USA, Germany, IELTS Ready">
-                  USA, Germany, IELTS Ready
-                </SelectItem>
-                <SelectItem value="Engineering, Canada">
-                  Engineering, Canada
-                </SelectItem>
-                <SelectItem value="MBA, UK, Fall 2025">
-                  MBA, UK, Fall 2025
-                </SelectItem>
+                {tagOptions.map((tag) => {
+                  const isSelected = formData.tags.includes(tag);
+                  return (
+                    <SelectItem
+                      key={tag}
+                      value={tag}
+                      className="flex items-center justify-between cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="flex-1">{tag}</span>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-blue-600 ml-auto" />
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
+
+            {/* Selected Tags Display */}
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md min-h-[40px] bg-gray-50">
+                {formData.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="flex items-center gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleTagRemove(tag)}
+                      disabled={isLoading}
+                      className="hover:bg-blue-300 rounded-full p-0.5 ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

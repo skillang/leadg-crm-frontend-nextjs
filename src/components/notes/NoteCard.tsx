@@ -1,12 +1,13 @@
-// src/components/notes/NoteCard.tsx (SIMPLIFIED)
+// src/components/notes/NoteCard.tsx (UPDATED - Clean Design)
 
 "use client";
 
 import React from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pen, Trash } from "lucide-react";
+import { Pen, Trash, Calendar, Clock } from "lucide-react";
 import { Note } from "@/models/types/note";
 import { useDeleteNoteMutation } from "@/redux/slices/notesApi";
 import { cn } from "@/lib/utils";
@@ -58,29 +59,48 @@ const NoteCard: React.FC<NoteCardProps> = ({
     const isToday = date.toDateString() === today.toDateString();
 
     if (isToday) {
-      return `Today ${date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })}`;
+      return {
+        dateText: "Today",
+        timeText: date.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      };
     } else {
-      return date.toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
+      return {
+        dateText: date.toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+        }),
+        timeText: date.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      };
     }
   };
+
+  const { dateText, timeText } = formatDate(note.updated_at);
+
+  const truncateContent = (content: string, maxLength: number = 150) => {
+    if (content.length <= maxLength)
+      return { text: content, isTruncated: false };
+    return { text: content.substring(0, maxLength), isTruncated: true };
+  };
+
+  const { text: truncatedContent, isTruncated } = truncateContent(note.content);
 
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md",
+        "transition-all duration-200 hover:shadow-md border border-gray-200",
         isSelected && "ring-2 ring-blue-500",
         className
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="flex items-center gap-3 flex-1">
           {onSelect && (
             <Checkbox
@@ -118,15 +138,56 @@ const NoteCard: React.FC<NoteCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <div className="mb-3">
-          <p className="text-xs text-gray-500 mb-2">
-            Last updated: {formatDate(note.updated_at)}
-          </p>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {note.content}
-          </p>
+      <CardContent className="pt-0 space-y-4">
+        {/* Last updated section */}
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <span className="font-medium">Last updated:</span>
+          <div className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            <span>{dateText}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="h-4 w-4" />
+            <span>{timeText}</span>
+          </div>
         </div>
+
+        {/* Content section */}
+        <div className="text-gray-700 text-sm leading-relaxed">
+          <span>{truncatedContent}</span>
+          {isTruncated && (
+            <>
+              <span>... </span>
+              <button
+                className="text-blue-600 hover:text-blue-800 font-medium"
+                onClick={() => {
+                  // Could expand content or open full view
+                  console.log("Read all clicked");
+                }}
+              >
+                read all
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Tags section - Now below the content */}
+        {note.tags && note.tags.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-sm text-gray-700 font-medium">Tags:</span>
+            <div className="flex flex-wrap gap-2">
+              {note.tags.map((tag, tagIndex) => (
+                <Badge
+                  key={tagIndex}
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm px-3 py-1"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
