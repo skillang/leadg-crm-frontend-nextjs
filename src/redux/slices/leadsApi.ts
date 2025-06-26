@@ -1,3 +1,5 @@
+// src/redux/slices/leadsApi.ts
+
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
 import { Lead, CreateLeadRequest } from "@/models/types/lead";
@@ -19,7 +21,8 @@ const baseQuery = fetchBaseQuery({
 
 // Transform backend data to frontend format
 const transformApiLead = (apiLead: any): Lead => ({
-  id: apiLead.id || apiLead.lead_id,
+  // ✅ FIX: Use lead_id (LD-1000 format) as primary ID
+  id: apiLead.lead_id || apiLead.id, // Priority to lead_id
   name: apiLead.name,
   stage: apiLead.stage || apiLead.status,
   createdOn: apiLead.created_at?.split("T")[0] || "",
@@ -36,6 +39,35 @@ const transformApiLead = (apiLead: any): Lead => ({
   notes: apiLead.notes || "",
 });
 
+// Transform backend response to frontend format
+const transformLeadDetailsResponse = (response: any): LeadDetailsResponse => {
+  const lead = response.lead;
+
+  return {
+    id: lead.system_info.id,
+    leadId: lead.system_info.lead_id,
+    name: lead.basic_info.name,
+    email: lead.basic_info.email,
+    phoneNumber: lead.basic_info.contact_number,
+    contact: lead.basic_info.contact_number,
+    countryOfInterest: lead.basic_info.country_of_interest || "",
+    courseLevel: lead.basic_info.course_level || "",
+    source: lead.basic_info.source,
+    stage: lead.status_and_tags.stage,
+    leadScore: lead.status_and_tags.lead_score,
+    priority: lead.status_and_tags.priority,
+    tags: lead.status_and_tags.tags || [],
+    assignedTo: lead.assignment.assigned_to,
+    assignedToName: lead.assignment.assigned_to_name,
+    notes: lead.additional_info.notes || "",
+    createdAt: lead.system_info.created_at,
+    updatedAt: lead.system_info.updated_at,
+    lastContacted: lead.system_info.last_contacted,
+    status: lead.system_info.status,
+    assignmentHistory: lead.assignment.assignment_history || [],
+  };
+};
+
 // Interface for the new update endpoint
 interface UpdateLeadRequest {
   lead_id: string;
@@ -47,6 +79,39 @@ interface UpdateLeadRequest {
   contact_number?: string;
   source?: string;
   notes?: string;
+}
+
+// Extended interface for detailed lead response
+interface LeadDetailsResponse {
+  id: string;
+  leadId: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  contact: string;
+  countryOfInterest: string;
+  courseLevel: string;
+  source: string;
+  stage: string;
+  leadScore: number;
+  priority: string;
+  tags: string[];
+  assignedTo: string;
+  assignedToName: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  lastContacted: string | null;
+  status: string;
+  assignmentHistory: Array<{
+    assigned_to: string;
+    assigned_to_name: string;
+    assigned_by: string;
+    assigned_by_name: string;
+    assigned_at: string;
+    assignment_method: string;
+    notes: string;
+  }>;
 }
 
 export const leadsApi = createApi({
@@ -76,40 +141,47 @@ export const leadsApi = createApi({
       providesTags: (result, error, id) => [{ type: "Lead", id }],
     }),
 
-    getLeadDetails: builder.query<any, string>({
+    getLeadDetails: builder.query<LeadDetailsResponse, string>({
       query: (leadId) => `/leads/${leadId}`,
-      transformResponse: (response: any) => {
-        // Transform the response to match LeadDetails interface
-        const lead = response.lead || response;
-        return {
-          id: lead.id || lead.lead_id,
-          leadId: lead.lead_id || lead.id,
-          name: lead.name,
-          email: lead.email,
-          phoneNumber: lead.contact_number || lead.phone_number,
-          contact: lead.contact_number || lead.phone_number,
-          countryOfInterest: Array.isArray(lead.country_of_interest)
-            ? lead.country_of_interest
-            : lead.country_of_interest
-            ? [lead.country_of_interest]
-            : [],
-          courseLevel: lead.course_level || "Not specified",
-          source: lead.source,
-          tags: lead.tags || [],
-          createdOn: lead.created_at?.split("T")[0] || "",
-          stage: lead.stage || lead.status,
-          leadScore: lead.lead_score || 0,
-          department: "Sales",
-          notes: lead.notes || "",
-          lastActivity:
-            lead.last_contacted?.split("T")[0] ||
-            lead.updated_at?.split("T")[0] ||
-            "",
-          media: "Email",
-        };
-      },
+      transformResponse: transformLeadDetailsResponse,
       providesTags: (result, error, id) => [{ type: "Lead", id }],
     }),
+
+    // ✅ ALSO UPDATE: getLeadDetails to use correct ID
+    // getLeadDetails: builder.query<any, string>({
+    //   query: (leadId) => `/leads/${leadId}`,
+    //   transformResponse: (response: any) => {
+    //     const lead = response.lead || response;
+    //     return {
+    //       // ✅ FIX: Use lead_id consistently
+    //       id: lead.lead_id || lead.id, // Priority to lead_id
+    //       leadId: lead.lead_id || lead.id,
+    //       name: lead.name,
+    //       email: lead.email,
+    //       phoneNumber: lead.contact_number || lead.phone_number,
+    //       contact: lead.contact_number || lead.phone_number,
+    //       countryOfInterest: Array.isArray(lead.country_of_interest)
+    //         ? lead.country_of_interest
+    //         : lead.country_of_interest
+    //         ? [lead.country_of_interest]
+    //         : [],
+    //       courseLevel: lead.course_level || "Not specified",
+    //       source: lead.source,
+    //       tags: lead.tags || [],
+    //       createdOn: lead.created_at?.split("T")[0] || "",
+    //       stage: lead.stage || lead.status,
+    //       leadScore: lead.lead_score || 0,
+    //       department: "Sales",
+    //       notes: lead.notes || "",
+    //       lastActivity:
+    //         lead.last_contacted?.split("T")[0] ||
+    //         lead.updated_at?.split("T")[0] ||
+    //         "",
+    //       media: "Email",
+    //     };
+    //   },
+    //   providesTags: (result, error, id) => [{ type: "Lead", id }],
+    // }),
 
     getLeadStats: builder.query<any, void>({
       query: () => "/leads/stats",
@@ -138,28 +210,33 @@ export const leadsApi = createApi({
     updateLeadStage: builder.mutation<
       any,
       {
-        leadId: string;
+        leadId: string; // This should be LD-1000 format
         stage: string;
-        currentLead: Lead; // Pass the current lead data to preserve other fields
+        currentLead: Lead;
       }
     >({
-      query: ({ leadId, stage, currentLead }) => ({
-        url: "/leads/update",
-        method: "PUT",
-        body: {
-          lead_id: leadId,
-          name: currentLead.name,
-          lead_score: currentLead.leadScore,
-          stage: stage,
-          email: currentLead.email,
-          contact_number: currentLead.contact,
-          source: currentLead.source,
-          notes: currentLead.notes,
-        } as UpdateLeadRequest,
-      }),
+      query: ({ leadId, stage, currentLead }) => {
+        console.log("🔍 API Call - Lead ID being sent:", leadId);
+        console.log("🔍 API Call - Current lead:", currentLead);
+
+        return {
+          url: "/leads/update",
+          method: "PUT",
+          body: {
+            lead_id: leadId, // ✅ Should now be LD-1000 format
+            name: currentLead.name,
+            lead_score: currentLead.leadScore,
+            stage: stage,
+            email: currentLead.email,
+            contact_number: currentLead.contact,
+            source: currentLead.source,
+            notes: currentLead.notes,
+          } as UpdateLeadRequest,
+        };
+      },
       invalidatesTags: ["Lead", "LeadStats"],
       transformResponse: (response: any) => {
-        // The API might return the updated lead
+        console.log("🎯 API Response:", response);
         return response.lead || response;
       },
     }),
@@ -209,7 +286,7 @@ export const {
   useGetLeadsQuery,
   useGetMyLeadsQuery,
   useGetLeadQuery,
-  useGetLeadDetailsQuery,
+  useGetLeadDetailsQuery, // This now returns the properly typed response
   useGetLeadStatsQuery,
   useUpdateLeadStageMutation,
   useUpdateLeadMutation,

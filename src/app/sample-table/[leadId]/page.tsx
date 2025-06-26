@@ -5,8 +5,29 @@ import { useParams, useRouter } from "next/navigation";
 import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Phone, Mail, ExternalLink } from "lucide-react";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import {
+  ArrowLeft,
+  Star,
+  Phone,
+  Mail,
+  ExternalLink,
+  PlusIcon,
+  AtSignIcon,
+  HashIcon,
+  ClipboardPenLineIcon,
+  Search,
+  NotebookTextIcon,
+  FolderMinusIcon,
+  SlidersHorizontalIcon,
+  Delete,
+  Trash,
+  Pen,
+} from "lucide-react";
+import { StageSelect } from "@/components/StageSelectComponent";
+import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Simple Card components
 const Card = ({
@@ -53,6 +74,57 @@ const CardContent = ({
   className?: string;
 }) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
 
+// Stage configurations (matching backend values)
+const LEAD_STAGES = [
+  {
+    value: "open",
+    label: "Open",
+    variant: "secondary" as const,
+    className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
+  },
+  {
+    value: "contacted",
+    label: "Contacted",
+    variant: "secondary" as const,
+    className:
+      "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200",
+  },
+  {
+    value: "qualified",
+    label: "Qualified",
+    variant: "secondary" as const,
+    className:
+      "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200",
+  },
+  {
+    value: "closed_won",
+    label: "Closed Won",
+    variant: "secondary" as const,
+    className:
+      "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
+  },
+  {
+    value: "closed_lost",
+    label: "Closed Lost",
+    variant: "secondary" as const,
+    className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200",
+  },
+];
+
+// Priority badge colors
+const getPriorityColor = (priority: string) => {
+  switch (priority.toLowerCase()) {
+    case "high":
+      return "bg-red-100 text-red-800";
+    case "medium":
+      return "bg-yellow-100 text-yellow-800";
+    case "low":
+      return "bg-green-100 text-green-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 // Tab definitions
 const tabs = [
   { id: "timeline", label: "Timeline" },
@@ -65,6 +137,7 @@ const tabs = [
 
 // Format date
 const formatDate = (dateString: string) => {
+  if (!dateString) return "Not available";
   return new Date(dateString).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
@@ -74,6 +147,8 @@ const formatDate = (dateString: string) => {
 
 export default function LeadDetailsPage() {
   const [activeTab, setActiveTab] = useState("timeline");
+  const [updateStage, { isLoading: isUpdatingStage }] =
+    useUpdateLeadStageMutation();
   const params = useParams();
   const router = useRouter();
   const leadId = params?.leadId as string;
@@ -101,12 +176,13 @@ export default function LeadDetailsPage() {
   };
 
   const handleWhatsApp = () => {
-    if (leadDetails?.contact) {
-      const cleanNumber = leadDetails.contact.replace(/[^\d]/g, "");
+    if (leadDetails?.phoneNumber) {
+      const cleanNumber = leadDetails.phoneNumber.replace(/[^\d]/g, "");
       window.open(`https://wa.me/${cleanNumber}`, "_blank");
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
       <div className="container mx-auto py-8">
@@ -118,6 +194,7 @@ export default function LeadDetailsPage() {
     );
   }
 
+  // Error state
   if (error || !leadDetails) {
     return (
       <div className="container mx-auto py-8">
@@ -136,6 +213,60 @@ export default function LeadDetailsPage() {
       </div>
     );
   }
+
+  const handleStageChange = async (newStage: string) => {
+    if (!leadDetails || newStage === leadDetails.stage) return;
+
+    try {
+      console.log(
+        `🔄 Updating lead ${leadDetails.leadId} stage: ${leadDetails.stage} → ${newStage}`
+      );
+
+      // Create a mock Lead object for the API call
+      const currentLead = {
+        id: leadDetails.id,
+        name: leadDetails.name,
+        stage: leadDetails.stage,
+        leadScore: leadDetails.leadScore,
+        contact: leadDetails.phoneNumber,
+        email: leadDetails.email,
+        source: leadDetails.source,
+        notes: leadDetails.notes,
+        // Add other required Lead properties with defaults
+        createdOn: leadDetails.createdAt.split("T")[0],
+        media: "Email",
+        lastActivity: leadDetails.updatedAt.split("T")[0],
+        department: "Sales",
+      };
+
+      await updateStage({
+        leadId: leadDetails.leadId,
+        stage: newStage,
+        currentLead: currentLead,
+      }).unwrap();
+
+      console.log(`✅ Stage updated successfully: ${newStage}`);
+    } catch (error: any) {
+      console.error("Failed to update stage:", error);
+
+      // Show user-friendly error message
+      let errorMessage = "Failed to update stage";
+
+      if (error?.data?.detail) {
+        if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail
+            .map((err: any) => err.msg)
+            .join(", ");
+        } else {
+          errorMessage = error.data.detail;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      alert(`Error: ${errorMessage}`);
+    }
+  };
 
   // Render tab content
   const renderTabContent = () => {
@@ -163,10 +294,71 @@ export default function LeadDetailsPage() {
       case "notes":
         return (
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Notes Content</h3>
-            <p className="text-gray-600">
-              Lead notes will be displayed here...
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 ">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search leads..."
+                    // value={globalFilter ?? ""}
+                    // onChange={(event) =>
+                    //   setGlobalFilter(String(event.target.value))
+                    // }
+                    className="pl-8 w-40"
+                  />
+                </div>
+                <Button variant="outline">
+                  <ClipboardPenLineIcon /> Created
+                </Button>
+                <Button variant="outline">
+                  <HashIcon /> Tags
+                </Button>
+                <Button variant="outline">
+                  <AtSignIcon /> Mentions
+                </Button>{" "}
+              </div>
+
+              <Button variant="outline">
+                <PlusIcon /> New Note
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Button variant="outline">
+                <FolderMinusIcon /> Documents
+              </Button>
+              <Button variant="outline" className="flex items-center gap-2">
+                <SlidersHorizontalIcon className="h-4 w-4" />
+                Sort by
+                {/* <ChevronDown className="h-4 w-4" /> */}
+              </Button>
+            </div>
+            <div className="text-gray-600">
+              {leadDetails.notes && (
+                <Card className="mt-6">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox /> Notes Title
+                    </div>
+
+                    <div className="gap-2 flex items-center">
+                      <Button variant="outline" className="p-0">
+                        <Pen className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" className="p-0">
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div> Last Updated: Today, 2 PM</div>
+
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {leadDetails.notes}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         );
       case "documents":
@@ -219,48 +411,56 @@ export default function LeadDetailsPage() {
           </div>
         </div>
 
-        {/* Lead Header */}
+        {/* Lead Header - Top Bar */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Star className="h-5 w-5 text-gray-400" />
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
+
+                {/* Lead Score Badge */}
                 <Badge className="bg-green-100 text-green-800 text-sm">
-                  High Score
+                  Score: {leadDetails.leadScore}
                 </Badge>
-                <Badge className="bg-blue-100 text-blue-800 text-sm">
-                  IELTS Ready
+
+                {/* Priority Badge */}
+                <Badge
+                  className={`text-sm ${getPriorityColor(
+                    leadDetails.priority
+                  )}`}
+                >
+                  {leadDetails.priority.charAt(0).toUpperCase() +
+                    leadDetails.priority.slice(1)}{" "}
+                  Priority
                 </Badge>
+
+                {/* Tags */}
+                {leadDetails.tags.map((tag, index) => (
+                  <Badge
+                    key={index}
+                    className="bg-blue-100 text-blue-800 text-sm"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             </div>
+
             <div className="flex items-center gap-2">
-              {/* Stage Dropdown */}
-              <div className="relative">
-                <select className="appearance-none bg-orange-100 text-orange-800 px-3 py-1 rounded text-sm border border-orange-200 pr-8">
-                  <option>Contacted</option>
-                  <option>First call</option>
-                  <option>Qualified</option>
-                  <option>Proposal</option>
-                  <option>Closed won</option>
-                  <option>Closed lost</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
+              {/* Stage Dropdown - Now shows current stage from API */}
+              <StageSelect
+                value={leadDetails.stage}
+                onValueChange={handleStageChange}
+                options={LEAD_STAGES}
+                placeholder="Select stage..."
+                disabled={isUpdatingStage}
+              />
+              {isUpdatingStage && (
+                <div className="absolute top-full left-0 mt-1 p-2 bg-blue-100 border border-blue-200 rounded text-xs text-blue-600 z-10">
+                  Updating stage...
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <Button
@@ -282,7 +482,7 @@ export default function LeadDetailsPage() {
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <Phone className="mr-2 h-4 w-4" />
-                Whatsapp
+                WhatsApp
               </Button>
             </div>
           </div>
@@ -326,13 +526,9 @@ export default function LeadDetailsPage() {
                         Phone number:
                       </TableCell>
                       <TableCell className="py-3 px-6">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-gray-600 border-gray-300"
-                        >
-                          Request to view
-                        </Button>
+                        <span className="text-gray-900">
+                          {leadDetails.phoneNumber || "Not provided"}
+                        </span>
                       </TableCell>
                     </TableRow>
 
@@ -341,13 +537,9 @@ export default function LeadDetailsPage() {
                         Email:
                       </TableCell>
                       <TableCell className="py-3 px-6">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-gray-600 border-gray-300"
-                        >
-                          Request to view
-                        </Button>
+                        <span className="text-gray-900">
+                          {leadDetails.email || "Not provided"}
+                        </span>
                       </TableCell>
                     </TableRow>
 
@@ -357,7 +549,7 @@ export default function LeadDetailsPage() {
                       </TableCell>
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
-                          {leadDetails.countryOfInterest.join(", ")}
+                          {leadDetails.countryOfInterest || "Not specified"}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -368,7 +560,7 @@ export default function LeadDetailsPage() {
                       </TableCell>
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
-                          {leadDetails.courseLevel}
+                          {leadDetails.courseLevel || "Not specified"}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -379,7 +571,7 @@ export default function LeadDetailsPage() {
                       </TableCell>
                       <TableCell className="py-3 px-6">
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-900">
+                          <span className="text-gray-900 capitalize">
                             {leadDetails.source}
                           </span>
                           <ExternalLink className="h-4 w-4 text-blue-600" />
@@ -389,30 +581,54 @@ export default function LeadDetailsPage() {
 
                     <TableRow className="border-b">
                       <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Assigned to:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.assignedToName || "Unassigned"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
                         Created on:
                       </TableCell>
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
-                          {formatDate(leadDetails.createdOn)}
+                          {formatDate(leadDetails.createdAt)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Last contacted:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.lastContacted
+                            ? formatDate(leadDetails.lastContacted)
+                            : "Never"}
                         </span>
                       </TableCell>
                     </TableRow>
 
                     <TableRow>
                       <TableCell className="font-medium text-gray-500 py-3 px-6">
-                        Tags:
+                        Lead Score:
                       </TableCell>
                       <TableCell className="py-3 px-6">
-                        <div className="flex flex-wrap gap-2">
-                          {leadDetails.tags.map((tag, index) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="text-xs bg-gray-100 text-gray-700"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-900 font-semibold">
+                            {leadDetails.leadScore}/100
+                          </span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
+                            <div
+                              className="bg-green-500 h-2 rounded-full"
+                              style={{ width: `${leadDetails.leadScore}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -420,6 +636,20 @@ export default function LeadDetailsPage() {
                 </Table>
               </CardContent>
             </Card>
+
+            {/* Notes Section */}
+            {/* {leadDetails.notes && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {leadDetails.notes}
+                  </p>
+                </CardContent>
+              </Card>
+            )} */}
           </div>
 
           {/* Right Column - Tabbed Interface */}

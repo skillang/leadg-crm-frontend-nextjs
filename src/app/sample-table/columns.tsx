@@ -388,37 +388,37 @@ export const columns: ColumnDef<Lead>[] = [
   },
 
   // Lead Score Column
-  {
-    accessorKey: "leadScore",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="hover:bg-gray-100"
-      >
-        Lead Score
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const score = row.getValue("leadScore") as number;
-      return (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            score >= 80
-              ? "bg-green-100 text-green-800"
-              : score >= 60
-              ? "bg-yellow-100 text-yellow-800"
-              : score >= 40
-              ? "bg-orange-100 text-orange-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          {score || 0}
-        </span>
-      );
-    },
-  },
+  // {
+  //   accessorKey: "leadScore",
+  //   header: ({ column }) => (
+  //     <Button
+  //       variant="ghost"
+  //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //       className="hover:bg-gray-100"
+  //     >
+  //       Lead Score
+  //       <ArrowUpDown className="ml-2 h-4 w-4" />
+  //     </Button>
+  //   ),
+  //   cell: ({ row }) => {
+  //     const score = row.getValue("leadScore") as number;
+  //     return (
+  //       <span
+  //         className={`px-2 py-1 rounded-full text-xs font-medium ${
+  //           score >= 80
+  //             ? "bg-green-100 text-green-800"
+  //             : score >= 60
+  //             ? "bg-yellow-100 text-yellow-800"
+  //             : score >= 40
+  //             ? "bg-orange-100 text-orange-800"
+  //             : "bg-red-100 text-red-800"
+  //         }`}
+  //       >
+  //         {score || 0}
+  //       </span>
+  //     );
+  //   },
+  // },
 
   // Contact Column (with working actions)
   {
