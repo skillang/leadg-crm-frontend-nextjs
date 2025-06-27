@@ -1,6 +1,7 @@
-// src/redux/slices/authApi.ts (Real FastAPI Integration)
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { User, LoginCredentials, RegisterData } from "@/redux/types/Leads";
+// src/redux/slices/authApi.ts (UPDATED with enhanced base query)
+
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 // API Base URL - Update this to match your FastAPI backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -59,6 +60,16 @@ interface LogoutResponse {
   data: Record<string, any>;
 }
 
+interface RefreshTokenRequest {
+  refresh_token: string;
+}
+
+interface RefreshTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
+
 interface CurrentUserResponse {
   id: string;
   email: string;
@@ -73,24 +84,10 @@ interface CurrentUserResponse {
   last_login: string;
 }
 
-// RTK Query API slice for authentication with real FastAPI backend
+// RTK Query API slice for authentication with enhanced base query
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/api/v1/auth`,
-    prepareHeaders: (headers, { getState }) => {
-      // Get token from Redux state
-      const token = (getState() as any).auth.token;
-
-      // If we have a token, add it to the headers
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-
-      headers.set("content-type", "application/json");
-      return headers;
-    },
-  }),
+  baseQuery: createBaseQueryWithReauth(`${API_BASE_URL}/api/v1/auth`),
   tagTypes: ["Auth", "User"],
   endpoints: (builder) => ({
     // Login user
@@ -121,6 +118,15 @@ export const authApi = createApi({
       providesTags: ["Auth", "User"],
     }),
 
+    // Refresh token
+    refreshToken: builder.mutation<RefreshTokenResponse, RefreshTokenRequest>({
+      query: (refreshData) => ({
+        url: "/refresh",
+        method: "POST",
+        body: refreshData,
+      }),
+    }),
+
     // Logout user
     logout: builder.mutation<LogoutResponse, LogoutRequest>({
       query: (logoutData) => ({
@@ -138,5 +144,6 @@ export const {
   useLoginMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
+  useRefreshTokenMutation,
   useLogoutMutation,
 } = authApi;

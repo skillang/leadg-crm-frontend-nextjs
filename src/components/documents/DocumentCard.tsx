@@ -30,6 +30,7 @@ import {
 } from "@/redux/slices/documentsApi";
 import { useAppSelector } from "@/redux/hooks";
 import { selectIsAdmin } from "@/redux/selectors";
+import { useDocumentNotifications } from "@/hooks/useNotificationHelpers";
 import { cn } from "@/lib/utils";
 
 interface DocumentCardProps {
@@ -48,6 +49,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   className,
 }) => {
   const isAdmin = useAppSelector(selectIsAdmin);
+  const notifications = useDocumentNotifications();
   const [deleteDocument, { isLoading: isDeleting }] =
     useDeleteDocumentMutation();
   const [downloadDocument, { isLoading: isDownloading }] =
@@ -58,17 +60,16 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     useRejectDocumentMutation();
 
   const handleDelete = async () => {
-    if (
-      window.confirm(`Are you sure you want to delete "${document.filename}"?`)
-    ) {
+    notifications.confirmDocumentDelete(document.filename, async () => {
       try {
         await deleteDocument(document.id).unwrap();
+        notifications.deleted(document.filename);
         console.log("Document deleted successfully");
       } catch (error) {
         console.error("Failed to delete document:", error);
-        alert("Failed to delete document. Please try again.");
+        notifications.deleteError("document");
       }
-    }
+    });
   };
 
   const handleDownload = async () => {
@@ -85,50 +86,52 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       window.document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      notifications.downloaded(document.filename);
       console.log("Document downloaded successfully");
     } catch (error) {
       console.error("Failed to download document:", error);
-      alert("Failed to download document. Please try again.");
+      notifications.downloadError();
     }
   };
 
   const handleApprove = async () => {
     if (!isAdmin) return;
 
-    const approvalNotes = prompt("Enter approval notes (optional):");
-    if (approvalNotes === null) return; // User cancelled
-
-    try {
-      await approveDocument({
-        documentId: document.id,
-        approvalData: { approval_notes: approvalNotes || "Approved" },
-      }).unwrap();
-      console.log("Document approved successfully");
-    } catch (error) {
-      console.error("Failed to approve document:", error);
-      alert("Failed to approve document. Please try again.");
-    }
+    notifications.promptForApproval(
+      document.filename,
+      async (notes: string) => {
+        try {
+          await approveDocument({
+            documentId: document.id,
+            approvalData: { approval_notes: notes || "Approved" },
+          }).unwrap();
+          notifications.documentApproved(document.filename);
+          console.log("Document approved successfully");
+        } catch (error) {
+          console.error("Failed to approve document:", error);
+          notifications.error("Failed to approve document. Please try again.");
+        }
+      }
+    );
   };
 
   const handleReject = async () => {
     if (!isAdmin) return;
 
-    const rejectionNotes = prompt("Enter rejection reason:");
-    if (!rejectionNotes) {
-      alert("Rejection reason is required");
-      return;
-    }
-
-    try {
-      await rejectDocument({
-        documentId: document.id,
-        rejectionData: { approval_notes: rejectionNotes },
-      }).unwrap();
-      console.log("Document rejected successfully");
-    } catch (error) {
-      console.error("Failed to reject document:", error);
-      alert("Failed to reject document. Please try again.");
-    }
+    notifications.promptForRejection(
+      document.filename,
+      async (reason: string) => {
+        try {
+          await rejectDocument({
+            documentId: document.id,
+            rejectionData: { approval_notes: reason },
+          }).unwrap();
+          notifications.documentRejected(document.filename);
+        } catch (error) {
+          notifications.error("Failed to reject document. Please try again.");
+        }
+      }
+    );
   };
 
   const handleEdit = () => {
@@ -206,12 +209,20 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     }
   };
 
-  const statusBadge = getStatusBadge(document.status);
+  // Safe property access with fallbacks
+  const documentStatus = (document as any).status || "Pending";
+  const approvalNotes = (document as any).approval_notes;
+  const notes = (document as any).notes;
+  const expiryDate = (document as any).expiry_date;
+  const approvedByName = (document as any).approved_by_name;
+  const approvedAt = (document as any).approved_at;
+
+  const statusBadge = getStatusBadge(documentStatus);
 
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md border border-gray-200",
+        "transition-all duration-200 hover:shadow-md border border-gray-200 w-full",
         isSelected && "ring-2 ring-blue-500",
         className
       )}
@@ -280,11 +291,11 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
             className={cn("text-sm px-3 py-1 gap-1", statusBadge.className)}
           >
             {statusBadge.icon}
-            {document.status}
+            {documentStatus}
           </Badge>
 
           {/* Admin approval actions for pending documents */}
-          {isAdmin && document.status === "Pending" && (
+          {isAdmin && documentStatus === "Pending" && (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -348,55 +359,53 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         </div>
 
         {/* Approval info for approved/rejected documents */}
-        {(document.status === "Approved" || document.status === "Rejected") &&
-          document.approved_by_name && (
+        {(documentStatus === "Approved" || documentStatus === "Rejected") &&
+          approvedByName && (
             <div className="p-3 bg-gray-50 rounded-md space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">
-                  {document.status === "Approved"
+                  {documentStatus === "Approved"
                     ? "Approved by:"
                     : "Rejected by:"}
                 </span>
                 <span className="font-medium text-gray-900">
-                  {document.approved_by_name}
+                  {approvedByName}
                 </span>
               </div>
-              {document.approved_at && (
+              {approvedAt && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Date:</span>
                   <span className="text-gray-900">
-                    {formatDate(document.approved_at)}
+                    {formatDate(approvedAt)}
                   </span>
                 </div>
               )}
-              {document.approval_notes && (
+              {approvalNotes && (
                 <div className="text-sm">
                   <span className="text-gray-600">Notes:</span>
-                  <p className="mt-1 text-gray-900">
-                    {document.approval_notes}
-                  </p>
+                  <p className="mt-1 text-gray-900">{approvalNotes}</p>
                 </div>
               )}
             </div>
           )}
 
         {/* Notes section */}
-        {document.notes && (
+        {notes && (
           <div className="space-y-2">
             <span className="text-sm text-gray-700 font-medium">Notes:</span>
             <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-              {document.notes}
+              {notes}
             </p>
           </div>
         )}
 
         {/* Expiry date section */}
-        {document.expiry_date && (
+        {expiryDate && (
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-gray-500" />
             <span className="text-gray-600">Expires on:</span>
             <span className="font-medium text-gray-900">
-              {formatDate(document.expiry_date)}
+              {formatDate(expiryDate)}
             </span>
           </div>
         )}

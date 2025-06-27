@@ -1,4 +1,5 @@
-// src/redux/hooks/useAuth.ts (Fixed)
+// src/redux/hooks/useAuth.ts (UPDATED with graceful logout)
+
 import { useAppSelector, useAppDispatch } from "./index";
 import { useLogoutMutation } from "../slices/authApi";
 import { clearAuthState } from "../slices/authSlice";
@@ -10,30 +11,98 @@ export const useAuth = () => {
   const auth = useAppSelector((state) => state.auth);
   const [logoutMutation] = useLogoutMutation();
 
-  const logout = async () => {
+  const logout = async (forceLocal: boolean = false) => {
     try {
-      // Get refresh token from localStorage or Redux state
-      const refreshToken =
-        localStorage.getItem("refresh_token") || auth.refreshToken;
+      if (!forceLocal) {
+        // Get refresh token from localStorage or Redux state
+        const refreshToken =
+          localStorage.getItem("refresh_token") || auth.refreshToken;
 
-      if (refreshToken) {
-        // Call logout API with refresh token
-        await logoutMutation({ refresh_token: refreshToken }).unwrap();
+        if (refreshToken) {
+          try {
+            console.log("🔄 Attempting API logout...");
+            // Call logout API with refresh token
+            await logoutMutation({ refresh_token: refreshToken }).unwrap();
+            console.log("✅ API logout successful");
+          } catch (apiError: any) {
+            console.error("❌ API logout failed:", apiError);
+
+            // If API logout fails due to expired token, continue with local logout
+            if (apiError?.status === 401 || apiError?.status === 422) {
+              console.log(
+                "🔄 API logout failed due to expired token, continuing with local logout"
+              );
+            } else {
+              // For other errors, still continue but log them
+              console.error(
+                "⚠️ API logout failed with unexpected error, continuing with local logout"
+              );
+            }
+          }
+        } else {
+          console.log(
+            "ℹ️ No refresh token available, performing local logout only"
+          );
+        }
+      } else {
+        console.log("🔄 Performing forced local logout");
       }
     } catch (error) {
-      console.error("Logout error:", error);
-      // Continue with logout even if API call fails
+      console.error("💥 Logout error:", error);
+      // Continue with local logout even if API call fails
     } finally {
-      // Clear tokens from localStorage
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-
-      // Clear auth state
-      dispatch(clearAuthState());
-
-      // Redirect to login
-      router.push("/login");
+      // Always perform local cleanup regardless of API call success/failure
+      performLocalLogout();
     }
+  };
+
+  const performLocalLogout = () => {
+    console.log("🧹 Performing local logout cleanup");
+
+    // Clear tokens from localStorage
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+
+    // Clear auth state
+    dispatch(clearAuthState());
+
+    // Redirect to login
+    router.push("/login");
+  };
+
+  // Force logout (skip API call)
+  const forceLogout = async () => {
+    await logout(true);
+  };
+
+  // Check if token is expired based on stored expiration time
+  const isTokenExpired = (): boolean => {
+    if (!auth.accessToken || !auth.expiresIn) return true;
+
+    // Get token creation time from localStorage or estimate
+    const tokenCreatedAt = localStorage.getItem("token_created_at");
+    if (!tokenCreatedAt) return false; // If we don't know when it was created, assume it's valid
+
+    const createdTime = parseInt(tokenCreatedAt);
+    const currentTime = Date.now();
+    const expirationTime = createdTime + auth.expiresIn * 1000;
+
+    return currentTime >= expirationTime;
+  };
+
+  // Check if token expires soon (within 5 minutes)
+  const isTokenExpiringSoon = (): boolean => {
+    if (!auth.accessToken || !auth.expiresIn) return false;
+
+    const tokenCreatedAt = localStorage.getItem("token_created_at");
+    if (!tokenCreatedAt) return false;
+
+    const createdTime = parseInt(tokenCreatedAt);
+    const currentTime = Date.now();
+    const expirationTime = createdTime + auth.expiresIn * 1000;
+    const fiveMinutesInMs = 5 * 60 * 1000;
+
+    return expirationTime - currentTime <= fiveMinutesInMs;
   };
 
   // Fix the role comparisons by normalizing case
@@ -44,6 +113,10 @@ export const useAuth = () => {
   return {
     ...auth,
     logout,
+    forceLogout,
+    performLocalLogout,
+    isTokenExpired,
+    isTokenExpiringSoon,
     isAdmin,
     isUser,
     // Additional helper properties

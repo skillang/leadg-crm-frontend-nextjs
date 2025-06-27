@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import SideNavBarComp from "@/components/navs/SideNavBar/SideNavBar";
-import TopBarComp from "@/components/navs/TopBar/TopBar";
+import { NotificationProvider } from "@/components/common/NotificationSystem";
 import { ReduxProvider } from "@/components/providers/redux-providers";
 import AuthLayout from "@/components/layouts/AuthLayout";
 
@@ -34,7 +32,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-          <AuthLayout>{children}</AuthLayout>
+          <NotificationProvider>
+            <AuthLayout>{children}</AuthLayout>
+          </NotificationProvider>
         </ReduxProvider>
       </body>
     </html>
