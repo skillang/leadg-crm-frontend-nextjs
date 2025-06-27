@@ -1,4 +1,4 @@
-// src/app/sample-table/columns.tsx - UPDATED for new API endpoint
+// src/app/sample-table/columns.tsx - UPDATED with Tata Tele Integration
 
 "use client";
 import { useRouter } from "next/navigation";
@@ -36,6 +36,7 @@ import {
   useDeleteLeadMutation,
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
+import { TataTeleService } from "@/services/tataTeleService"; // UPDATED: Import Tata Tele service
 
 // Stage configurations (matching backend values)
 const LEAD_STAGES = [
@@ -81,13 +82,15 @@ const LEAD_STAGES = [
   },
 ];
 
-// Helper functions for contact actions
-const handlePhoneCall = (phoneNumber: string) => {
+// UPDATED: Helper functions for contact actions with Tata Tele integration
+const handlePhoneCall = async (phoneNumber: string, leadName?: string) => {
   if (!phoneNumber) {
     alert("No phone number available");
     return;
   }
-  window.open(`tel:${phoneNumber}`, "_self");
+
+  // Use Tata Tele service for making calls
+  await TataTeleService.initiateCallWithFeedback(phoneNumber, leadName);
 };
 
 const handleWhatsApp = (phoneNumber: string) => {
@@ -95,7 +98,7 @@ const handleWhatsApp = (phoneNumber: string) => {
     alert("No phone number available");
     return;
   }
-  const cleanNumber = phoneNumber.replace(/[^\d]/g, "");
+  const cleanNumber = phoneNumber.replace(/\D/g, "");
   if (cleanNumber.length < 10) {
     alert("Invalid phone number format");
     return;
@@ -111,32 +114,30 @@ const handleEmail = (email: string) => {
   window.open(`mailto:${email}`, "_self");
 };
 
-// UPDATED: Stage Select Cell Component with new API
+// Stage Select Cell Component with new API
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
   const stage = row.getValue("stage") as string;
-  const currentLead = row.original; // Get the full lead object
+  const currentLead = row.original;
 
   const handleStageChange = async (newStage: string) => {
-    if (newStage === stage) return; // No change needed
+    if (newStage === stage) return;
 
     try {
       console.log(
         `🔄 Updating lead ${currentLead.id} stage: ${stage} → ${newStage}`
       );
 
-      // UPDATED: Pass the current lead data along with the new stage
       await updateStage({
         leadId: currentLead.id,
         stage: newStage,
-        currentLead: currentLead, // Pass the full lead object to preserve other fields
+        currentLead: currentLead,
       }).unwrap();
 
       console.log(`✅ Stage updated successfully: ${newStage}`);
     } catch (error: any) {
       console.error("Failed to update stage:", error);
 
-      // Show user-friendly error message
       let errorMessage = "Failed to update stage";
 
       if (error?.data?.detail) {
@@ -207,7 +208,6 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   };
 
   const handleEdit = () => {
-    // TODO: Implement edit functionality
     console.log("Edit lead:", lead.id);
     alert("Edit functionality coming soon!");
   };
@@ -218,7 +218,6 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
       console.log("Lead ID copied to clipboard");
     } catch (error) {
       console.error("Failed to copy ID:", error);
-      // Fallback for older browsers
       const textArea = document.createElement("textarea");
       textArea.value = lead.id;
       document.body.appendChild(textArea);
@@ -239,7 +238,6 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
       console.log("Email copied to clipboard");
     } catch (error) {
       console.error("Failed to copy email:", error);
-      // Fallback for older browsers
       const textArea = document.createElement("textarea");
       textArea.value = lead.email;
       document.body.appendChild(textArea);
@@ -309,7 +307,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Column Definitions (unchanged from original)
+// Column Definitions
 export const columns: ColumnDef<Lead>[] = [
   // Selection Column
   {
@@ -380,53 +378,21 @@ export const columns: ColumnDef<Lead>[] = [
     },
   },
 
-  // Stage Column (UPDATED with new API logic)
+  // Stage Column
   {
     accessorKey: "stage",
     header: "Stage",
     cell: StageSelectCell,
   },
 
-  // Lead Score Column
-  // {
-  //   accessorKey: "leadScore",
-  //   header: ({ column }) => (
-  //     <Button
-  //       variant="ghost"
-  //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-  //       className="hover:bg-gray-100"
-  //     >
-  //       Lead Score
-  //       <ArrowUpDown className="ml-2 h-4 w-4" />
-  //     </Button>
-  //   ),
-  //   cell: ({ row }) => {
-  //     const score = row.getValue("leadScore") as number;
-  //     return (
-  //       <span
-  //         className={`px-2 py-1 rounded-full text-xs font-medium ${
-  //           score >= 80
-  //             ? "bg-green-100 text-green-800"
-  //             : score >= 60
-  //             ? "bg-yellow-100 text-yellow-800"
-  //             : score >= 40
-  //             ? "bg-orange-100 text-orange-800"
-  //             : "bg-red-100 text-red-800"
-  //         }`}
-  //       >
-  //         {score || 0}
-  //       </span>
-  //     );
-  //   },
-  // },
-
-  // Contact Column (with working actions)
+  // UPDATED: Contact Column with Tata Tele integration
   {
     accessorKey: "contact",
     header: "Contact",
     cell: ({ row }) => {
       const contact = row.getValue("contact") as string;
       const email = row.original.email || "";
+      const leadName = row.original.name;
 
       return (
         <div className="flex items-center gap-1">
@@ -437,7 +403,7 @@ export const columns: ColumnDef<Lead>[] = [
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handlePhoneCall(contact)}
+                  onClick={() => handlePhoneCall(contact, leadName)} // UPDATED: Now uses Tata Tele
                   disabled={!contact}
                 >
                   <Phone
@@ -450,7 +416,11 @@ export const columns: ColumnDef<Lead>[] = [
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{contact ? `Call ${contact}` : "No phone number"}</p>
+                <p>
+                  {contact
+                    ? `Call ${leadName} via Tata Tele`
+                    : "No phone number"}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
