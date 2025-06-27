@@ -1,4 +1,4 @@
-// src/app/sample-table/[leadId]/page.tsx (UPDATED with Tasks Integration)
+// src/app/sample-table/[leadId]/page.tsx (UPDATED with Documents Integration)
 
 "use client";
 
@@ -30,8 +30,9 @@ import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import NotesContainer from "@/components/notes/NotesContainer"; // Existing import
-import TasksContainer from "@/components/tasks/TasksContainer"; // NEW: Import TasksContainer
+import NotesContainer from "@/components/notes/NotesContainer";
+import TasksContainer from "@/components/tasks/TasksContainer";
+import DocumentsContainer from "@/components/documents/DocumentsContainer"; // NEW: Import DocumentsContainer
 
 // Simple Card components
 const Card = ({
@@ -132,9 +133,9 @@ const getPriorityColor = (priority: string) => {
 // Tab definitions
 const tabs = [
   { id: "timeline", label: "Timeline" },
-  { id: "tasks", label: "Tasks & reminders" }, // UPDATED: Changed label to match Figma
+  { id: "tasks", label: "Tasks & reminders" },
   { id: "notes", label: "Notes" },
-  { id: "documents", label: "Documents" },
+  { id: "documents", label: "Documents" }, // This will now be functional
   { id: "activity", label: "Activity log" },
   { id: "contacts", label: "Contacts" },
 ];
@@ -272,7 +273,7 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // UPDATED: Render tab content with TasksContainer integration
+  // UPDATED: Render tab content with DocumentsContainer integration
   const renderTabContent = () => {
     switch (activeTab) {
       case "timeline":
@@ -287,7 +288,6 @@ export default function LeadDetailsPage() {
       case "tasks":
         return (
           <div className="p-6">
-            {/* NEW: Use TasksContainer instead of placeholder */}
             <TasksContainer leadId={leadDetails.leadId} />
           </div>
         );
@@ -300,10 +300,8 @@ export default function LeadDetailsPage() {
       case "documents":
         return (
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Documents Content</h3>
-            <p className="text-gray-600">
-              Uploaded documents will be displayed here...
-            </p>
+            {/* NEW: Use DocumentsContainer instead of placeholder */}
+            <DocumentsContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "activity":
