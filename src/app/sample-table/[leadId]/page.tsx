@@ -1,4 +1,4 @@
-// src/app/sample-table/[leadId]/page.tsx (UPDATED with Documents Integration)
+// src/app/sample-table/[leadId]/page.tsx (UPDATED with Timeline integration)
 
 "use client";
 
@@ -8,31 +8,15 @@ import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import {
-  ArrowLeft,
-  Star,
-  Phone,
-  Mail,
-  ExternalLink,
-  PlusIcon,
-  AtSignIcon,
-  HashIcon,
-  ClipboardPenLineIcon,
-  Search,
-  NotebookTextIcon,
-  FolderMinusIcon,
-  SlidersHorizontalIcon,
-  Delete,
-  Trash,
-  Pen,
-} from "lucide-react";
+import { ArrowLeft, Star, Phone, Mail, ExternalLink } from "lucide-react";
 import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import NotesContainer from "@/components/notes/NotesContainer";
 import TasksContainer from "@/components/tasks/TasksContainer";
-import DocumentsContainer from "@/components/documents/DocumentsContainer"; // NEW: Import DocumentsContainer
+import DocumentsContainer from "@/components/documents/DocumentsContainer";
+import TimelineContainer from "@/components/timeline/TimelineContainer"; // NEW: Import TimelineContainer
 
 // Simple Card components
 const Card = ({
@@ -130,12 +114,12 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-// Tab definitions
+// Tab definitions - UPDATED to include Timeline
 const tabs = [
-  { id: "timeline", label: "Timeline" },
+  { id: "timeline", label: "Timeline" }, // NEW: Timeline tab first
   { id: "tasks", label: "Tasks & reminders" },
   { id: "notes", label: "Notes" },
-  { id: "documents", label: "Documents" }, // This will now be functional
+  { id: "documents", label: "Documents" },
   { id: "activity", label: "Activity log" },
   { id: "contacts", label: "Contacts" },
 ];
@@ -151,7 +135,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function LeadDetailsPage() {
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState("timeline"); // NEW: Default to timeline tab
   const [updateStage, { isLoading: isUpdatingStage }] =
     useUpdateLeadStageMutation();
   const params = useParams();
@@ -273,16 +257,14 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // UPDATED: Render tab content with DocumentsContainer integration
+  // UPDATED: Render tab content with Timeline integration
   const renderTabContent = () => {
     switch (activeTab) {
       case "timeline":
         return (
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Timeline Content</h3>
-            <p className="text-gray-600">
-              Timeline activities and events will be displayed here...
-            </p>
+            {/* NEW: Timeline Container */}
+            <TimelineContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "tasks":
@@ -300,7 +282,6 @@ export default function LeadDetailsPage() {
       case "documents":
         return (
           <div className="p-6">
-            {/* NEW: Use DocumentsContainer instead of placeholder */}
             <DocumentsContainer leadId={leadDetails.leadId} />
           </div>
         );

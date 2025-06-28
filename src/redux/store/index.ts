@@ -1,4 +1,4 @@
-// src/redux/store/index.ts (UPDATED with Documents API)
+// src/redux/store/index.ts (UPDATED with Timeline API)
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
@@ -7,7 +7,8 @@ import { leadsApi } from "../slices/leadsApi";
 import { authApi } from "../slices/authApi";
 import { notesApi } from "../slices/notesApi";
 import { tasksApi } from "../slices/tasksApi";
-import { documentsApi } from "../slices/documentsApi"; // NEW: Import documentsApi
+import { documentsApi } from "../slices/documentsApi";
+import { timelineApi } from "../slices/timelineApi"; // NEW: Import timelineApi
 import leadsReducer from "../slices/leadsSlices";
 import authReducer from "../slices/authSlice";
 
@@ -26,7 +27,8 @@ const rootReducer = combineReducers({
   [authApi.reducerPath]: authApi.reducer,
   [notesApi.reducerPath]: notesApi.reducer,
   [tasksApi.reducerPath]: tasksApi.reducer,
-  [documentsApi.reducerPath]: documentsApi.reducer, // NEW: Add documentsApi reducer
+  [documentsApi.reducerPath]: documentsApi.reducer,
+  [timelineApi.reducerPath]: timelineApi.reducer, // NEW: Add timelineApi reducer
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -55,7 +57,8 @@ export const store = configureStore({
       authApi.middleware,
       notesApi.middleware,
       tasksApi.middleware,
-      documentsApi.middleware // NEW: Add documentsApi middleware
+      documentsApi.middleware,
+      timelineApi.middleware // NEW: Add timelineApi middleware
     ),
 });
 

@@ -1,12 +1,12 @@
-// src/redux/slices/authApi.ts (UPDATED with enhanced base query)
+// src/redux/slices/authApi.ts (REVERTED to simple version)
 
-import { createApi } from "@reduxjs/toolkit/query/react";
-import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { User, LoginCredentials, RegisterData } from "@/redux/types/Leads";
 
-// API Base URL - Update this to match your FastAPI backend
+// API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Enhanced types based on your API documentation
+// Types (keep these as they were)
 interface LoginRequest {
   email: string;
   password: string;
@@ -60,16 +60,6 @@ interface LogoutResponse {
   data: Record<string, any>;
 }
 
-interface RefreshTokenRequest {
-  refresh_token: string;
-}
-
-interface RefreshTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-}
-
 interface CurrentUserResponse {
   id: string;
   email: string;
@@ -84,13 +74,22 @@ interface CurrentUserResponse {
   last_login: string;
 }
 
-// RTK Query API slice for authentication with enhanced base query
+// REVERTED: Back to simple fetchBaseQuery (no enhanced base query)
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: createBaseQueryWithReauth(`${API_BASE_URL}/api/v1/auth`),
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${API_BASE_URL}/api/v1/auth`,
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as any).auth.token;
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      headers.set("content-type", "application/json");
+      return headers;
+    },
+  }),
   tagTypes: ["Auth", "User"],
   endpoints: (builder) => ({
-    // Login user
     login: builder.mutation<LoginResponse, LoginRequest>({
       query: (credentials) => ({
         url: "/login",
@@ -100,7 +99,6 @@ export const authApi = createApi({
       invalidatesTags: ["Auth", "User"],
     }),
 
-    // Register user
     register: builder.mutation<RegisterResponse, RegisterRequest>({
       query: (userData) => ({
         url: "/register",
@@ -109,7 +107,6 @@ export const authApi = createApi({
       }),
     }),
 
-    // Get current user info
     getCurrentUser: builder.query<CurrentUserResponse, void>({
       query: () => ({
         url: "/me",
@@ -118,16 +115,6 @@ export const authApi = createApi({
       providesTags: ["Auth", "User"],
     }),
 
-    // Refresh token
-    refreshToken: builder.mutation<RefreshTokenResponse, RefreshTokenRequest>({
-      query: (refreshData) => ({
-        url: "/refresh",
-        method: "POST",
-        body: refreshData,
-      }),
-    }),
-
-    // Logout user
     logout: builder.mutation<LogoutResponse, LogoutRequest>({
       query: (logoutData) => ({
         url: "/logout",
@@ -136,14 +123,15 @@ export const authApi = createApi({
       }),
       invalidatesTags: ["Auth", "User"],
     }),
+
+    // REMOVED: refreshToken endpoint (not needed for simple solution)
   }),
 });
 
-// Export hooks for use in components
 export const {
   useLoginMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
-  useRefreshTokenMutation,
   useLogoutMutation,
+  // REMOVED: useRefreshTokenMutation
 } = authApi;
