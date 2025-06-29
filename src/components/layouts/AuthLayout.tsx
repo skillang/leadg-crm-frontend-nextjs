@@ -8,7 +8,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import SideNavBarComp from "@/components/navs/SideNavBar/SideNavBar";
 import TopBarComp from "@/components/navs/TopBar/TopBar";
 import LoginPage from "@/pages/LoginPage.jsx";
-import TokenExpirationMonitor from "@/components/auth/TokenExpirationMonitor";
+// import TokenExpirationMonitor from "@/components/auth/TokenExpirationMonitor";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import {
   setAuthState,
@@ -81,7 +81,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
           // Handle specific error types
           if ((userError as any)?.status === 401) {
-            console.log("🚨 Token expired or invalid, clearing auth state");
+            // console.log("🚨 Token expired or invalid, clearing auth state");
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
             localStorage.removeItem("token_created_at");
@@ -130,39 +130,37 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   // If user is authenticated but trying to access login page, redirect content
   if (isAuthenticated && pathname === "/login") {
     return (
-      <TokenExpirationMonitor
-        warningThresholdMinutes={5}
-        autoLogoutEnabled={true}
-      >
-        <SidebarProvider>
-          <SideNavBarComp />
-          <main className="w-full h-screen">
-            <SidebarTrigger />
-            <TopBarComp />
-            <div className="px-8">
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    Welcome back, {user?.first_name} {user?.last_name}!
-                  </h2>
-                  <p className="text-gray-600 mb-2">
-                    You are already logged in.
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Role: {user?.role} | Department: {user?.department}
-                  </p>
-                  <a
-                    href="/dashboard"
-                    className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Go to Dashboard
-                  </a>
-                </div>
+      // <TokenExpirationMonitor
+      //   warningThresholdMinutes={5}
+      //   autoLogoutEnabled={true}
+      // >
+      <SidebarProvider>
+        <SideNavBarComp />
+        <main className="w-full h-screen">
+          <SidebarTrigger />
+          <TopBarComp />
+          <div className="px-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  Welcome back, {user?.first_name} {user?.last_name}!
+                </h2>
+                <p className="text-gray-600 mb-2">You are already logged in.</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Role: {user?.role} | Department: {user?.department}
+                </p>
+                <a
+                  href="/dashboard"
+                  className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Go to Dashboard
+                </a>
               </div>
             </div>
-          </main>
-        </SidebarProvider>
-      </TokenExpirationMonitor>
+          </div>
+        </main>
+      </SidebarProvider>
+      // </TokenExpirationMonitor>
     );
   }
 
@@ -173,19 +171,19 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
   // If authenticated and on a protected route, render with sidebar/topbar and token monitoring
   return (
-    <TokenExpirationMonitor
-      warningThresholdMinutes={5}
-      autoLogoutEnabled={true}
-    >
-      <SidebarProvider>
-        <SideNavBarComp />
-        <main className="w-full h-screen">
-          <SidebarTrigger />
-          <TopBarComp />
-          <div className="px-8">{children}</div>
-        </main>
-      </SidebarProvider>
-    </TokenExpirationMonitor>
+    // <TokenExpirationMonitor
+    //   warningThresholdMinutes={5}
+    //   autoLogoutEnabled={true}
+    // >
+    <SidebarProvider>
+      <SideNavBarComp />
+      <main className="w-full h-screen">
+        <SidebarTrigger />
+        <TopBarComp />
+        <div className="px-8">{children}</div>
+      </main>
+    </SidebarProvider>
+    // </TokenExpirationMonitor>
   );
 };
 

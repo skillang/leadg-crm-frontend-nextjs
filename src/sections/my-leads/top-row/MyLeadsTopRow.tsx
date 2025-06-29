@@ -20,31 +20,31 @@ import {
 const MyLeadsTopRowComp = () => {
   // Handler functions
   const handleCustomize = () => {
-    console.log("Customize clicked");
+    // console.log("Customize clicked");
   };
 
   const handleFilter = () => {
-    console.log("Filter clicked");
+    // console.log("Filter clicked");
   };
 
   const handleSort = () => {
-    console.log("Sort clicked");
+    // console.log("Sort clicked");
   };
 
   const handleDateFilter = () => {
-    console.log("Date filter clicked");
+    // console.log("Date filter clicked");
   };
 
   const handleExportCsv = () => {
-    console.log("Export CSV clicked");
+    // console.log("Export CSV clicked");
   };
 
   const handleNewLead = () => {
-    console.log("New lead clicked");
+    // console.log("New lead clicked");
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Search:", e.target.value);
+    // console.log("Search:", e.target.value);
   };
 
   return (

@@ -64,7 +64,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       try {
         await deleteDocument(document.id).unwrap();
         notifications.deleted(document.filename);
-        console.log("Document deleted successfully");
+        // console.log("Document deleted successfully");
       } catch (error) {
         console.error("Failed to delete document:", error);
         notifications.deleteError("document");
@@ -87,7 +87,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       window.URL.revokeObjectURL(url);
 
       notifications.downloaded(document.filename);
-      console.log("Document downloaded successfully");
+      // console.log("Document downloaded successfully");
     } catch (error) {
       console.error("Failed to download document:", error);
       notifications.downloadError();
@@ -106,7 +106,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
             approvalData: { approval_notes: notes || "Approved" },
           }).unwrap();
           notifications.documentApproved(document.filename);
-          console.log("Document approved successfully");
+          // console.log("Document approved successfully");
         } catch (error) {
           console.error("Failed to approve document:", error);
           notifications.error("Failed to approve document. Please try again.");

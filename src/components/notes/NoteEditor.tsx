@@ -160,8 +160,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           noteId: note.id,
           noteData: updateData,
         }).unwrap();
-
-        console.log("Note updated successfully");
       } else {
         // Create new note
         const createData: CreateNoteRequest = {
@@ -174,8 +172,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           leadId,
           noteData: createData,
         }).unwrap();
-
-        console.log("Note created successfully");
       }
 
       onClose();

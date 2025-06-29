@@ -156,7 +156,7 @@ export function DataTable<TData, TValue>({
     if (onExportCsv) {
       onExportCsv();
     } else {
-      console.log("Export CSV clicked");
+      // console.log("Export CSV clicked");
 
       // Type-safe CSV export
       if (data.length === 0) {
@@ -204,7 +204,7 @@ export function DataTable<TData, TValue>({
     if (onAddNew) {
       onAddNew();
     } else {
-      console.log("Add new clicked");
+      // console.log("Add new clicked");
     }
   };
 

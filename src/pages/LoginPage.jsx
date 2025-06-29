@@ -83,8 +83,6 @@ const LoginPage = () => {
         })
       );
 
-      console.log("Login successful:", result);
-
       // Redirect to dashboard
       router.push("/dashboard");
     } catch (error) {
@@ -127,7 +125,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-8 p-8">
+      <div className="max-w-xl w-full space-y-8 p-8">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">

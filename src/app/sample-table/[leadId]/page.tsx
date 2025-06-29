@@ -207,9 +207,9 @@ export default function LeadDetailsPage() {
     if (!leadDetails || newStage === leadDetails.stage) return;
 
     try {
-      console.log(
-        `🔄 Updating lead ${leadDetails.leadId} stage: ${leadDetails.stage} → ${newStage}`
-      );
+      // console.log(
+      //   `🔄 Updating lead ${leadDetails.leadId} stage: ${leadDetails.stage} → ${newStage}`
+      // );
 
       // Create a mock Lead object for the API call
       const currentLead = {
@@ -234,7 +234,7 @@ export default function LeadDetailsPage() {
         currentLead: currentLead,
       }).unwrap();
 
-      console.log(`✅ Stage updated successfully: ${newStage}`);
+      // console.log(`✅ Stage updated successfully: ${newStage}`);
     } catch (error: any) {
       console.error("Failed to update stage:", error);
 

@@ -216,8 +216,8 @@ export const leadsApi = createApi({
       }
     >({
       query: ({ leadId, stage, currentLead }) => {
-        console.log("🔍 API Call - Lead ID being sent:", leadId);
-        console.log("🔍 API Call - Current lead:", currentLead);
+        // console.log("🔍 API Call - Lead ID being sent:", leadId);
+        // console.log("🔍 API Call - Current lead:", currentLead);
 
         return {
           url: "/leads/update",
@@ -236,7 +236,7 @@ export const leadsApi = createApi({
       },
       invalidatesTags: ["Lead", "LeadStats"],
       transformResponse: (response: any) => {
-        console.log("🎯 API Response:", response);
+        // console.log("🎯 API Response:", response);
         return response.lead || response;
       },
     }),

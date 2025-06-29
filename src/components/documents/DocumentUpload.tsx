@@ -167,7 +167,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         documentData: uploadData,
       }).unwrap();
 
-      console.log("Document uploaded successfully");
+      // console.log("Document uploaded successfully");
 
       // Reset form
       setSelectedFile(null);

@@ -124,9 +124,9 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
     if (newStage === stage) return;
 
     try {
-      console.log(
-        `🔄 Updating lead ${currentLead.id} stage: ${stage} → ${newStage}`
-      );
+      // console.log(
+      //   `🔄 Updating lead ${currentLead.id} stage: ${stage} → ${newStage}`
+      // );
 
       await updateStage({
         leadId: currentLead.id,
@@ -134,7 +134,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
         currentLead: currentLead,
       }).unwrap();
 
-      console.log(`✅ Stage updated successfully: ${newStage}`);
+      // console.log(`✅ Stage updated successfully: ${newStage}`);
     } catch (error: any) {
       console.error("Failed to update stage:", error);
 
@@ -190,9 +190,9 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
 
     if (window.confirm(confirmMessage)) {
       try {
-        console.log(`🗑️ Deleting lead: ${lead.name} (${lead.id})`);
+        // console.log(`🗑️ Deleting lead: ${lead.name} (${lead.id})`);
         await deleteLead(lead.id).unwrap();
-        console.log(`✅ Lead ${lead.name} deleted successfully`);
+        // console.log(`✅ Lead ${lead.name} deleted successfully`);
       } catch (error: any) {
         console.error("Failed to delete lead:", error);
 
@@ -208,14 +208,14 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   };
 
   const handleEdit = () => {
-    console.log("Edit lead:", lead.id);
+    // console.log("Edit lead:", lead.id);
     alert("Edit functionality coming soon!");
   };
 
   const handleCopyId = async () => {
     try {
       await navigator.clipboard.writeText(lead.id);
-      console.log("Lead ID copied to clipboard");
+      // console.log("Lead ID copied to clipboard");
     } catch (error) {
       console.error("Failed to copy ID:", error);
       const textArea = document.createElement("textarea");
@@ -235,7 +235,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
 
     try {
       await navigator.clipboard.writeText(lead.email);
-      console.log("Email copied to clipboard");
+      // console.log("Email copied to clipboard");
     } catch (error) {
       console.error("Failed to copy email:", error);
       const textArea = document.createElement("textarea");

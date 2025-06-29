@@ -37,7 +37,7 @@ export const createBaseQueryWithReauth = (
 
     // Handle 401 errors (token expired)
     if (result.error && result.error.status === 401) {
-      console.log("🔄 Access token expired, attempting refresh...");
+      // console.log("🔄 Access token expired, attempting refresh...");
 
       const state = api.getState() as RootState;
       const refreshToken = state.auth.refreshToken;
@@ -69,12 +69,12 @@ export const createBaseQueryWithReauth = (
             localStorage.setItem("access_token", newTokens.access_token);
             localStorage.setItem("refresh_token", newTokens.refresh_token);
 
-            console.log("✅ Token refreshed successfully");
+            // console.log("✅ Token refreshed successfully");
 
             // Retry the original request with new token
             result = await baseQuery(args, api, extraOptions);
           } else {
-            console.log("❌ Token refresh failed");
+            // console.log("❌ Token refresh failed");
             // Refresh failed, force logout
             await handleForceLogout(api);
           }
@@ -84,7 +84,7 @@ export const createBaseQueryWithReauth = (
           await handleForceLogout(api);
         }
       } else {
-        console.log("❌ No refresh token available");
+        // console.log("❌ No refresh token available");
         // No refresh token, force logout
         await handleForceLogout(api);
       }
@@ -96,7 +96,7 @@ export const createBaseQueryWithReauth = (
 
 // Helper function to handle forced logout
 const handleForceLogout = async (api: any) => {
-  console.log("🚪 Forcing logout due to token expiration");
+  // console.log("🚪 Forcing logout due to token expiration");
 
   // Clear tokens from localStorage
   localStorage.removeItem("access_token");

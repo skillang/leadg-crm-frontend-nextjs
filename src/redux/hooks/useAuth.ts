@@ -20,18 +20,18 @@ export const useAuth = () => {
 
         if (refreshToken) {
           try {
-            console.log("🔄 Attempting API logout...");
+            // console.log("🔄 Attempting API logout...");
             // Call logout API with refresh token
             await logoutMutation({ refresh_token: refreshToken }).unwrap();
-            console.log("✅ API logout successful");
+            // console.log("✅ API logout successful");
           } catch (apiError: any) {
             console.error("❌ API logout failed:", apiError);
 
             // If API logout fails due to expired token, continue with local logout
             if (apiError?.status === 401 || apiError?.status === 422) {
-              console.log(
-                "🔄 API logout failed due to expired token, continuing with local logout"
-              );
+              // console.log(
+              // "🔄 API logout failed due to expired token, continuing with local logout"
+              // );
             } else {
               // For other errors, still continue but log them
               console.error(
@@ -40,12 +40,12 @@ export const useAuth = () => {
             }
           }
         } else {
-          console.log(
-            "ℹ️ No refresh token available, performing local logout only"
-          );
+          // console.log(
+          // "ℹ️ No refresh token available, performing local logout only"
+          // );
         }
       } else {
-        console.log("🔄 Performing forced local logout");
+        // console.log("🔄 Performing forced local logout");
       }
     } catch (error) {
       console.error("💥 Logout error:", error);
@@ -57,7 +57,7 @@ export const useAuth = () => {
   };
 
   const performLocalLogout = () => {
-    console.log("🧹 Performing local logout cleanup");
+    // console.log("🧹 Performing local logout cleanup");
 
     // Clear tokens from localStorage
     localStorage.removeItem("access_token");

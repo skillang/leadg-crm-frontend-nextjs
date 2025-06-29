@@ -99,7 +99,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         documentData: updateData,
       }).unwrap();
 
-      console.log("Document updated successfully");
+      // console.log("Document updated successfully");
       onClose();
     } catch (error) {
       console.error("Failed to update document:", error);

@@ -127,7 +127,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   return (
     <div className="space-y-6">
       {/* Timeline Statistics */}
-      {statsData && !statsLoading && <TimelineStats stats={statsData} />}
+      {/* {statsData && !statsLoading && <TimelineStats stats={statsData} />} */}
 
       {/* Filters and Search */}
       <div className="space-y-4">

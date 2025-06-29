@@ -159,8 +159,6 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
           taskId: task.id,
           taskData: updateData,
         }).unwrap();
-
-        console.log("Task updated successfully");
       } else {
         // Create new task
         const createData: CreateTaskRequest = {
@@ -178,8 +176,6 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
           leadId,
           taskData: createData,
         }).unwrap();
-
-        console.log("Task created successfully");
       }
 
       onClose();

@@ -26,19 +26,21 @@ const baseQuery = fetchBaseQuery({
 });
 
 // Transform API response to match our frontend types
-const transformTimelineActivity = (apiActivity: any): TimelineActivity => ({
-  id: apiActivity.id || apiActivity._id,
-  activity_type: apiActivity.activity_type,
-  title: apiActivity.title,
-  description: apiActivity.description,
-  timestamp: apiActivity.timestamp,
-  performed_by: apiActivity.performed_by,
-  performed_by_name: apiActivity.performed_by_name,
-  lead_id: apiActivity.lead_id,
-  metadata: apiActivity.metadata || {},
-  created_at: apiActivity.created_at,
-  updated_at: apiActivity.updated_at,
-});
+const transformTimelineActivity = (apiActivity: any): TimelineActivity => {
+  return {
+    id: apiActivity.id || apiActivity._id,
+    activity_type: apiActivity.activity_type,
+    title: apiActivity.description,
+    description: apiActivity.description,
+    timestamp: apiActivity.created_at,
+    performed_by: apiActivity.created_by_id,
+    performed_by_name: apiActivity.created_by_name,
+    lead_id: apiActivity.lead_id || "",
+    metadata: apiActivity.metadata || {},
+    created_at: apiActivity.created_at,
+    updated_at: apiActivity.updated_at || apiActivity.created_at,
+  };
+};
 
 export const timelineApi = createApi({
   reducerPath: "timelineApi",
@@ -68,14 +70,26 @@ export const timelineApi = createApi({
         if (date_from) params.append("date_from", date_from);
         if (date_to) params.append("date_to", date_to);
         if (search) params.append("search", search);
-
-        return `/timeline/leads/${leadId}?${params.toString()}`;
+        const url = `/timeline/leads/${leadId}?${params.toString()}`;
+        return url;
       },
       transformResponse: (response: any): TimelineResponse => {
-        // Handle both string and object responses from API
         if (typeof response === "string") {
           try {
             const parsed = JSON.parse(response);
+            if (parsed.success && parsed.timeline) {
+              return {
+                activities:
+                  parsed.timeline.map(transformTimelineActivity) || [],
+                total: parsed.timeline.length || 0,
+                page: 1,
+                limit: 20,
+                has_next: false,
+                has_prev: false,
+                total_pages: 1,
+              };
+            }
+
             return {
               activities:
                 parsed.activities?.map(transformTimelineActivity) || [],
@@ -98,6 +112,17 @@ export const timelineApi = createApi({
               total_pages: 1,
             };
           }
+        }
+        if (response.success && response.timeline) {
+          return {
+            activities: response.timeline.map(transformTimelineActivity) || [],
+            total: response.timeline.length || 0,
+            page: 1,
+            limit: 20,
+            has_next: false,
+            has_prev: false,
+            total_pages: 1,
+          };
         }
 
         return {

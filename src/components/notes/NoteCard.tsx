@@ -33,7 +33,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
     if (window.confirm(`Are you sure you want to delete "${note.title}"?`)) {
       try {
         await deleteNote(note.id).unwrap();
-        console.log("Note deleted successfully");
+        // console.log("Note deleted successfully");
       } catch (error) {
         console.error("Failed to delete note:", error);
         alert("Failed to delete note. Please try again.");
@@ -162,7 +162,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 className="text-blue-600 hover:text-blue-800 font-medium"
                 onClick={() => {
                   // Could expand content or open full view
-                  console.log("Read all clicked");
+                  // console.log("Read all clicked");
                 }}
               >
                 read all

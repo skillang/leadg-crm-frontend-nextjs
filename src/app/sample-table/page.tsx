@@ -57,7 +57,7 @@ export default function DemoPage() {
   const filteredLeads = useAppSelector(filteredLeadsSelector);
 
   const handleAddLead = () => {
-    console.log("Add new lead clicked");
+    // console.log("Add new lead clicked");
     // TODO: Open create lead modal
   };
 

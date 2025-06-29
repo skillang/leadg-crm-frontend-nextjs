@@ -45,7 +45,7 @@ const TokenExpirationMonitor: React.FC<TokenExpirationMonitorProps> = ({
     const checkTokenStatus = () => {
       // Check if token is expired
       if (isTokenExpired()) {
-        console.log("🚨 Token expired, forcing logout");
+        // console.log("🚨 Token expired, forcing logout");
         if (autoLogoutEnabled) {
           forceLogout();
         }
@@ -54,7 +54,7 @@ const TokenExpirationMonitor: React.FC<TokenExpirationMonitorProps> = ({
 
       // Check if token is expiring soon and show warning
       if (isTokenExpiringSoon() && !warningShownRef.current) {
-        console.log("⚠️ Token expiring soon, showing warning");
+        // console.log("⚠️ Token expiring soon, showing warning");
         showExpirationWarning();
         warningShownRef.current = true;
       }
@@ -99,7 +99,7 @@ const TokenExpirationMonitor: React.FC<TokenExpirationMonitorProps> = ({
     if (extendSession) {
       // User wants to extend session - make a simple API call to refresh activity
       // This could be a "ping" endpoint or just fetching user data
-      console.log("🔄 User requested session extension");
+      // console.log("🔄 User requested session extension");
 
       // Reset warning flag so they can be warned again later
       warningShownRef.current = false;
@@ -108,7 +108,7 @@ const TokenExpirationMonitor: React.FC<TokenExpirationMonitorProps> = ({
       // For example: refetchUserData() or pingServer()
     } else {
       // User chose to logout
-      console.log("🚪 User chose to logout");
+      // console.log("🚪 User chose to logout");
       forceLogout();
     }
   };

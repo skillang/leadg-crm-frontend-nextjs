@@ -48,7 +48,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
         taskId: task.id,
         completionData: { completion_notes: "Task completed via UI" },
       }).unwrap();
-      console.log("Task completed successfully");
     } catch (error) {
       console.error("Failed to complete task:", error);
       alert("Failed to complete task. Please try again.");
