@@ -1,4 +1,4 @@
-// src/components/contacts/ContactEditor.tsx
+// src/components/contacts/ContactEditor.tsx - Updated to match UI design
 
 "use client";
 
@@ -8,12 +8,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -21,23 +20,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Contact,
   CreateContactRequest,
   UpdateContactRequest,
   CONTACT_ROLES,
-  CONTACT_RELATIONSHIPS,
 } from "@/models/types/contact";
 import {
   useCreateContactMutation,
   useUpdateContactMutation,
 } from "@/redux/slices/contactsApi";
+import { useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
+import { useAppSelector } from "@/redux/hooks";
 
 interface ContactEditorProps {
   isOpen: boolean;
   onClose: () => void;
   leadId: string;
-  contact?: Contact; // If provided, we're editing; otherwise creating
+  contact?: Contact;
 }
 
 const ContactEditor: React.FC<ContactEditorProps> = ({
@@ -49,99 +50,153 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
   const [createContact, { isLoading: isCreating }] = useCreateContactMutation();
   const [updateContact, { isLoading: isUpdating }] = useUpdateContactMutation();
 
+  // Fetch user's leads for the linked leads dropdown
+  const { data: myLeads = [], isLoading: leadsLoading } = useGetMyLeadsQuery();
+  const currentUser = useAppSelector((state) => state.auth.user);
+
   const [formData, setFormData] = useState<{
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
+    name: string;
+    contact_id: string;
     role: string;
-    relationship: string;
-    is_primary: boolean;
-    address: string;
-    notes: string;
+    phone: string;
+    email: string;
+    owner: string;
+    linked_leads: string[];
+    department: string;
   }>({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
+    name: "",
+    contact_id: "",
     role: "",
-    relationship: "",
-    is_primary: false,
-    address: "",
-    notes: "",
+    phone: "",
+    email: "",
+    owner: "",
+    linked_leads: [],
+    department: "Sales",
   });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState<string>("");
 
   const isEditing = !!contact;
   const isLoading = isCreating || isUpdating;
 
+  // Generate contact ID
+  const generateContactId = () => {
+    const timestamp = Date.now();
+    const shortId = timestamp.toString().slice(-4);
+    return `CT-${shortId}`;
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   // Reset form when contact changes or dialog opens
   useEffect(() => {
     if (isOpen) {
+      setFormErrors({});
+      setApiError("");
+
       if (contact) {
         // Editing existing contact
         setFormData({
-          first_name: contact.first_name,
-          last_name: contact.last_name,
-          email: contact.email,
-          phone: contact.phone,
+          name: contact.full_name,
+          contact_id: `CT-${contact.created_at.slice(-4)}`,
           role: contact.role,
-          relationship: contact.relationship,
-          is_primary: contact.is_primary,
-          address: contact.address || "",
-          notes: contact.notes || "",
+          phone: contact.phone,
+          email: contact.email,
+          owner: contact.created_by_name,
+          linked_leads: contact.linked_leads || [leadId],
+          department: "Sales",
         });
       } else {
         // Creating new contact
         setFormData({
-          first_name: "",
-          last_name: "",
-          email: "",
-          phone: "",
+          name: "",
+          contact_id: generateContactId(),
           role: "",
-          relationship: "",
-          is_primary: false,
-          address: "",
-          notes: "",
+          phone: "",
+          email: "",
+          owner: currentUser
+            ? `${currentUser.first_name} ${currentUser.last_name}`
+            : "",
+          linked_leads: [leadId],
+          department: "Sales",
         });
       }
     }
-  }, [isOpen, contact]);
+  }, [isOpen, contact, leadId, currentUser]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+
+    // Clear field error when user starts typing
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
+
+  // Client-side validation
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      errors.name = "Name is required";
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Email format is invalid";
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = "Phone number is required";
+    }
+
+    if (!formData.role) {
+      errors.role = "Role is required";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError("");
 
-    if (
-      !formData.first_name.trim() ||
-      !formData.last_name.trim() ||
-      !formData.email.trim() ||
-      !formData.phone.trim() ||
-      !formData.role ||
-      !formData.relationship
-    ) {
-      alert("Please fill in all required fields");
+    if (!validateForm()) {
       return;
     }
 
     try {
       if (isEditing && contact) {
         // Update existing contact
+        const nameParts = formData.name.split(" ");
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(" ");
+
         const updateData: UpdateContactRequest = {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
+          first_name: firstName,
+          last_name: lastName,
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
-          relationship: formData.relationship,
-          is_primary: formData.is_primary,
-          address: formData.address,
-          notes: formData.notes,
+          relationship: "Student", // Default relationship
+          linked_leads: formData.linked_leads,
         };
 
         await updateContact({
@@ -150,17 +205,18 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
         }).unwrap();
       } else {
         // Create new contact
+        const nameParts = formData.name.split(" ");
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(" ");
+
         const createData: CreateContactRequest = {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
+          first_name: firstName,
+          last_name: lastName,
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
-          relationship: formData.relationship,
-          is_primary: formData.is_primary,
-          address: formData.address,
-          notes: formData.notes,
-          linked_leads: [leadId],
+          relationship: "Student", // Default relationship
+          linked_leads: formData.linked_leads,
         };
 
         await createContact({
@@ -170,107 +226,104 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save contact:", error);
-      alert(
-        `Failed to ${
-          isEditing ? "update" : "create"
-        } contact. Please try again.`
-      );
-    }
-  };
 
-  const handleCancel = () => {
-    onClose();
+      let errorMessage = "Failed to save contact. Please try again.";
+
+      if (error?.data) {
+        if (Array.isArray(error.data.detail)) {
+          const validationErrors: Record<string, string> = {};
+          error.data.detail.forEach((err: any) => {
+            if (err.loc && err.loc.length > 1) {
+              const field = err.loc[err.loc.length - 1];
+              validationErrors[field] = err.msg;
+            }
+          });
+
+          if (Object.keys(validationErrors).length > 0) {
+            setFormErrors(validationErrors);
+            return;
+          }
+
+          errorMessage = error.data.detail
+            .map((err: any) => err.msg)
+            .join(", ");
+        } else if (typeof error.data.detail === "string") {
+          errorMessage = error.data.detail;
+        }
+      }
+
+      setApiError(errorMessage);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Contact" : "Create New Contact"}
+          <DialogTitle className="text-lg font-medium">
+            {isEditing ? "Edit contact" : "Add new contact"}
           </DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? "Update contact information and settings."
+              : "Add a new contact for this lead."}
+          </DialogDescription>
         </DialogHeader>
 
+        {/* API Error Display */}
+        {apiError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-red-600">{apiError}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first_name" className="text-sm font-medium">
-                First Name *
-              </Label>
-              <Input
-                id="first_name"
-                value={formData.first_name}
-                onChange={(e) =>
-                  handleInputChange("first_name", e.target.value)
-                }
-                placeholder="Enter first name"
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="last_name" className="text-sm font-medium">
-                Last Name *
-              </Label>
-              <Input
-                id="last_name"
-                value={formData.last_name}
-                onChange={(e) => handleInputChange("last_name", e.target.value)}
-                placeholder="Enter last name"
-                disabled={isLoading}
-                required
-              />
-            </div>
+          {/* Name */}
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              Name
+            </Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              placeholder="Enter full name"
+              disabled={isLoading}
+              className={formErrors.name ? "border-red-500" : ""}
+            />
+            {formErrors.name && (
+              <p className="text-sm text-red-600">{formErrors.name}</p>
+            )}
           </div>
 
-          {/* Contact Information */}
+          {/* Contact ID and Role */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email *
+              <Label htmlFor="contact_id" className="text-sm font-medium">
+                Contact ID
               </Label>
               <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter email address"
-                disabled={isLoading}
-                required
+                id="contact_id"
+                value={formData.contact_id}
+                disabled={true}
+                className="bg-gray-50"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium">
-                Phone *
-              </Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                placeholder="Enter phone number"
-                disabled={isLoading}
-                required
-              />
-            </div>
-          </div>
-
-          {/* Role and Relationship */}
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="role" className="text-sm font-medium">
-                Role *
+                Role
               </Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => handleInputChange("role", value)}
                 disabled={isLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={formErrors.role ? "border-red-500" : ""}
+                >
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -281,29 +334,134 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {formErrors.role && (
+                <p className="text-sm text-red-600">{formErrors.role}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Phone and Email */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium">
+                Phone
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                placeholder="Enter phone number"
+                disabled={isLoading}
+                className={formErrors.phone ? "border-red-500" : ""}
+              />
+              {formErrors.phone && (
+                <p className="text-sm text-red-600">{formErrors.phone}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="relationship" className="text-sm font-medium">
-                Relationship *
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="Enter email address"
+                disabled={isLoading}
+                className={formErrors.email ? "border-red-500" : ""}
+              />
+              {formErrors.email && (
+                <p className="text-sm text-red-600">{formErrors.email}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Owner and Linked Leads */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="owner" className="text-sm font-medium">
+                Owner <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={formData.relationship}
-                onValueChange={(value) =>
-                  handleInputChange("relationship", value)
-                }
+                value={formData.owner}
+                onValueChange={(value) => handleInputChange("owner", value)}
                 disabled={isLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select relationship" />
+                  <SelectValue placeholder="Select owner">
+                    {formData.owner && (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
+                            {getUserInitials(formData.owner)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{formData.owner}</span>
+                      </div>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {CONTACT_RELATIONSHIPS.map((relationship) => (
+                  {currentUser && (
                     <SelectItem
-                      key={relationship.value}
-                      value={relationship.value}
+                      value={`${currentUser.first_name} ${currentUser.last_name}`}
                     >
-                      {relationship.label}
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
+                            {getUserInitials(
+                              `${currentUser.first_name} ${currentUser.last_name}`
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>
+                          {currentUser.first_name} {currentUser.last_name}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="linked_leads" className="text-sm font-medium">
+                Linked leads
+              </Label>
+              <Select
+                value={formData.linked_leads[0] || ""}
+                onValueChange={(value) =>
+                  handleInputChange("linked_leads", [value])
+                }
+                disabled={isLoading || leadsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={leadsLoading ? "Loading..." : "Select leads"}
+                  >
+                    {formData.linked_leads.length > 0 && (
+                      <span>
+                        {myLeads.find(
+                          (lead) => lead.id === formData.linked_leads[0]
+                        )?.name ||
+                          `${formData.linked_leads.length} lead${
+                            formData.linked_leads.length !== 1 ? "s" : ""
+                          }`}
+                      </span>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {myLeads.map((lead) => (
+                    <SelectItem key={lead.id} value={lead.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{lead.name}</span>
+                        <span className="text-xs text-gray-500">
+                          ({lead.id})
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -311,77 +469,65 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
             </div>
           </div>
 
-          {/* Primary Contact Checkbox */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="is_primary"
-              checked={formData.is_primary}
-              onCheckedChange={(checked) =>
-                handleInputChange("is_primary", !!checked)
-              }
-              disabled={isLoading}
-            />
-            <Label htmlFor="is_primary" className="text-sm font-medium">
-              Set as primary contact
-            </Label>
-          </div>
-
-          {/* Address */}
+          {/* Department */}
           <div className="space-y-2">
-            <Label htmlFor="address" className="text-sm font-medium">
-              Address
+            <Label htmlFor="department" className="text-sm font-medium">
+              Department
             </Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange("address", e.target.value)}
-              placeholder="Enter full address"
-              className="min-h-[60px] resize-vertical"
+            <Select
+              value={formData.department}
+              onValueChange={(value) => handleInputChange("department", value)}
               disabled={isLoading}
-            />
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm font-medium">
-              Notes
-            </Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleInputChange("notes", e.target.value)}
-              placeholder="Add any additional notes about this contact..."
-              className="min-h-[80px] resize-vertical"
-              disabled={isLoading}
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sales">Sales</SelectItem>
+                <SelectItem value="Marketing">Marketing</SelectItem>
+                <SelectItem value="Support">Support</SelectItem>
+                <SelectItem value="Operations">Operations</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  {isEditing ? "Updating..." : "Creating..."}
-                </div>
-              ) : isEditing ? (
-                "Update Contact"
-              ) : (
-                "Create Contact"
-              )}
-            </Button>
+          <div className="flex justify-between pt-6">
             <Button
               type="button"
-              variant="outline"
-              onClick={handleCancel}
+              variant="ghost"
+              onClick={onClose}
               disabled={isLoading}
+              className="text-blue-600 hover:text-blue-700"
             >
-              Cancel
+              Reset changes
             </Button>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    {isEditing ? "Saving..." : "Creating..."}
+                  </div>
+                ) : isEditing ? (
+                  "Save changes"
+                ) : (
+                  "Create contact"
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

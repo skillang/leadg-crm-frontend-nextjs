@@ -5,11 +5,14 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Filter, Users, Crown } from "lucide-react";
-import { useGetLeadContactsQuery } from "@/redux/slices/contactsApi";
-import ContactCard from "./ContactCard";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, User, Eye, Edit, Trash } from "lucide-react";
+import {
+  useGetLeadContactsQuery,
+  useDeleteContactMutation,
+} from "@/redux/slices/contactsApi";
 import ContactEditor from "./ContactEditor";
+import ContactViewModal from "./ContactViewModal";
 import { Contact } from "@/models/types/contact";
 import { useContactNotifications } from "@/hooks/useNotificationHelpers";
 
@@ -19,13 +22,15 @@ interface ContactsContainerProps {
 
 const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
   const [viewingContact, setViewingContact] = useState<Contact | undefined>();
-  const [showFilters, setShowFilters] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const notifications = useContactNotifications();
+
+  // Add delete mutation
+  const [deleteContact, { isLoading: isDeleting }] = useDeleteContactMutation();
 
   // Fetch contacts for the lead
   const {
@@ -36,8 +41,6 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
   } = useGetLeadContactsQuery(leadId);
 
   const contacts = contactsResponse?.data?.contacts || [];
-  const primaryContact = contactsResponse?.data?.primary_contact;
-  const contactSummary = contactsResponse?.data?.contact_summary;
 
   // Filter contacts based on search term
   const filteredContacts = contacts.filter((contact) => {
@@ -46,28 +49,9 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
       contact.full_name.toLowerCase().includes(searchLower) ||
       contact.email.toLowerCase().includes(searchLower) ||
       contact.phone.toLowerCase().includes(searchLower) ||
-      contact.role.toLowerCase().includes(searchLower) ||
-      contact.relationship.toLowerCase().includes(searchLower)
+      contact.role.toLowerCase().includes(searchLower)
     );
   });
-
-  // Handle contact selection
-  const handleContactSelect = (contactId: string) => {
-    setSelectedContacts((prev) =>
-      prev.includes(contactId)
-        ? prev.filter((id) => id !== contactId)
-        : [...prev, contactId]
-    );
-  };
-
-  // Handle select all/none
-  const handleSelectAll = () => {
-    if (selectedContacts.length === filteredContacts.length) {
-      setSelectedContacts([]);
-    } else {
-      setSelectedContacts(filteredContacts.map((contact) => contact.id));
-    }
-  };
 
   // Handle create new contact
   const handleCreateContact = () => {
@@ -84,14 +68,55 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
   // Handle view contact
   const handleViewContact = (contact: Contact) => {
     setViewingContact(contact);
-    // You can implement a view dialog similar to editor if needed
-    console.log("Viewing contact:", contact);
+    setIsViewModalOpen(true);
+  };
+
+  // Handle edit from view modal
+  const handleEditFromViewModal = (contact: Contact) => {
+    setIsViewModalOpen(false);
+    setViewingContact(undefined);
+    setEditingContact(contact);
+    setIsEditorOpen(true);
   };
 
   // Handle editor close
   const handleEditorClose = () => {
     setIsEditorOpen(false);
     setEditingContact(undefined);
+  };
+
+  // Handle view modal close
+  const handleViewModalClose = () => {
+    setIsViewModalOpen(false);
+    setViewingContact(undefined);
+  };
+
+  // Get role badge color
+  const getRoleBadgeColor = (role: string) => {
+    switch (role.toLowerCase()) {
+      case "parent":
+        return "bg-blue-100 text-blue-700 border-blue-200";
+      case "counselor":
+        return "bg-green-100 text-green-700 border-green-200";
+      case "referee":
+        return "bg-purple-100 text-purple-700 border-purple-200";
+      case "student":
+        return "bg-orange-100 text-orange-700 border-orange-200";
+      case "agent":
+        return "bg-pink-100 text-pink-700 border-pink-200";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
+  // Generate avatar initials
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   // Loading state
@@ -122,117 +147,34 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Contacts</h3>
-          <div className="text-sm text-gray-500">
-            ({contacts.length} contact{contacts.length !== 1 ? "s" : ""})
-          </div>
-        </div>
-        <Button
-          onClick={handleCreateContact}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Contact
-        </Button>
-      </div>
-
-      {/* Summary Cards */}
-      {contactSummary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">
-                Total Contacts
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-blue-900 mt-1">
-              {contactSummary.total}
-            </div>
-          </div>
-
-          {primaryContact && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <Crown className="h-4 w-4 text-yellow-600" />
-                <span className="text-sm font-medium text-yellow-900">
-                  Primary Contact
-                </span>
-              </div>
-              <div className="text-lg font-semibold text-yellow-900 mt-1 truncate">
-                {primaryContact.full_name}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-900">
-                Most Common Role
-              </span>
-            </div>
-            <div className="text-lg font-semibold text-green-900 mt-1">
-              {contactSummary.by_role
-                ? Object.entries(contactSummary.by_role).sort(
-                    ([, a], [, b]) => b - a
-                  )[0]?.[0] || "N/A"
-                : "N/A"}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative">
+      {/* Header with Search and New Contact Button */}
+      <div className="flex items-center gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search contacts by name, email, phone, role..."
+            placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-          {filteredContacts.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={selectedContacts.length === filteredContacts.length}
-                onCheckedChange={handleSelectAll}
-                aria-label="Select all contacts"
-              />
-              <span className="text-sm text-gray-600">
-                Select All ({selectedContacts.length})
-              </span>
-            </div>
-          )}
-        </div>
+
+        {/* Role Filter - Optional */}
+        <Button variant="outline" size="sm" className="gap-2">
+          <User className="h-4 w-4" />
+          Role
+        </Button>
+
+        {/* New Contact Button */}
+        <Button onClick={handleCreateContact} className="gap-2">
+          <Plus className="h-4 w-4" />
+          New contact
+        </Button>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="bg-gray-50 border rounded-lg p-4">
-          <p className="text-sm text-gray-600">
-            Advanced filters will be implemented here (role, relationship, etc.)
-          </p>
-        </div>
-      )}
-
       {/* Contacts List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filteredContacts.length === 0 ? (
           <div className="text-center py-12">
             {searchTerm ? (
@@ -254,7 +196,7 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
               </div>
             ) : (
               <div>
-                <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <User className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   No contacts yet
                 </h3>
@@ -269,83 +211,82 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
             )}
           </div>
         ) : (
-          <>
-            {/* Primary Contact First */}
-            {primaryContact && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-yellow-600" />
-                  Primary Contact
-                </h4>
-                <ContactCard
-                  contact={primaryContact}
-                  isSelected={selectedContacts.includes(primaryContact.id)}
-                  onSelect={handleContactSelect}
-                  onEdit={handleEditContact}
-                  onView={handleViewContact}
-                  className="mb-4"
-                />
-              </div>
-            )}
-
-            {/* Other Contacts */}
-            {filteredContacts.filter((contact) => !contact.is_primary).length >
-              0 && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
-                  Other Contacts (
-                  {
-                    filteredContacts.filter((contact) => !contact.is_primary)
-                      .length
-                  }
-                  )
-                </h4>
-                <div className="space-y-3">
-                  {filteredContacts
-                    .filter((contact) => !contact.is_primary)
-                    .map((contact) => (
-                      <ContactCard
-                        key={contact.id}
-                        contact={contact}
-                        isSelected={selectedContacts.includes(contact.id)}
-                        onSelect={handleContactSelect}
-                        onEdit={handleEditContact}
-                        onView={handleViewContact}
-                      />
-                    ))}
+          filteredContacts.map((contact) => (
+            <div
+              key={contact.id}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+            >
+              {/* Avatar */}
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-teal-700">
+                    {getInitials(contact.full_name)}
+                  </span>
                 </div>
               </div>
-            )}
-          </>
+
+              {/* Contact Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-medium text-gray-900 truncate">
+                    {contact.full_name}
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${getRoleBadgeColor(contact.role)}`}
+                  >
+                    {contact.role}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                  onClick={() => handleViewContact(contact)}
+                >
+                  <Eye className="h-4 w-4 text-gray-600" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                  onClick={() => handleEditContact(contact)}
+                >
+                  <Edit className="h-4 w-4 text-gray-600" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                  onClick={() => {
+                    notifications.confirmContactDelete(
+                      contact.full_name,
+                      async () => {
+                        try {
+                          await deleteContact(contact.id).unwrap();
+                          notifications.contactDeleted(contact.full_name);
+                        } catch (error) {
+                          console.error("Failed to delete contact:", error);
+                          notifications.contactDeleteError();
+                        }
+                      }
+                    );
+                  }}
+                  disabled={isDeleting}
+                >
+                  <Trash className="h-4 w-4 text-gray-600" />
+                </Button>
+              </div>
+            </div>
+          ))
         )}
       </div>
-
-      {/* Bulk Actions */}
-      {selectedContacts.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700">
-              {selectedContacts.length} contact
-              {selectedContacts.length !== 1 ? "s" : ""} selected
-            </span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                Export
-              </Button>
-              <Button variant="outline" size="sm">
-                Delete
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedContacts([])}
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Contact Editor Dialog */}
       <ContactEditor
@@ -353,6 +294,14 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
         onClose={handleEditorClose}
         leadId={leadId}
         contact={editingContact}
+      />
+
+      {/* Contact View Modal */}
+      <ContactViewModal
+        isOpen={isViewModalOpen}
+        onClose={handleViewModalClose}
+        contact={viewingContact}
+        onEdit={handleEditFromViewModal}
       />
     </div>
   );
