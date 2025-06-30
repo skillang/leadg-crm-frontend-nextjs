@@ -39,11 +39,11 @@ const DashboardPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">
             Welcome back, {currentUser?.first_name} {currentUser?.last_name}!
-            {!isAdmin && (
+            {/* {!isAdmin && (
               <span className="text-green-600 font-medium ml-2">
                 ⚡ Super Fast Queries
               </span>
-            )}
+            )} */}
           </p>
         </div>
         <div className="flex gap-2">
@@ -203,7 +203,7 @@ const DashboardPage = () => {
                 <p className="text-sm text-gray-600">
                   {isAdmin
                     ? "View and manage all leads in the system"
-                    : "Access your assigned leads with super fast queries"}
+                    : "Access your assigned leads "}
                 </p>
               </div>
             </div>
@@ -258,9 +258,9 @@ const DashboardPage = () => {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Query Speed</span>
-              <span className="text-green-600">
-                {isAdmin ? "Standard" : "Super Fast ⚡"}
-              </span>
+              {/* <span className="text-green-600"> */}
+              {/* {isAdmin ? "Standard" : "Super Fast ⚡"} */}
+              {/* </span> */}
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Last Sync</span>
