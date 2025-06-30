@@ -382,3 +382,170 @@ export function useLeadNotifications() {
     },
   };
 }
+
+/**
+ * Hook for contact-specific operations
+ */
+export function useContactNotifications() {
+  const notifications = useCrudNotifications();
+
+  return {
+    ...notifications,
+
+    contactCreated: (contactName: string) => {
+      notifications.created(contactName, "Contact");
+    },
+
+    contactUpdated: (contactName: string) => {
+      notifications.updated(contactName, "Contact");
+    },
+
+    contactDeleted: (contactName: string) => {
+      notifications.deleted(contactName, "Contact");
+    },
+
+    primaryContactSet: (contactName: string) => {
+      notifications.success(
+        `"${contactName}" has been set as the primary contact.`,
+        "Primary contact updated"
+      );
+    },
+
+    contactAdded: (contactName: string, leadName?: string) => {
+      const message = leadName
+        ? `"${contactName}" has been added to ${leadName}.`
+        : `"${contactName}" has been added.`;
+      notifications.success(message, "Contact added");
+    },
+
+    confirmContactDelete: (
+      contactName: string,
+      onConfirm: () => void | Promise<void>
+    ) => {
+      notifications.confirmDelete(contactName, onConfirm, "contact");
+    },
+
+    confirmSetPrimary: (
+      contactName: string,
+      onConfirm: () => void | Promise<void>
+    ) => {
+      notifications.confirmAction(
+        "Set Primary Contact",
+        `Are you sure you want to set "${contactName}" as the primary contact? This will remove the primary status from the current primary contact.`,
+        onConfirm,
+        "Set as Primary"
+      );
+    },
+
+    promptForContactNotes: (
+      contactName: string,
+      onConfirm: (notes: string) => void | Promise<void>
+    ) => {
+      notifications.promptForInput(
+        "Add Contact Notes",
+        `Add notes for "${contactName}".`,
+        onConfirm,
+        {
+          placeholder: "Enter contact notes...",
+          multiline: true,
+        }
+      );
+    },
+
+    // Contact-specific error messages
+    contactCreateError: () => {
+      notifications.createError("contact");
+    },
+
+    contactUpdateError: () => {
+      notifications.updateError("contact");
+    },
+
+    contactDeleteError: () => {
+      notifications.deleteError("contact");
+    },
+
+    primaryContactError: () => {
+      notifications.error(
+        "Please try again or contact support.",
+        "Failed to set primary contact"
+      );
+    },
+
+    duplicateContactError: () => {
+      notifications.error(
+        "A contact with this email already exists for this lead.",
+        "Duplicate contact"
+      );
+    },
+
+    invalidContactError: () => {
+      notifications.error(
+        "Please check the contact information and try again.",
+        "Invalid contact data"
+      );
+    },
+
+    // Contact validation messages
+    contactValidationError: (field: string) => {
+      notifications.validationError(`Please provide a valid ${field}.`);
+    },
+
+    emailValidationError: () => {
+      notifications.validationError("Please provide a valid email address.");
+    },
+
+    phoneValidationError: () => {
+      notifications.validationError("Please provide a valid phone number.");
+    },
+
+    // Bulk operations
+    confirmBulkContactDelete: (
+      contactCount: number,
+      onConfirm: () => void | Promise<void>
+    ) => {
+      notifications.confirmAction(
+        "Delete Multiple Contacts",
+        `Are you sure you want to delete ${contactCount} contact(s)? This action cannot be undone.`,
+        onConfirm,
+        "Delete All"
+      );
+    },
+
+    bulkContactsDeleted: (count: number) => {
+      notifications.success(
+        `${count} contact(s) have been deleted successfully.`,
+        "Contacts deleted"
+      );
+    },
+
+    // Import/Export operations
+    contactsImported: (count: number) => {
+      notifications.success(
+        `${count} contact(s) have been imported successfully.`,
+        "Contacts imported"
+      );
+    },
+
+    contactsExported: (count: number) => {
+      notifications.success(
+        `${count} contact(s) have been exported successfully.`,
+        "Contacts exported"
+      );
+    },
+
+    importError: () => {
+      notifications.error(
+        "Please check the file format and try again.",
+        "Import failed"
+      );
+    },
+
+    exportError: () => {
+      notifications.error(
+        "Please try again or contact support.",
+        "Export failed"
+      );
+    },
+  };
+}

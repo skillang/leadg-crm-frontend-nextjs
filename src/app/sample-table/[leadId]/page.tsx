@@ -17,6 +17,7 @@ import NotesContainer from "@/components/notes/NotesContainer";
 import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer"; // NEW: Import TimelineContainer
+import ContactCard from "@/components/contacts/ContactCard";
 
 // Simple Card components
 const Card = ({
@@ -295,14 +296,7 @@ export default function LeadDetailsPage() {
           </div>
         );
       case "contacts":
-        return (
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Contacts Content</h3>
-            <p className="text-gray-600">
-              Related contacts will be displayed here...
-            </p>
-          </div>
-        );
+        return <div className="p-6"></div>;
       default:
         return null;
     }
