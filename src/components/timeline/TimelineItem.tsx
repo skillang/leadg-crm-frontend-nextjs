@@ -201,13 +201,13 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   return (
     <div className="relative">
       {/* Timeline line */}
-      {!isLast && (
+      {/* {!isLast && (
         <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200" />
-      )}
+      )} */}
 
       <div className="flex items-start gap-4 pb-6">
         {/* Activity Icon */}
-        <div
+        {/* <div
           className={cn(
             "flex items-center justify-center w-12 h-12 rounded-full border-2 relative z-10",
             colors.bg,
@@ -215,7 +215,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           )}
         >
           <IconComponent className={cn("h-5 w-5", colors.icon)} />
-        </div>
+        </div> */}
 
         {/* Activity Content */}
         <div className="flex-1 min-w-0">

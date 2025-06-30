@@ -293,6 +293,9 @@ export default function LeadDetailsPage() {
             <p className="text-gray-600">
               Activity log entries will be displayed here...
             </p>
+            <h2 className="text-lg font-semibold my-10 text-center text-red-600 bg-red-200 rounded-md">
+              ⚠️ Comming soon ⚠️
+            </h2>
           </div>
         );
       case "contacts":
@@ -333,9 +336,9 @@ export default function LeadDetailsPage() {
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
 
                 {/* Lead Score Badge */}
-                <Badge className="bg-green-100 text-green-800 text-sm">
+                {/* <Badge className="bg-green-100 text-green-800 text-sm">
                   Score: {leadDetails.leadScore}
-                </Badge>
+                </Badge> */}
 
                 {/* Priority Badge */}
                 <Badge
@@ -527,7 +530,7 @@ export default function LeadDetailsPage() {
                       </TableCell>
                     </TableRow>
 
-                    <TableRow>
+                    {/* <TableRow>
                       <TableCell className="font-medium text-gray-500 py-3 px-6">
                         Lead Score:
                       </TableCell>
@@ -544,7 +547,7 @@ export default function LeadDetailsPage() {
                           </div>
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </TableRow> */}
                   </TableBody>
                 </Table>
               </CardContent>
