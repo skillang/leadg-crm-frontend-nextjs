@@ -1,6 +1,7 @@
-// src/app/sample-table/columns.tsx - UPDATED with Tata Tele Integration
+// src/app/sample-table/columns.tsx - UPDATED with WhatsApp Modal Integration
 
 "use client";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Row } from "@tanstack/react-table";
 import {
@@ -36,7 +37,8 @@ import {
   useDeleteLeadMutation,
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
-import { TataTeleService } from "@/services/tataTeleService"; // UPDATED: Import Tata Tele service
+import { TataTeleService } from "@/services/tataTeleService";
+import WhatsAppMessageModal from "@/components/whatsapp/WhatsAppMessageModal"; // NEW: Import WhatsApp Modal
 
 // Stage configurations (matching backend values)
 const LEAD_STAGES = [
@@ -82,7 +84,7 @@ const LEAD_STAGES = [
   },
 ];
 
-// UPDATED: Helper functions for contact actions with Tata Tele integration
+// UPDATED: Helper functions for contact actions with WhatsApp Modal integration
 const handlePhoneCall = async (phoneNumber: string, leadName?: string) => {
   if (!phoneNumber) {
     alert("No phone number available");
@@ -93,17 +95,65 @@ const handlePhoneCall = async (phoneNumber: string, leadName?: string) => {
   await TataTeleService.initiateCallWithFeedback(phoneNumber, leadName);
 };
 
-const handleWhatsApp = (phoneNumber: string) => {
-  if (!phoneNumber) {
-    alert("No phone number available");
-    return;
-  }
-  const cleanNumber = phoneNumber.replace(/\D/g, "");
-  if (cleanNumber.length < 10) {
-    alert("Invalid phone number format");
-    return;
-  }
-  window.open(`https://wa.me/${cleanNumber}`, "_blank");
+// NEW: WhatsApp Modal Handler Component
+const WhatsAppButton: React.FC<{
+  phoneNumber: string;
+  leadName?: string;
+  leadId?: string;
+}> = ({ phoneNumber, leadName, leadId }) => {
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+
+  const handleWhatsAppClick = () => {
+    if (!phoneNumber) {
+      alert("No phone number available");
+      return;
+    }
+    setIsWhatsAppModalOpen(true);
+  };
+
+  return (
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+              onClick={handleWhatsAppClick}
+              disabled={!phoneNumber}
+            >
+              <MessageCircle
+                className={`h-4 w-4 ${
+                  phoneNumber
+                    ? "text-green-600 hover:text-green-700"
+                    : "text-gray-300"
+                }`}
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {phoneNumber
+                ? `WhatsApp ${leadName || phoneNumber}`
+                : "No phone number"}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {/* WhatsApp Modal */}
+      <WhatsAppMessageModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        contact={{
+          phone: phoneNumber,
+          name: leadName || "",
+          id: leadId || "",
+        }}
+      />
+    </>
+  );
 };
 
 const handleEmail = (email: string) => {
@@ -124,17 +174,11 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
     if (newStage === stage) return;
 
     try {
-      // console.log(
-      //   `🔄 Updating lead ${currentLead.id} stage: ${stage} → ${newStage}`
-      // );
-
       await updateStage({
         leadId: currentLead.id,
         stage: newStage,
         currentLead: currentLead,
       }).unwrap();
-
-      // console.log(`✅ Stage updated successfully: ${newStage}`);
     } catch (error: any) {
       console.error("Failed to update stage:", error);
 
@@ -190,9 +234,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
 
     if (window.confirm(confirmMessage)) {
       try {
-        // console.log(`🗑️ Deleting lead: ${lead.name} (${lead.id})`);
         await deleteLead(lead.id).unwrap();
-        // console.log(`✅ Lead ${lead.name} deleted successfully`);
       } catch (error: any) {
         console.error("Failed to delete lead:", error);
 
@@ -208,14 +250,12 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   };
 
   const handleEdit = () => {
-    // console.log("Edit lead:", lead.id);
     alert("Edit functionality coming soon!");
   };
 
   const handleCopyId = async () => {
     try {
       await navigator.clipboard.writeText(lead.id);
-      // console.log("Lead ID copied to clipboard");
     } catch (error) {
       console.error("Failed to copy ID:", error);
       const textArea = document.createElement("textarea");
@@ -235,7 +275,6 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
 
     try {
       await navigator.clipboard.writeText(lead.email);
-      // console.log("Email copied to clipboard");
     } catch (error) {
       console.error("Failed to copy email:", error);
       const textArea = document.createElement("textarea");
@@ -385,7 +424,7 @@ export const columns: ColumnDef<Lead>[] = [
     cell: StageSelectCell,
   },
 
-  // UPDATED: Contact Column with Tata Tele integration
+  // UPDATED: Contact Column with WhatsApp Modal integration
   {
     accessorKey: "contact",
     header: "Contact",
@@ -393,6 +432,7 @@ export const columns: ColumnDef<Lead>[] = [
       const contact = row.getValue("contact") as string;
       const email = row.original.email || "";
       const leadName = row.original.name;
+      const leadId = row.original.id;
 
       return (
         <div className="flex items-center gap-1">
@@ -403,7 +443,7 @@ export const columns: ColumnDef<Lead>[] = [
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handlePhoneCall(contact, leadName)} // UPDATED: Now uses Tata Tele
+                  onClick={() => handlePhoneCall(contact, leadName)}
                   disabled={!contact}
                 >
                   <Phone
@@ -425,30 +465,12 @@ export const columns: ColumnDef<Lead>[] = [
             </Tooltip>
           </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handleWhatsApp(contact)}
-                  disabled={!contact}
-                >
-                  <MessageCircle
-                    className={`h-4 w-4 ${
-                      contact
-                        ? "text-green-600 hover:text-green-700"
-                        : "text-gray-300"
-                    }`}
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{contact ? `WhatsApp ${contact}` : "No phone number"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {/* UPDATED: WhatsApp Button with Modal */}
+          <WhatsAppButton
+            phoneNumber={contact}
+            leadName={leadName}
+            leadId={leadId}
+          />
 
           <TooltipProvider>
             <Tooltip>

@@ -1,4 +1,4 @@
-// src/app/sample-table/[leadId]/page.tsx (UPDATED with Timeline integration)
+// src/app/sample-table/[leadId]/page.tsx - UPDATED with WhatsApp Modal integration
 
 "use client";
 
@@ -11,13 +11,12 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Star, Phone, Mail, ExternalLink } from "lucide-react";
 import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import NotesContainer from "@/components/notes/NotesContainer";
 import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer";
-import ContactsContainer from "@/components/contacts/ContactsContainer"; // NEW: Import ContactsContainer
+import ContactsContainer from "@/components/contacts/ContactsContainer";
+import WhatsAppMessageModal from "@/components/whatsapp/WhatsAppMessageModal"; // NEW: Import WhatsApp Modal
 
 // Simple Card components
 const Card = ({
@@ -117,7 +116,7 @@ const getPriorityColor = (priority: string) => {
 
 // Tab definitions - UPDATED to include Timeline
 const tabs = [
-  { id: "timeline", label: "Timeline" }, // NEW: Timeline tab first
+  { id: "timeline", label: "Timeline" },
   { id: "tasks", label: "Tasks & reminders" },
   { id: "notes", label: "Notes" },
   { id: "documents", label: "Documents" },
@@ -136,7 +135,8 @@ const formatDate = (dateString: string) => {
 };
 
 export default function LeadDetailsPage() {
-  const [activeTab, setActiveTab] = useState("timeline"); // NEW: Default to timeline tab
+  const [activeTab, setActiveTab] = useState("timeline");
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false); // NEW: WhatsApp modal state
   const [updateStage, { isLoading: isUpdatingStage }] =
     useUpdateLeadStageMutation();
   const params = useParams();
@@ -165,11 +165,13 @@ export default function LeadDetailsPage() {
     }
   };
 
+  // UPDATED: WhatsApp handler to open modal instead of wa.me
   const handleWhatsApp = () => {
-    if (leadDetails?.phoneNumber) {
-      const cleanNumber = leadDetails.phoneNumber.replace(/[^\d]/g, "");
-      window.open(`https://wa.me/${cleanNumber}`, "_blank");
+    if (!leadDetails?.phoneNumber) {
+      alert("No phone number available for this lead");
+      return;
     }
+    setIsWhatsAppModalOpen(true);
   };
 
   // Loading state
@@ -208,10 +210,6 @@ export default function LeadDetailsPage() {
     if (!leadDetails || newStage === leadDetails.stage) return;
 
     try {
-      // console.log(
-      //   `🔄 Updating lead ${leadDetails.leadId} stage: ${leadDetails.stage} → ${newStage}`
-      // );
-
       // Create a mock Lead object for the API call
       const currentLead = {
         id: leadDetails.id,
@@ -234,8 +232,6 @@ export default function LeadDetailsPage() {
         stage: newStage,
         currentLead: currentLead,
       }).unwrap();
-
-      // console.log(`✅ Stage updated successfully: ${newStage}`);
     } catch (error: any) {
       console.error("Failed to update stage:", error);
 
@@ -264,7 +260,6 @@ export default function LeadDetailsPage() {
       case "timeline":
         return (
           <div className="p-6">
-            {/* NEW: Timeline Container */}
             <TimelineContainer leadId={leadDetails.leadId} />
           </div>
         );
@@ -294,7 +289,7 @@ export default function LeadDetailsPage() {
               Activity log entries will be displayed here...
             </p>
             <h2 className="text-lg font-semibold my-10 text-center text-red-600 bg-red-200 rounded-md">
-              ⚠️ Comming soon ⚠️
+              ⚠️ Coming soon ⚠️
             </h2>
           </div>
         );
@@ -334,11 +329,6 @@ export default function LeadDetailsPage() {
               <Star className="h-5 w-5 text-gray-400" />
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
-
-                {/* Lead Score Badge */}
-                {/* <Badge className="bg-green-100 text-green-800 text-sm">
-                  Score: {leadDetails.leadScore}
-                </Badge> */}
 
                 {/* Priority Badge */}
                 <Badge
@@ -393,9 +383,11 @@ export default function LeadDetailsPage() {
                 <Mail className="mr-2 h-4 w-4" />
                 Mail
               </Button>
+              {/* UPDATED: WhatsApp Button */}
               <Button
                 onClick={handleWhatsApp}
                 className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={!leadDetails.phoneNumber}
               >
                 <Phone className="mr-2 h-4 w-4" />
                 WhatsApp
@@ -490,7 +482,6 @@ export default function LeadDetailsPage() {
                           <span className="text-gray-900 capitalize">
                             {leadDetails.source}
                           </span>
-                          <ExternalLink className="h-4 w-4 text-blue-600" />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -529,25 +520,6 @@ export default function LeadDetailsPage() {
                         </span>
                       </TableCell>
                     </TableRow>
-
-                    {/* <TableRow>
-                      <TableCell className="font-medium text-gray-500 py-3 px-6">
-                        Lead Score:
-                      </TableCell>
-                      <TableCell className="py-3 px-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-900 font-semibold">
-                            {leadDetails.leadScore}/100
-                          </span>
-                          <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
-                            <div
-                              className="bg-green-500 h-2 rounded-full"
-                              style={{ width: `${leadDetails.leadScore}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow> */}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -581,6 +553,17 @@ export default function LeadDetailsPage() {
             </Card>
           </div>
         </div>
+
+        {/* NEW: WhatsApp Modal */}
+        <WhatsAppMessageModal
+          isOpen={isWhatsAppModalOpen}
+          onClose={() => setIsWhatsAppModalOpen(false)}
+          contact={{
+            phone: leadDetails.phoneNumber,
+            name: leadDetails.name,
+            id: leadDetails.leadId,
+          }}
+        />
       </div>
     </div>
   );
