@@ -16,8 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import NotesContainer from "@/components/notes/NotesContainer";
 import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
-import TimelineContainer from "@/components/timeline/TimelineContainer"; // NEW: Import TimelineContainer
-import ContactCard from "@/components/contacts/ContactCard";
+import TimelineContainer from "@/components/timeline/TimelineContainer";
+import ContactsContainer from "@/components/contacts/ContactsContainer"; // NEW: Import ContactsContainer
 
 // Simple Card components
 const Card = ({
@@ -296,7 +296,11 @@ export default function LeadDetailsPage() {
           </div>
         );
       case "contacts":
-        return <div className="p-6"></div>;
+        return (
+          <div className="p-6">
+            <ContactsContainer leadId={leadDetails.leadId} />
+          </div>
+        );
       default:
         return null;
     }
