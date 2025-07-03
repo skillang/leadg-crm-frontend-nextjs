@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, X, FileText, AlertCircle, CheckCircle } from "lucide-react";
+import { Upload, X, FileText, AlertCircle } from "lucide-react";
 import {
   UploadDocumentRequest,
   DOCUMENT_TYPES,

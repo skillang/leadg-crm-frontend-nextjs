@@ -184,7 +184,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
       };
 
-      const result = await createLead(apiPayload).unwrap();
+      await createLead(apiPayload).unwrap();
       notifications.success(
         `Lead "${formData.name}" created successfully!`,
         "Lead Created"

@@ -19,16 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  X,
-  CheckCircle,
-  AlertCircle,
-  AlertTriangle,
-  Info,
-  Trash,
-  FileCheck,
-  FileX,
-} from "lucide-react";
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Types for notifications
@@ -374,18 +365,22 @@ function ToastItem({ toast }: { toast: Toast }) {
       )}
     >
       <Icon className="h-4 w-4" />
+
       <div className="flex-1 min-w-0">
-        {toast.title && <AlertTitle>{toast.title}</AlertTitle>}
+        <div className="flex">
+          {toast.title && <AlertTitle>{toast.title}</AlertTitle>}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto p-1 ml-auto flex-shrink-0 opacity-70 hover:opacity-100"
+            onClick={() => removeToast(toast.id)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
         <AlertDescription>{toast.description}</AlertDescription>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-auto p-1 ml-auto flex-shrink-0 opacity-70 hover:opacity-100"
-        onClick={() => removeToast(toast.id)}
-      >
-        <X className="h-4 w-4" />
-      </Button>
     </Alert>
   );
 }

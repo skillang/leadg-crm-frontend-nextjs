@@ -129,6 +129,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
           notifications.documentRejected(document.filename);
         } catch (error) {
           notifications.error("Failed to reject document. Please try again.");
+          console.error("Failed to reject document:", error);
         }
       }
     );

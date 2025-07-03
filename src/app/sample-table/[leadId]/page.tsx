@@ -8,7 +8,7 @@ import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Star, Phone, Mail, ExternalLink } from "lucide-react";
+import { ArrowLeft, Star, Phone, Mail } from "lucide-react";
 import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
 import NotesContainer from "@/components/notes/NotesContainer";
@@ -16,7 +16,6 @@ import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer";
 import ContactsContainer from "@/components/contacts/ContactsContainer";
-import WhatsAppMessageModal from "@/components/whatsapp/WhatsAppMessageModal"; // NEW: Import WhatsApp Modal
 
 // Simple Card components
 const Card = ({
@@ -553,17 +552,6 @@ export default function LeadDetailsPage() {
             </Card>
           </div>
         </div>
-
-        {/* NEW: WhatsApp Modal */}
-        <WhatsAppMessageModal
-          isOpen={isWhatsAppModalOpen}
-          onClose={() => setIsWhatsAppModalOpen(false)}
-          contact={{
-            phone: leadDetails.phoneNumber,
-            name: leadDetails.name,
-            id: leadDetails.leadId,
-          }}
-        />
       </div>
     </div>
   );

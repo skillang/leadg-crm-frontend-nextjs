@@ -59,7 +59,6 @@ import {
   DownloadIcon,
   Grid2X2PlusIcon,
   ListFilterIcon,
-  PlusIcon,
   SlidersHorizontalIcon,
   ArrowUpDown,
   ChevronDown,
@@ -82,7 +81,6 @@ export function DataTable<TData, TValue>({
   data,
   title = "Leads",
   description,
-  onAddNew,
   onExportCsv,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);

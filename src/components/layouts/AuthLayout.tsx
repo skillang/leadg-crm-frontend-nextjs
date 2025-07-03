@@ -8,10 +8,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import SideNavBarComp from "@/components/navs/SideNavBar/SideNavBar";
 import TopBarComp from "@/components/navs/TopBar/TopBar";
 import LoginPage from "@/pages/LoginPage.jsx";
-// import TokenExpirationMonitor from "@/components/auth/TokenExpirationMonitor";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import {
-  setAuthState,
   setLoading,
   clearAuthState,
   setUserData,
@@ -29,7 +27,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Get authentication state from Redux store
-  const { isAuthenticated, user, loading, accessToken } = useAppSelector(
+  const { isAuthenticated, user, loading } = useAppSelector(
     (state) => state.auth
   );
 
@@ -46,7 +44,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
     data: currentUserData,
     error: userError,
     isLoading: userLoading,
-    refetch: refetchUser,
+    // refetch: refetchUser,
   } = useGetCurrentUserQuery(undefined, {
     skip: !storedToken || isAuthenticated, // Skip if no token or already authenticated
   });
@@ -57,7 +55,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
       try {
         const token = localStorage?.getItem("access_token");
-        const refreshToken = localStorage?.getItem("refresh_token");
+        // const refreshToken = localStorage?.getItem("refresh_token");
 
         if (!token) {
           dispatch(clearAuthState());
@@ -130,10 +128,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   // If user is authenticated but trying to access login page, redirect content
   if (isAuthenticated && pathname === "/login") {
     return (
-      // <TokenExpirationMonitor
-      //   warningThresholdMinutes={5}
-      //   autoLogoutEnabled={true}
-      // >
       <SidebarProvider>
         <SideNavBarComp />
         <main className="w-full h-screen">
@@ -160,7 +154,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
           </div>
         </main>
       </SidebarProvider>
-      // </TokenExpirationMonitor>
     );
   }
 
@@ -171,10 +164,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
 
   // If authenticated and on a protected route, render with sidebar/topbar and token monitoring
   return (
-    // <TokenExpirationMonitor
-    //   warningThresholdMinutes={5}
-    //   autoLogoutEnabled={true}
-    // >
     <SidebarProvider>
       <SideNavBarComp />
       <main className="w-full h-screen">
@@ -183,7 +172,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         <div className="px-8">{children}</div>
       </main>
     </SidebarProvider>
-    // </TokenExpirationMonitor>
   );
 };
 

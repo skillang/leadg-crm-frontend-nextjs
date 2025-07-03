@@ -4,7 +4,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,12 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Search,
   Upload,
   Loader2,
   AlertCircle,
   FileText,
-  Filter,
   Grid,
   List,
 } from "lucide-react";

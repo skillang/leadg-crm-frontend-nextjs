@@ -7,20 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Phone,
-  Mail,
-  Calendar,
-  Users,
-  Clock,
-  CheckCircle,
-  Edit3,
-  Trash2,
-} from "lucide-react";
+import { Phone, Mail, Calendar, Users, Clock, CheckCircle } from "lucide-react";
 import { Task } from "@/models/types/task";
 import {
   useCompleteTaskMutation,
-  useDeleteTaskMutation,
+  // useDeleteTaskMutation,
 } from "@/redux/slices/tasksApi";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +31,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   className,
 }) => {
   const [completeTask, { isLoading: isCompleting }] = useCompleteTaskMutation();
-  const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+  // const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
 
   const handleComplete = async () => {
     try {

@@ -1,5 +1,5 @@
 // app/api/whatsapp/account-validity/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getWhatsAppConfig } from "@/config/whatsappConfig";
 
 export async function GET() {

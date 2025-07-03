@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { X, Phone, Mail, Users } from "lucide-react";
 import { Contact } from "@/models/types/contact";

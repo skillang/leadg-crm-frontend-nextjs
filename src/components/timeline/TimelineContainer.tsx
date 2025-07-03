@@ -5,21 +5,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Search,
-  Filter,
-  Calendar,
-  Loader2,
-  AlertCircle,
-  Activity,
-} from "lucide-react";
+import { Activity, AlertCircle, Filter, Loader2, Search } from "lucide-react";
 import { TimelineFilters } from "@/models/types/timeline";
 import {
   useGetLeadTimelineQuery,

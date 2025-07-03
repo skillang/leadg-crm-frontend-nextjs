@@ -37,8 +37,6 @@ import {
   useDeleteLeadMutation,
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
-import { TataTeleService } from "@/services/tataTeleService";
-import WhatsAppMessageModal from "@/components/whatsapp/WhatsAppMessageModal"; // NEW: Import WhatsApp Modal
 
 // Stage configurations (matching backend values)
 const LEAD_STAGES = [
@@ -90,9 +88,9 @@ const handlePhoneCall = async (phoneNumber: string, leadName?: string) => {
     alert("No phone number available");
     return;
   }
-
-  // Use Tata Tele service for making calls
-  await TataTeleService.initiateCallWithFeedback(phoneNumber, leadName);
+  console.log(
+    `Calling ${leadName || phoneNumber} at ${phoneNumber} is not available`
+  );
 };
 
 // NEW: WhatsApp Modal Handler Component
@@ -141,17 +139,6 @@ const WhatsAppButton: React.FC<{
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-
-      {/* WhatsApp Modal */}
-      <WhatsAppMessageModal
-        isOpen={isWhatsAppModalOpen}
-        onClose={() => setIsWhatsAppModalOpen(false)}
-        contact={{
-          phone: phoneNumber,
-          name: leadName || "",
-          id: leadId || "",
-        }}
-      />
     </>
   );
 };

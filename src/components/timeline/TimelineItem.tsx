@@ -33,7 +33,7 @@ interface TimelineItemProps {
 
 const TimelineItem: React.FC<TimelineItemProps> = ({
   activity,
-  isLast = false,
+  // isLast = false,
 }) => {
   // Get activity type configuration
   const typeConfig = getActivityTypeConfig(activity.activity_type);
@@ -56,7 +56,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
     return iconMap[iconName] || Activity;
   };
 
-  const IconComponent = getIcon(typeConfig.icon || "Activity");
+  // const IconComponent = getIcon(typeConfig.icon || "Activity");
 
   // Color mapping for activity types
   const getActivityColors = (color: string) => {
