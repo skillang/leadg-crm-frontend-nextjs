@@ -1,20 +1,19 @@
-// src/app/sample-table/columns.tsx - UPDATED with WhatsApp Modal Integration
+// src/app/sample-table/columns.tsx
 
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import { Row } from "@tanstack/react-table";
 import {
   ArrowUpDown,
-  ListFilter,
   Phone,
   MessageCircle,
   Mail,
   FileText,
   Loader2,
+  MoreHorizontal,
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,7 +37,7 @@ import {
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
 
-// Stage configurations (matching backend values)
+// Stage Config
 const LEAD_STAGES = [
   {
     value: "open",
@@ -82,76 +81,57 @@ const LEAD_STAGES = [
   },
 ];
 
-// UPDATED: Helper functions for contact actions with WhatsApp Modal integration
-const handlePhoneCall = async (phoneNumber: string, leadName?: string) => {
-  if (!phoneNumber) {
-    alert("No phone number available");
-    return;
-  }
-  console.log(
-    `Calling ${leadName || phoneNumber} at ${phoneNumber} is not available`
-  );
-};
-
-// NEW: WhatsApp Modal Handler Component
-const WhatsAppButton: React.FC<{
-  phoneNumber: string;
-  leadName?: string;
-  leadId?: string;
-}> = ({ phoneNumber, leadName, leadId }) => {
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-
-  const handleWhatsAppClick = () => {
-    if (!phoneNumber) {
-      alert("No phone number available");
-      return;
-    }
-    setIsWhatsAppModalOpen(true);
-  };
-
-  return (
-    <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-gray-100"
-              onClick={handleWhatsAppClick}
-              disabled={!phoneNumber}
-            >
-              <MessageCircle
-                className={`h-4 w-4 ${
-                  phoneNumber
-                    ? "text-green-600 hover:text-green-700"
-                    : "text-gray-300"
-                }`}
-              />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>
-              {phoneNumber
-                ? `WhatsApp ${leadName || phoneNumber}`
-                : "No phone number"}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </>
-  );
+const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
+  if (!phoneNumber) return alert("No phone number available");
+  alert(`Calling ${leadName || phoneNumber} at ${phoneNumber}`);
 };
 
 const handleEmail = (email: string) => {
-  if (!email) {
-    alert("No email address available");
-    return;
-  }
+  if (!email) return alert("No email address available");
   window.open(`mailto:${email}`, "_self");
 };
 
-// Stage Select Cell Component with new API
+const WhatsAppButton: React.FC<{
+  phoneNumber: string;
+  leadName?: string;
+}> = ({ phoneNumber, leadName }) => {
+  const handleWhatsAppClick = () => {
+    if (!phoneNumber) return alert("No phone number available");
+    alert(`Open WhatsApp modal for ${leadName || phoneNumber}`);
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-gray-100"
+            onClick={handleWhatsAppClick}
+            disabled={!phoneNumber}
+          >
+            <MessageCircle
+              className={`h-4 w-4 ${
+                phoneNumber
+                  ? "text-green-600 hover:text-green-700"
+                  : "text-gray-300"
+              }`}
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>
+            {phoneNumber
+              ? `WhatsApp ${leadName || phoneNumber}`
+              : "No phone number"}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
   const stage = row.getValue("stage") as string;
@@ -164,9 +144,15 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
       await updateStage({
         leadId: currentLead.id,
         stage: newStage,
-        currentLead: currentLead,
+        currentLead,
       }).unwrap();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as {
+        message?: string;
+        data?: {
+          detail?: { msg: string }[] | string;
+        };
+      };
       console.error("Failed to update stage:", error);
 
       let errorMessage = "Failed to update stage";
@@ -174,9 +160,9 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
       if (error?.data?.detail) {
         if (Array.isArray(error.data.detail)) {
           errorMessage = error.data.detail
-            .map((err: any) => err.msg)
+            .map((e: { msg: string }) => e.msg)
             .join(", ");
-        } else {
+        } else if (typeof error.data.detail === "string") {
           errorMessage = error.data.detail;
         }
       } else if (error?.message) {
@@ -210,66 +196,40 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Actions Cell Component with Real API
 const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const [deleteLead, { isLoading: isDeleting }] = useDeleteLeadMutation();
   const router = useRouter();
   const lead = row.original;
 
   const handleDelete = async () => {
-    const confirmMessage = `Are you sure you want to delete lead "${lead.name}"?\n\nThis action cannot be undone.`;
-
-    if (window.confirm(confirmMessage)) {
-      try {
-        await deleteLead(lead.id).unwrap();
-      } catch (error: any) {
-        console.error("Failed to delete lead:", error);
-
-        const errorMessage =
-          error?.data?.detail || error?.message || "Failed to delete lead";
-        alert(`Error: ${errorMessage}`);
-      }
-    }
-  };
-
-  const handleViewDetails = () => {
-    router.push(`/sample-table/${lead.id}`);
-  };
-
-  const handleEdit = () => {
-    alert("Edit functionality coming soon!");
-  };
-
-  const handleCopyId = async () => {
-    try {
-      await navigator.clipboard.writeText(lead.id);
-    } catch (error) {
-      console.error("Failed to copy ID:", error);
-      const textArea = document.createElement("textarea");
-      textArea.value = lead.id;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-    }
-  };
-
-  const handleCopyEmail = async () => {
-    if (!lead.email) {
-      alert("No email address available");
+    if (!confirm(`Are you sure you want to delete lead "${lead.name}"?`))
       return;
-    }
 
     try {
-      await navigator.clipboard.writeText(lead.email);
-    } catch (error) {
-      console.error("Failed to copy email:", error);
-      const textArea = document.createElement("textarea");
-      textArea.value = lead.email;
-      document.body.appendChild(textArea);
-      textArea.select();
+      await deleteLead(lead.id).unwrap();
+    } catch (err: unknown) {
+      const error = err as {
+        message?: string;
+        data?: {
+          detail?: { msg: string }[] | string;
+        };
+      };
+      const message =
+        error?.data?.detail || error?.message || "Failed to delete lead";
+      alert(`Error: ${message}`);
+    }
+  };
+
+  const handleCopy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      document.body.appendChild(textarea);
+      textarea.select();
       document.execCommand("copy");
-      document.body.removeChild(textArea);
+      document.body.removeChild(textarea);
     }
   };
 
@@ -286,38 +246,28 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
-        <DropdownMenuItem onClick={handleCopyId} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => handleCopy(lead.id)}>
           Copy Lead ID
         </DropdownMenuItem>
-
         <DropdownMenuItem
-          onClick={handleCopyEmail}
-          className="cursor-pointer"
+          onClick={() => handleCopy(lead.email!)}
           disabled={!lead.email}
         >
           Copy Email
         </DropdownMenuItem>
-
         <DropdownMenuSeparator />
-
         <DropdownMenuItem
-          onClick={handleViewDetails}
-          className="cursor-pointer"
+          onClick={() => router.push(`/sample-table/${lead.id}`)}
         >
           View Details
         </DropdownMenuItem>
-
-        <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => alert("Edit coming soon!")}>
           Edit Lead
         </DropdownMenuItem>
-
         <DropdownMenuSeparator />
-
         <DropdownMenuItem
           onClick={handleDelete}
-          className="text-red-600 hover:text-red-700 cursor-pointer"
-          disabled={isDeleting}
+          className="text-red-600 hover:text-red-700"
         >
           {isDeleting ? (
             <span className="flex items-center gap-2">
@@ -333,67 +283,45 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Column Definitions
+// Column definitions
 export const columns: ColumnDef<Lead>[] = [
-  // Selection Column
   {
     id: "select",
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
         aria-label="Select all"
       />
     ),
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        onCheckedChange={(v) => row.toggleSelected(!!v)}
         aria-label="Select row"
       />
     ),
     enableSorting: false,
     enableHiding: false,
   },
-
-  // Name Column
   {
     accessorKey: "name",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="hover:bg-gray-100"
       >
         Lead Name
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => {
-      const name = row.getValue("name") as string;
-      return (
-        <div className="font-medium text-gray-900">{name || "Unknown"}</div>
-      );
-    },
+    cell: ({ row }) => (
+      <div className="font-medium">{row.getValue("name")}</div>
+    ),
   },
-
-  // Created Date Column
   {
     accessorKey: "createdOn",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="hover:bg-gray-100"
-      >
-        <ListFilter className="mr-2 h-4 w-4" />
-        Created On
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
+    header: "Created On",
     cell: ({ row }) => {
       const date = row.getValue("createdOn") as string;
       return (
@@ -403,15 +331,11 @@ export const columns: ColumnDef<Lead>[] = [
       );
     },
   },
-
-  // Stage Column
   {
     accessorKey: "stage",
     header: "Stage",
     cell: StageSelectCell,
   },
-
-  // UPDATED: Contact Column with WhatsApp Modal integration
   {
     accessorKey: "contact",
     header: "Contact",
@@ -419,7 +343,6 @@ export const columns: ColumnDef<Lead>[] = [
       const contact = row.getValue("contact") as string;
       const email = row.original.email || "";
       const leadName = row.original.name;
-      const leadId = row.original.id;
 
       return (
         <div className="flex items-center gap-1">
@@ -452,12 +375,7 @@ export const columns: ColumnDef<Lead>[] = [
             </Tooltip>
           </TooltipProvider>
 
-          {/* UPDATED: WhatsApp Button with Modal */}
-          <WhatsAppButton
-            phoneNumber={contact}
-            leadName={leadName}
-            leadId={leadId}
-          />
+          <WhatsAppButton phoneNumber={contact} leadName={leadName} />
 
           <TooltipProvider>
             <Tooltip>
@@ -487,77 +405,56 @@ export const columns: ColumnDef<Lead>[] = [
       );
     },
   },
-
-  // Source Column
   {
     accessorKey: "source",
     header: "Source",
-    cell: ({ row }) => {
-      const source = row.getValue("source") as string;
-      return (
-        <span className="capitalize text-gray-700">{source || "Unknown"}</span>
-      );
-    },
+    cell: ({ row }) => (
+      <span className="capitalize text-gray-700">
+        {row.getValue("source") || "Unknown"}
+      </span>
+    ),
   },
-
-  // Media Column
   {
     accessorKey: "media",
     header: "Media",
-    cell: ({ row }) => {
-      const media = row.getValue("media") as string;
-      return <span className="text-gray-600">{media || "N/A"}</span>;
-    },
+    cell: ({ row }) => (
+      <span className="text-gray-600">{row.getValue("media") || "N/A"}</span>
+    ),
   },
-
-  // Last Activity Column
   {
     accessorKey: "lastActivity",
     header: "Last Activity",
     cell: ({ row }) => {
-      const lastActivity = row.getValue("lastActivity") as string;
+      const val = row.getValue("lastActivity") as string;
       return (
         <span className="text-gray-600">
-          {lastActivity
-            ? new Date(lastActivity).toLocaleDateString()
-            : "No activity"}
+          {val ? new Date(val).toLocaleDateString() : "No activity"}
         </span>
       );
     },
   },
-
-  // Department Column
   {
     accessorKey: "department",
     header: "Department",
-    cell: ({ row }) => {
-      const department = row.getValue("department") as string;
-      return (
-        <span className="text-gray-700">{department || "Unassigned"}</span>
-      );
-    },
+    cell: ({ row }) => (
+      <span className="text-gray-700">
+        {row.getValue("department") || "Unassigned"}
+      </span>
+    ),
   },
-
-  // Notes Column
   {
     accessorKey: "notes",
     header: "Notes",
     cell: ({ row }) => {
       const notes = row.getValue("notes") as string;
-
-      if (!notes || notes.trim() === "") {
+      if (!notes || notes.trim() === "")
         return <span className="text-gray-400 italic">No notes</span>;
-      }
 
       return (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-gray-100"
-              >
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <FileText className="h-4 w-4 text-gray-600" />
               </Button>
             </TooltipTrigger>
@@ -569,8 +466,6 @@ export const columns: ColumnDef<Lead>[] = [
       );
     },
   },
-
-  // Actions Column
   {
     id: "actions",
     header: "Actions",

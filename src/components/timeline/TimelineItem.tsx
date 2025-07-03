@@ -5,21 +5,7 @@
 import React, { JSX } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Phone,
-  Mail,
-  Users,
-  FileText,
-  CheckSquare,
-  Paperclip,
-  ArrowRight,
-  UserPlus,
-  Settings,
-  Activity,
-  Calendar,
-  Clock,
-  User,
-} from "lucide-react";
+import { ArrowRight, Calendar, Clock, User } from "lucide-react";
 import {
   TimelineActivity,
   getActivityTypeConfig,
@@ -39,22 +25,22 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   const typeConfig = getActivityTypeConfig(activity.activity_type);
 
   // Icon mapping
-  const getIcon = (iconName: string) => {
-    const iconMap: Record<string, React.ComponentType<any>> = {
-      Phone,
-      Mail,
-      Users,
-      FileText,
-      CheckSquare,
-      Paperclip,
-      ArrowRight,
-      UserPlus,
-      Settings,
-      Activity,
-    };
+  // const getIcon = (iconName: string) => {
+  //   const iconMap: Record<string, React.ComponentType<any>> = {
+  //     Phone,
+  //     Mail,
+  //     Users,
+  //     FileText,
+  //     CheckSquare,
+  //     Paperclip,
+  //     ArrowRight,
+  //     UserPlus,
+  //     Settings,
+  //     Activity,
+  //   };
 
-    return iconMap[iconName] || Activity;
-  };
+  //   return iconMap[iconName] || Activity;
+  // };
 
   // const IconComponent = getIcon(typeConfig.icon || "Activity");
 

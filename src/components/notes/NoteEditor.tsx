@@ -1,4 +1,4 @@
-// src/components/notes/NoteEditor.tsx (UPDATED with Persistent Tags and Tick Marks)
+// src/components/notes/NoteEditor.tsx (FIXED TypeScript Error)
 
 "use client";
 
@@ -104,7 +104,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [isOpen, note]);
 
-  const handleInputChange = (field: string, value: any) => {
+  // FIXED: Properly typed function instead of using 'any'
+  const handleInputChange = (
+    field: keyof Pick<typeof formData, "title" | "content">,
+    value: string
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

@@ -6,13 +6,19 @@ import { columns } from "./columns";
 import { DataTable } from "./data-table";
 import { useAppSelector } from "@/redux/hooks";
 import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
-import {
-  useGetLeadsQuery,
-  useGetMyLeadsQuery,
-  useGetLeadStatsQuery,
-} from "@/redux/slices/leadsApi";
+import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
+
+// Type for RTK Query error
+interface RTKQueryError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
 
 export default function DemoPage() {
   // Get user role from Redux
@@ -37,13 +43,6 @@ export default function DemoPage() {
     skip: isAdmin,
   });
 
-  // Get statistics
-  const {
-    data: stats,
-    isLoading: statsLoading,
-    error: statsError,
-  } = useGetLeadStatsQuery();
-
   // Determine which data to use
   const leads = isAdmin ? adminLeads : userLeads;
   const isLoading = isAdmin ? adminLoading : userLoading;
@@ -66,6 +65,26 @@ export default function DemoPage() {
     refetch();
   };
 
+  // Helper function to extract error message with proper typing
+  const getErrorMessage = (error: unknown): string => {
+    if (!error) return "Unknown error occurred";
+
+    const rtkError = error as RTKQueryError;
+
+    // Try to get error message from various possible locations
+    if (rtkError.data?.detail) {
+      return rtkError.data.detail;
+    }
+    if (rtkError.data?.message) {
+      return rtkError.data.message;
+    }
+    if (rtkError.message) {
+      return rtkError.message;
+    }
+
+    return "Failed to load leads";
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -82,10 +101,7 @@ export default function DemoPage() {
 
   // Error state
   if (error) {
-    const errorMessage =
-      (error as any)?.data?.detail ||
-      (error as any)?.message ||
-      "Failed to load leads";
+    const errorMessage = getErrorMessage(error);
 
     return (
       <div className="container mx-auto py-10">

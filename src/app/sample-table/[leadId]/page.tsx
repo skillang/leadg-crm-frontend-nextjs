@@ -135,7 +135,6 @@ const formatDate = (dateString: string) => {
 
 export default function LeadDetailsPage() {
   const [activeTab, setActiveTab] = useState("timeline");
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false); // NEW: WhatsApp modal state
   const [updateStage, { isLoading: isUpdatingStage }] =
     useUpdateLeadStageMutation();
   const params = useParams();
@@ -170,7 +169,7 @@ export default function LeadDetailsPage() {
       alert("No phone number available for this lead");
       return;
     }
-    setIsWhatsAppModalOpen(true);
+    console.log("Whastapp button clicked");
   };
 
   // Loading state
@@ -231,16 +230,22 @@ export default function LeadDetailsPage() {
         stage: newStage,
         currentLead: currentLead,
       }).unwrap();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as {
+        message?: string;
+        data?: {
+          detail?: { msg: string }[] | string;
+        };
+      };
+
       console.error("Failed to update stage:", error);
 
-      // Show user-friendly error message
       let errorMessage = "Failed to update stage";
 
       if (error?.data?.detail) {
         if (Array.isArray(error.data.detail)) {
           errorMessage = error.data.detail
-            .map((err: any) => err.msg)
+            .map((e: { msg: string }) => e.msg)
             .join(", ");
         } else {
           errorMessage = error.data.detail;

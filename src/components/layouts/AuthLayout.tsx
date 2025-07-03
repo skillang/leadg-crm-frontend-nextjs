@@ -17,6 +17,17 @@ import {
 } from "@/redux/slices/authSlice";
 import { useGetCurrentUserQuery } from "@/redux/slices/authApi";
 
+// Type definition for RTK Query error
+interface RTKQueryError {
+  status?: number;
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  error?: string;
+  message?: string;
+}
+
 interface AuthLayoutProps {
   children: React.ReactNode;
 }
@@ -77,8 +88,11 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         if (userError) {
           console.error("Token verification failed:", userError);
 
+          // FIXED: Properly typed error handling
+          const rtkError = userError as RTKQueryError;
+
           // Handle specific error types
-          if ((userError as any)?.status === 401) {
+          if (rtkError?.status === 401) {
             // console.log("🚨 Token expired or invalid, clearing auth state");
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");

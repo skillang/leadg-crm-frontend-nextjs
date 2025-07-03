@@ -34,6 +34,35 @@ import {
 import { useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { useAppSelector } from "@/redux/hooks";
 
+// Type definitions for better type safety
+interface ContactFormData {
+  name: string;
+  contact_id: string;
+  role: string;
+  phone: string;
+  email: string;
+  owner: string;
+  linked_leads: string[];
+  department: string;
+}
+
+type FormFieldValue = string | string[];
+
+interface ValidationError {
+  loc: string[];
+  msg: string;
+  type: string;
+}
+
+interface ApiErrorResponse {
+  data?: {
+    detail?: string | ValidationError[];
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
+
 interface ContactEditorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -54,16 +83,7 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
   const { data: myLeads = [], isLoading: leadsLoading } = useGetMyLeadsQuery();
   const currentUser = useAppSelector((state) => state.auth.user);
 
-  const [formData, setFormData] = useState<{
-    name: string;
-    contact_id: string;
-    role: string;
-    phone: string;
-    email: string;
-    owner: string;
-    linked_leads: string[];
-    department: string;
-  }>({
+  const [formData, setFormData] = useState<ContactFormData>({
     name: "",
     contact_id: "",
     role: "",
@@ -133,7 +153,11 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
     }
   }, [isOpen, contact, leadId, currentUser]);
 
-  const handleInputChange = (field: string, value: any) => {
+  // FIXED: Properly typed handleInputChange function
+  const handleInputChange = (
+    field: keyof ContactFormData,
+    value: FormFieldValue
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -226,15 +250,18 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
       }
 
       onClose();
-    } catch (error: any) {
+    } catch (error) {
+      // FIXED: Properly typed error handling
       console.error("Failed to save contact:", error);
 
+      const apiError = error as ApiErrorResponse;
       let errorMessage = "Failed to save contact. Please try again.";
 
-      if (error?.data) {
-        if (Array.isArray(error.data.detail)) {
+      if (apiError?.data) {
+        if (Array.isArray(apiError.data.detail)) {
           const validationErrors: Record<string, string> = {};
-          error.data.detail.forEach((err: any) => {
+          // FIXED: Properly typed validation error handling
+          apiError.data.detail.forEach((err: ValidationError) => {
             if (err.loc && err.loc.length > 1) {
               const field = err.loc[err.loc.length - 1];
               validationErrors[field] = err.msg;
@@ -246,11 +273,12 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
             return;
           }
 
-          errorMessage = error.data.detail
-            .map((err: any) => err.msg)
+          // FIXED: Properly typed error mapping
+          errorMessage = apiError.data.detail
+            .map((err: ValidationError) => err.msg)
             .join(", ");
-        } else if (typeof error.data.detail === "string") {
-          errorMessage = error.data.detail;
+        } else if (typeof apiError.data.detail === "string") {
+          errorMessage = apiError.data.detail;
         }
       }
 

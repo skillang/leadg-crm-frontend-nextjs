@@ -7,11 +7,7 @@ import type {
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
 import { RootState } from "../store";
-import {
-  setAuthState,
-  clearAuthState,
-  updateTokens,
-} from "../slices/authSlice";
+import { clearAuthState, updateTokens } from "../slices/authSlice";
 
 // Enhanced base query that handles token refresh and automatic logout
 export const createBaseQueryWithReauth = (

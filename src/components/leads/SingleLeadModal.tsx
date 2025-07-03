@@ -27,6 +27,33 @@ import {
 } from "@/redux/slices/leadsApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 
+// Type definitions for better type safety
+interface ValidationError {
+  loc: string[];
+  msg: string;
+  type: string;
+}
+
+interface ApiErrorResponse {
+  data?: {
+    detail?: string | ValidationError[];
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
+
+interface AssignableUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department?: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}
+
 interface SingleLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -190,14 +217,19 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         "Lead Created"
       );
       onClose();
-    } catch (error: any) {
+    } catch (error) {
+      // FIXED: Properly typed error handling
+      const apiError = error as ApiErrorResponse;
       let errorMessage = "Failed to create lead. Please try again.";
-      if (error?.data?.detail) {
-        errorMessage = Array.isArray(error.data.detail)
-          ? error.data.detail.map((err: any) => err.msg).join(", ")
-          : error.data.detail;
-      } else if (error?.message) {
-        errorMessage = error.message;
+
+      if (apiError?.data?.detail) {
+        errorMessage = Array.isArray(apiError.data.detail)
+          ? apiError.data.detail
+              .map((err: ValidationError) => err.msg)
+              .join(", ")
+          : apiError.data.detail;
+      } else if (apiError?.message) {
+        errorMessage = apiError.message;
       }
       notifications.error(errorMessage, "Error Creating Lead");
     }
@@ -255,7 +287,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                     Loading users...
                   </SelectItem>
                 ) : (
-                  assignableUsers.map((user: any) => (
+                  // FIXED: Properly typed assignable users
+                  assignableUsers.map((user: AssignableUser) => (
                     <SelectItem key={user.id} value={user.email || user.id}>
                       {user.first_name && user.last_name
                         ? `${user.first_name} ${user.last_name}`

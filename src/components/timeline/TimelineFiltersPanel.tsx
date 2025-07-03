@@ -19,7 +19,10 @@ import { TimelineFilters, ActivityType } from "@/models/types/timeline";
 
 interface TimelineFiltersPanelProps {
   filters: TimelineFilters;
-  onFilterChange: (key: keyof TimelineFilters, value: any) => void;
+  onFilterChange: (
+    key: keyof TimelineFilters,
+    value: string | number | undefined
+  ) => void;
   activityTypes: ActivityType[];
 }
 

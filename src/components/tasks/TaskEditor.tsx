@@ -1,4 +1,4 @@
-// src/components/tasks/TaskEditor.tsx
+// src/components/tasks/TaskEditor.tsx (FIXED TypeScript Error)
 
 "use client";
 
@@ -37,6 +37,18 @@ interface TaskEditorProps {
   task?: Task; // If provided, we're editing; otherwise creating
 }
 
+// Define the form data type
+type TaskFormData = {
+  task_title: string;
+  task_description: string;
+  task_type: "call" | "email" | "meeting" | "follow_up" | "other";
+  priority: "low" | "medium" | "high" | "urgent";
+  assigned_to: string;
+  due_date: string;
+  due_time: string;
+  notes: string;
+};
+
 const TaskEditor: React.FC<TaskEditorProps> = ({
   isOpen,
   onClose,
@@ -46,16 +58,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
-  const [formData, setFormData] = useState<{
-    task_title: string;
-    task_description: string;
-    task_type: "call" | "email" | "meeting" | "follow_up" | "other";
-    priority: "low" | "medium" | "high" | "urgent";
-    assigned_to: string;
-    due_date: string;
-    due_time: string;
-    notes: string;
-  }>({
+  const [formData, setFormData] = useState<TaskFormData>({
     task_title: "",
     task_description: "",
     task_type: "call",
@@ -76,7 +79,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
     { value: "meeting", label: "Meeting" },
     { value: "follow_up", label: "Follow Up" },
     { value: "other", label: "Other" },
-  ];
+  ] as const;
 
   // Priority options
   const priorityOptions = [
@@ -84,7 +87,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
     { value: "medium", label: "Medium" },
     { value: "high", label: "High" },
     { value: "urgent", label: "Urgent" },
-  ];
+  ] as const;
 
   // Reset form when task changes or dialog opens
   useEffect(() => {
@@ -121,7 +124,11 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
     }
   }, [isOpen, task]);
 
-  const handleInputChange = (field: string, value: any) => {
+  // FIXED: Properly typed function with mapped types for each field
+  const handleInputChange = <K extends keyof TaskFormData>(
+    field: K,
+    value: TaskFormData[K]
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -223,7 +230,12 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
               </Label>
               <Select
                 value={formData.task_type}
-                onValueChange={(value) => handleInputChange("task_type", value)}
+                onValueChange={(value) =>
+                  handleInputChange(
+                    "task_type",
+                    value as TaskFormData["task_type"]
+                  )
+                }
                 disabled={isLoading}
               >
                 <SelectTrigger>
@@ -245,7 +257,12 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
               </Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value) => handleInputChange("priority", value)}
+                onValueChange={(value) =>
+                  handleInputChange(
+                    "priority",
+                    value as TaskFormData["priority"]
+                  )
+                }
                 disabled={isLoading}
               >
                 <SelectTrigger>

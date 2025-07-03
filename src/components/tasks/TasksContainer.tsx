@@ -1,4 +1,4 @@
-// src/components/tasks/TasksContainer.tsx
+// src/components/tasks/TasksContainer.tsx (FIXED React Hooks Warnings)
 
 "use client";
 
@@ -50,15 +50,23 @@ const TasksContainer: React.FC<TasksContainerProps> = ({ leadId }) => {
     status_filter: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  const tasks = tasksData?.tasks || [];
-  const stats = tasksData?.stats || {
-    total_tasks: 0,
-    pending_tasks: 0,
-    overdue_tasks: 0,
-    due_today: 0,
-    completed_tasks: 0,
-    in_progress_tasks: 0,
-  };
+  // FIXED: Wrap tasks and stats in useMemo to ensure stable references
+  const tasks = React.useMemo(() => {
+    return tasksData?.tasks || [];
+  }, [tasksData?.tasks]);
+
+  const stats = React.useMemo(() => {
+    return (
+      tasksData?.stats || {
+        total_tasks: 0,
+        pending_tasks: 0,
+        overdue_tasks: 0,
+        due_today: 0,
+        completed_tasks: 0,
+        in_progress_tasks: 0,
+      }
+    );
+  }, [tasksData?.stats]);
 
   // If stats are empty from API, calculate them from tasks
   const calculatedStats = React.useMemo(() => {

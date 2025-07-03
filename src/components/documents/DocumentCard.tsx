@@ -210,13 +210,13 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     }
   };
 
-  // Safe property access with fallbacks
-  const documentStatus = (document as any).status || "Pending";
-  const approvalNotes = (document as any).approval_notes;
-  const notes = (document as any).notes;
-  const expiryDate = (document as any).expiry_date;
-  const approvedByName = (document as any).approved_by_name;
-  const approvedAt = (document as any).approved_at;
+  // FIXED: Use properly typed properties from Document interface
+  const documentStatus = document.status || "Pending";
+  const approvalNotes = document.approval_notes;
+  const notes = document.notes;
+  const expiryDate = document.expiry_date;
+  const approvedByName = document.approved_by_name;
+  const approvedAt = document.approved_at;
 
   const statusBadge = getStatusBadge(documentStatus);
 

@@ -184,12 +184,20 @@ export function useApiNotifications() {
         const result = await apiCall();
         notifications.success(successMessage);
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as {
+          data?: { detail?: string | { msg: string }[] };
+          message?: string;
+        };
+
         const message =
-          error?.data?.detail ||
-          error?.message ||
+          (Array.isArray(err?.data?.detail)
+            ? err.data?.detail.map((e) => e.msg).join(", ")
+            : err?.data?.detail) ||
+          err?.message ||
           errorMessage ||
           "Operation failed";
+
         notifications.error(message);
         return null;
       }
@@ -213,12 +221,19 @@ export function useApiNotifications() {
               const result = await apiCall();
               notifications.success(successMessage);
               resolve(result);
-            } catch (error: any) {
+            } catch (error: unknown) {
+              const err = error as {
+                data?: { detail?: string | { msg: string }[] };
+                message?: string;
+              };
               const message =
-                error?.data?.detail ||
-                error?.message ||
+                (Array.isArray(err?.data?.detail)
+                  ? err.data?.detail.map((e) => e.msg).join(", ")
+                  : err?.data?.detail) ||
+                err?.message ||
                 errorMessage ||
                 "Operation failed";
+
               notifications.error(message);
               resolve(null);
             }

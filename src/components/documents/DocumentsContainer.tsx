@@ -25,8 +25,6 @@ import {
   useGetDocumentTypesQuery,
   useGetDocumentStatusesQuery,
 } from "@/redux/slices/documentsApi";
-import { useAppSelector } from "@/redux/hooks";
-import { selectIsAdmin } from "@/redux/selectors";
 import { cn } from "@/lib/utils";
 import DocumentCard from "./DocumentCard";
 import DocumentUpload from "./DocumentUpload";
@@ -37,7 +35,7 @@ interface DocumentsContainerProps {
 }
 
 const DocumentsContainer: React.FC<DocumentsContainerProps> = ({ leadId }) => {
-  const isAdmin = useAppSelector(selectIsAdmin);
+  // const isAdmin = useAppSelector(selectIsAdmin);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<

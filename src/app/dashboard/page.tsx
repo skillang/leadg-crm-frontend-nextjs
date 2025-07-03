@@ -13,6 +13,7 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
+import Link from "next/link";
 
 const DashboardPage = () => {
   // Get user info
@@ -188,7 +189,11 @@ const DashboardPage = () => {
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
+          {/* <a
+            href="/sample-table"
+            className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all group"
+          > */}
+          <Link
             href="/sample-table"
             className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all group"
           >
@@ -207,7 +212,7 @@ const DashboardPage = () => {
                 </p>
               </div>
             </div>
-          </a>
+          </Link>
 
           {isAdmin && (
             <div className="p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:shadow-md transition-all group cursor-pointer">

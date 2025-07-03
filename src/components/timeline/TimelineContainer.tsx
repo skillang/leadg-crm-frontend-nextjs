@@ -1,5 +1,3 @@
-// src/components/timeline/TimelineContainer.tsx
-
 "use client";
 
 import React, { useState } from "react";
@@ -9,11 +7,9 @@ import { Activity, AlertCircle, Filter, Loader2, Search } from "lucide-react";
 import { TimelineFilters } from "@/models/types/timeline";
 import {
   useGetLeadTimelineQuery,
-  useGetLeadTimelineStatsQuery,
   useGetActivityTypesQuery,
 } from "@/redux/slices/timelineApi";
 import TimelineItem from "./TimelineItem";
-import TimelineStats from "./TimelineStats";
 import TimelineFiltersPanel from "./TimelineFiltersPanel";
 
 interface TimelineContainerProps {
@@ -40,12 +36,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
     search: searchQuery || undefined,
   });
 
-  const { data: statsData, isLoading: statsLoading } =
-    useGetLeadTimelineStatsQuery({
-      leadId,
-      days: 30,
-    });
-
   const { data: activityTypes } = useGetActivityTypesQuery();
 
   const activities = timelineData?.activities || [];
@@ -58,15 +48,17 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   // Handlers
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    // Reset to first page when searching
     setFilters((prev) => ({ ...prev, page: 1 }));
   };
 
-  const handleFilterChange = (key: keyof TimelineFilters, value: any) => {
+  const handleFilterChange = (
+    key: keyof TimelineFilters,
+    value: string | number | undefined
+  ) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: 1, // Reset to first page when filter changes
+      page: 1,
     }));
   };
 
@@ -112,12 +104,8 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Timeline Statistics */}
-      {/* {statsData && !statsLoading && <TimelineStats stats={statsData} />} */}
-
       {/* Filters and Search */}
       <div className="space-y-4">
-        {/* Search and Filter Toggle */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -157,7 +145,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
           )}
         </div>
 
-        {/* Expandable Filters Panel */}
         {showFilters && (
           <TimelineFiltersPanel
             filters={filters}
@@ -191,7 +178,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Activities List */}
           <div className="space-y-0">
             {activities.map((activity, index) => (
               <TimelineItem
@@ -202,7 +188,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">

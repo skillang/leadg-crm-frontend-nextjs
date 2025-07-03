@@ -95,24 +95,28 @@ export function NotificationProvider({
   const [promptValue, setPromptValue] = useState("");
   const [isConfirmLoading, setIsConfirmLoading] = useState(false);
 
-  // Toast functions
-  const showToast = useCallback((toast: Omit<Toast, "id">) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    const newToast = { ...toast, id };
-
-    setToasts((prev) => [...prev, newToast]);
-
-    const duration = toast.duration ?? 5000;
-    if (duration > 0) {
-      setTimeout(() => {
-        removeToast(id);
-      }, duration);
-    }
-  }, []);
-
+  // Toast functions - Define removeToast first
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
+
+  // FIXED: Added removeToast to dependency array
+  const showToast = useCallback(
+    (toast: Omit<Toast, "id">) => {
+      const id = Math.random().toString(36).substring(2, 9);
+      const newToast = { ...toast, id };
+
+      setToasts((prev) => [...prev, newToast]);
+
+      const duration = toast.duration ?? 5000;
+      if (duration > 0) {
+        setTimeout(() => {
+          removeToast(id);
+        }, duration);
+      }
+    },
+    [removeToast]
+  ); // Added removeToast to dependencies
 
   // Confirmation dialog
   const showConfirm = useCallback((options: ConfirmDialogOptions) => {
