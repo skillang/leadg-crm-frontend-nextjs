@@ -4,6 +4,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
 import {
   Select,
   SelectContent,
@@ -197,14 +198,6 @@ export function DataTable<TData, TValue>({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    }
-  };
-
-  const handleAddNew = () => {
-    if (onAddNew) {
-      onAddNew();
-    } else {
-      // console.log("Add new clicked");
     }
   };
 
@@ -533,14 +526,15 @@ export function DataTable<TData, TValue>({
             .csv
           </Button>
 
-          <Button
+          {/* <Button
             variant="outline"
             onClick={handleAddNew}
             className="flex items-center gap-2 bg-blue-200 border-blue-500 border-2 text-blue-800 hover:bg-blue-100 hover:text-blue-800"
           >
             <PlusIcon className="h-4 w-4" />
             New lead
-          </Button>
+          </Button> */}
+          <NewLeadDropdown />
         </div>
       </div>
 

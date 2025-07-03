@@ -12,6 +12,7 @@ import {
   useGetLeadStatsQuery,
 } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
+import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
 
 export default function DemoPage() {
   // Get user role from Redux
@@ -56,10 +57,10 @@ export default function DemoPage() {
   );
   const filteredLeads = useAppSelector(filteredLeadsSelector);
 
-  const handleAddLead = () => {
-    // console.log("Add new lead clicked");
-    // TODO: Open create lead modal
-  };
+  // const handleAddLead = () => {
+  // console.log("Add new lead clicked");
+  // TODO: Open create lead modal
+  // };
 
   const handleRefresh = () => {
     refetch();
@@ -145,12 +146,9 @@ export default function DemoPage() {
               : "Contact your administrator to get leads assigned to you."}
           </p>
           {isAdmin && (
-            <button
-              onClick={handleAddLead}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create First Lead
-            </button>
+            <div className="flex justify-center">
+              <NewLeadDropdown />
+            </div>
           )}
         </div>
       ) : (
@@ -164,7 +162,6 @@ export default function DemoPage() {
               ? "Comprehensive view of all leads in the system"
               : "Your assigned leads with real-time updates"
           } with sorting, filtering, and actions`}
-          onAddNew={isAdmin ? handleAddLead : undefined}
           onExportCsv={() => console.log("Export CSV from DataTable")}
         />
       )}

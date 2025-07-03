@@ -114,6 +114,25 @@ interface LeadDetailsResponse {
   }>;
 }
 
+// Add this interface to the top of src/redux/slices/leadsApi.ts
+
+interface CreateLeadApiRequest {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  assignment: {
+    assigned_to: string | null;
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
   baseQuery,
@@ -206,6 +225,42 @@ export const leadsApi = createApi({
       providesTags: ["LeadStats"],
     }),
 
+    // Replace the existing createLead mutation with this:
+
+    createLead: builder.mutation<any, CreateLeadApiRequest>({
+      query: (leadData) => {
+        console.log("🚀 Creating lead with API payload:", leadData);
+
+        return {
+          url: "/leads/",
+          method: "POST",
+          body: leadData,
+        };
+      },
+      transformResponse: (response: any) => {
+        console.log("✅ Create lead response:", response);
+
+        // The API returns a success object with lead data
+        if (response.success) {
+          return {
+            success: response.success,
+            message: response.message,
+            lead: response.lead,
+            assignment_info: response.assignment_info,
+            duplicate_check: response.duplicate_check,
+          };
+        }
+
+        return response;
+      },
+      invalidatesTags: ["Lead", "LeadStats"],
+      // Handle errors
+      transformErrorResponse: (response: any) => {
+        console.error("❌ Create lead error:", response);
+        return response;
+      },
+    }),
+
     // UPDATED: New updateLeadStage mutation using the /leads/update endpoint
     updateLeadStage: builder.mutation<
       any,
@@ -247,22 +302,6 @@ export const leadsApi = createApi({
         url: "/leads/update",
         method: "PUT",
         body: updateData,
-      }),
-      invalidatesTags: ["Lead", "LeadStats"],
-    }),
-
-    createLead: builder.mutation<any, CreateLeadRequest>({
-      query: (leadData) => ({
-        url: "/leads/",
-        method: "POST",
-        body: {
-          name: leadData.name,
-          email: leadData.email || "",
-          phone_number: leadData.contact,
-          source: leadData.source?.toLowerCase() || "website",
-          tags: [leadData.department],
-          notes: leadData.notes,
-        },
       }),
       invalidatesTags: ["Lead", "LeadStats"],
     }),
