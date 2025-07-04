@@ -129,6 +129,10 @@ interface UpdateLeadRequest {
   contact_number?: string;
   source?: string;
   notes?: string;
+  tags?: string[];
+  assigned_to?: string; // This will be the email
+  assigned_to_name?: string; // This will be the full name
+  assignment_method?: string; // This will be "manual by admin"
 }
 
 interface BulkLeadData {
@@ -164,6 +168,26 @@ interface BulkCreateLeadsResponse {
 interface AssignableUser {
   id: string;
   name: string;
+}
+
+interface UserStats {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+  assigned_leads_count: number;
+}
+
+interface UserLeadStatsResponse {
+  success: boolean;
+  user_stats: UserStats[];
+  summary: {
+    total_users: number;
+    total_leads: number;
+    assigned_leads: number;
+    unassigned_leads: number;
+  };
+  performance: string;
 }
 
 const baseQuery = fetchBaseQuery({
@@ -320,6 +344,7 @@ export const leadsApi = createApi({
       invalidatesTags: ["Lead", "LeadStats"],
     }),
 
+    // Update your existing updateLead mutation to handle more fields
     updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
       query: (body) => ({
         url: "/leads/update",
@@ -346,9 +371,14 @@ export const leadsApi = createApi({
     }),
 
     getAssignableUsers: builder.query<AssignableUser[], void>({
-      query: () => "/leads/users/assignable",
+      query: () => "/leads/admin/user-lead-stats",
       transformResponse: (response: { users: AssignableUser[] }) =>
         response.users || [],
+    }),
+
+    getUserLeadStats: builder.query<UserLeadStatsResponse, void>({
+      query: () => "/leads/admin/user-lead-stats",
+      transformResponse: (response: UserLeadStatsResponse) => response,
     }),
   }),
 });
@@ -366,4 +396,5 @@ export const {
   useGetAssignableUsersQuery,
   useBulkCreateLeadsMutation,
   useFixMissingFieldsMutation,
+  useGetUserLeadStatsQuery,
 } = leadsApi;

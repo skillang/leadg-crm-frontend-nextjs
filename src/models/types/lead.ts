@@ -11,6 +11,9 @@ export interface Lead {
   lastActivity: string;
   department: string;
   notes: string;
+  tags?: string[];
+  assignedTo?: string;
+  assignedToName?: string;
 }
 
 // Extended lead details interface

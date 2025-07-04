@@ -1,7 +1,7 @@
 // src/app/sample-table/columns.tsx
 
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Row } from "@tanstack/react-table";
 import {
@@ -36,6 +36,7 @@ import {
   useDeleteLeadMutation,
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
+import EditLeadModal from "@/components/leads/EditLeadModal";
 
 // Stage Config
 const LEAD_STAGES = [
@@ -45,6 +46,13 @@ const LEAD_STAGES = [
     variant: "secondary" as const,
     className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
   },
+  {
+    value: "initial",
+    label: "Initial",
+    variant: "secondary" as const,
+    className: "bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200",
+  },
+
   {
     value: "contacted",
     label: "Contacted",
@@ -174,7 +182,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative ">
       <StageSelect
         value={stage}
         onValueChange={handleStageChange}
@@ -198,6 +206,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 
 const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const [deleteLead, { isLoading: isDeleting }] = useDeleteLeadMutation();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const router = useRouter();
   const lead = row.original;
 
@@ -233,53 +242,68 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
     }
   };
 
+  const handleEditLead = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isDeleting}>
-          {isDeleting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MoreHorizontal className="h-4 w-4" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => handleCopy(lead.id)}>
-          Copy Lead ID
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleCopy(lead.email!)}
-          disabled={!lead.email}
-        >
-          Copy Email
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => router.push(`/sample-table/${lead.id}`)}
-        >
-          View Details
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => alert("Edit coming soon!")}>
-          Edit Lead
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleDelete}
-          className="text-red-600 hover:text-red-700"
-        >
-          {isDeleting ? (
-            <span className="flex items-center gap-2">
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isDeleting}>
+            {isDeleting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
-              Deleting...
-            </span>
-          ) : (
-            "Delete Lead"
-          )}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            ) : (
+              <MoreHorizontal className="h-4 w-4" />
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => handleCopy(lead.id)}>
+            Copy Lead ID
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleCopy(lead.email!)}
+            disabled={!lead.email}
+          >
+            Copy Email
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => router.push(`/sample-table/${lead.id}`)}
+          >
+            View Details
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleEditLead}>
+            Edit Lead
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={handleDelete}
+            className="text-red-600 hover:text-red-700"
+          >
+            {isDeleting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Deleting...
+              </span>
+            ) : (
+              "Delete Lead"
+            )}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <EditLeadModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        lead={lead}
+      />
+    </>
   );
 };
 

@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Plus, Loader2 } from "lucide-react";
 import {
   useCreateLeadMutation,
-  // useGetAssignableUsersQuery,
+  useGetAssignableUsersQuery,
 } from "@/redux/slices/leadsApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 
@@ -111,8 +111,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
-  // const { data: assignableUsers = [], isLoading: isLoadingUsers } =
-  //   useGetAssignableUsersQuery();
+  const { data: assignableUsers = [], isLoading: isLoadingUsers } =
+    useGetAssignableUsersQuery();
 
   const notifications = useNotifications();
 
@@ -283,23 +283,19 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">Auto-assign (Round Robin)</SelectItem>
-                {/* {isLoadingUsers ? ( */}
-                <SelectItem value="loading" disabled>
-                  Loading users...
-                </SelectItem>
-                {/* ) : (
-                  
-                   assignableUsers.map((user: AssignableUser) => (
-                     <SelectItem key={user.id} value={user.email || user.id}>
+                {isLoadingUsers ? (
+                  <SelectItem value="loading" disabled>
+                    Loading users...
+                  </SelectItem>
+                ) : (
+                  assignableUsers.map((user: any) => (
+                    <SelectItem key={user.id} value={user.email || user.id}>
                       {user.first_name && user.last_name
-                         ? `${user.first_name} ${user.last_name}`
-                         : user.email || user.username || user.id}
-                     </SelectItem>
-                   )) */}
-                <SelectItem value="unassigned" disabled>
-                  Unassigned
-                </SelectItem>
-                {/* )} */}
+                        ? `${user.first_name} ${user.last_name}`
+                        : user.email || user.username || user.id}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

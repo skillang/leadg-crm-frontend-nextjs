@@ -7,7 +7,6 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // Types for better type safety
@@ -83,40 +82,32 @@ export const StageSelect: React.FC<StageSelectProps> = ({
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger
         className={cn(
-          "w-auto border-none p-0 h-auto bg-transparent hover:bg-gray-50 focus:ring-0 focus:ring-offset-0",
+          "w-auto h-auto p-0 rounded-lg focus:ring-0 focus:ring-offset-0 transition-all duration-200",
+          // Apply the current option's styling to the entire trigger
+          currentOption?.className ||
+            "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200",
+          // Override default border styling
+          "border-2",
           className
         )}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 px-2 ">
           {currentOption ? (
-            <Badge
-              variant={currentOption.variant}
-              className={cn(
-                "transition-all duration-200 cursor-pointer",
-                currentOption.className
-              )}
-            >
-              {currentOption.label}
-            </Badge>
+            <span className="text-sm font-medium">{currentOption.label}</span>
           ) : (
             <span className="text-gray-500 text-sm">{placeholder}</span>
           )}
         </div>
       </SelectTrigger>
 
-      <SelectContent>
+      <SelectContent className="">
         {options.map((option) => (
           <SelectItem
             key={option.value}
             value={option.value}
-            className="cursor-pointer"
+            className={cn("cursor-pointer rounded-md mb-1", option.className)}
           >
-            <Badge
-              variant={option.variant}
-              className={cn("transition-all duration-200", option.className)}
-            >
-              {option.label}
-            </Badge>
+            <span className="text-sm font-medium">{option.label}</span>
           </SelectItem>
         ))}
       </SelectContent>
