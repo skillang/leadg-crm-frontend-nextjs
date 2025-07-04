@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Plus, Loader2 } from "lucide-react";
 import {
   useCreateLeadMutation,
-  useGetAssignableUsersQuery,
+  // useGetAssignableUsersQuery,
 } from "@/redux/slices/leadsApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 
@@ -43,16 +43,16 @@ interface ApiErrorResponse {
   status?: number;
 }
 
-interface AssignableUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  department?: string;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-}
+// interface AssignableUser {
+//   id: string;
+//   name: string;
+//   email: string;
+//   role: string;
+//   department?: string;
+//   first_name?: string;
+//   last_name?: string;
+//   username?: string;
+// }
 
 interface SingleLeadModalProps {
   isOpen: boolean;
@@ -111,8 +111,9 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
-  const { data: assignableUsers = [], isLoading: isLoadingUsers } =
-    useGetAssignableUsersQuery();
+  // const { data: assignableUsers = [], isLoading: isLoadingUsers } =
+  //   useGetAssignableUsersQuery();
+
   const notifications = useNotifications();
 
   useEffect(() => {
@@ -282,20 +283,23 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">Auto-assign (Round Robin)</SelectItem>
-                {isLoadingUsers ? (
-                  <SelectItem value="loading" disabled>
-                    Loading users...
-                  </SelectItem>
-                ) : (
-                  // FIXED: Properly typed assignable users
-                  assignableUsers.map((user: AssignableUser) => (
-                    <SelectItem key={user.id} value={user.email || user.id}>
+                {/* {isLoadingUsers ? ( */}
+                <SelectItem value="loading" disabled>
+                  Loading users...
+                </SelectItem>
+                {/* ) : (
+                  
+                   assignableUsers.map((user: AssignableUser) => (
+                     <SelectItem key={user.id} value={user.email || user.id}>
                       {user.first_name && user.last_name
-                        ? `${user.first_name} ${user.last_name}`
-                        : user.email || user.username || user.id}
-                    </SelectItem>
-                  ))
-                )}
+                         ? `${user.first_name} ${user.last_name}`
+                         : user.email || user.username || user.id}
+                     </SelectItem>
+                   )) */}
+                <SelectItem value="unassigned" disabled>
+                  Unassigned
+                </SelectItem>
+                {/* )} */}
               </SelectContent>
             </Select>
           </div>

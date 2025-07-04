@@ -171,6 +171,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
           task_title: formData.task_title,
           task_description: formData.task_description,
           task_type: formData.task_type,
+          string: "", // Ensure leadId is a string
           priority: formData.priority,
           assigned_to: formData.assigned_to,
           due_date: formData.due_date,

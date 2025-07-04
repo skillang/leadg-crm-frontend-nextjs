@@ -1,13 +1,19 @@
-// src/redux/slices/authApi.ts (REVERTED to simple version)
+// src/redux/slices/authApi.ts
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+} from "@reduxjs/toolkit/query";
+import type { BaseQueryApi } from "@reduxjs/toolkit/query/react";
 import { RootState } from "@/redux/store";
-// import { User, LoginCredentials, RegisterData } from "@/redux/types/Leads";
+import { setError, clearAuthState } from "./authSlice";
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Types (keep these as they were)
+// Types
 interface LoginRequest {
   email: string;
   password: string;
@@ -75,20 +81,56 @@ interface CurrentUserResponse {
   last_login: string;
 }
 
-// REVERTED: Back to simple fetchBaseQuery (no enhanced base query)
+// Base query with headers
+const baseQuery = fetchBaseQuery({
+  baseUrl: `${API_BASE_URL}/api/v1/auth`,
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.token;
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+    headers.set("content-type", "application/json");
+    return headers;
+  },
+});
+
+// Enhanced base query with error handling
+const baseQueryWithErrorHandling: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api: BaseQueryApi, extraOptions: Record<string, unknown>) => {
+  const result = await baseQuery(args, api, extraOptions);
+
+  if (result.error) {
+    const { status, data } = result.error;
+
+    if (status === 401) {
+      api.dispatch(clearAuthState());
+    } else if (status === 400 || status === 422) {
+      if (
+        typeof data === "object" &&
+        data !== null &&
+        ("detail" in data || "message" in data)
+      ) {
+        const message =
+          (data as { detail?: string; message?: string }).detail ||
+          (data as { detail?: string; message?: string }).message;
+        api.dispatch(setError(message ?? "An error occurred"));
+      } else {
+        api.dispatch(setError("An error occurred"));
+      }
+    } else {
+      api.dispatch(setError("Network error. Please try again."));
+    }
+  }
+
+  return result;
+};
+
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/api/v1/auth`,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      headers.set("content-type", "application/json");
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithErrorHandling,
   tagTypes: ["Auth", "User"],
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginRequest>({
@@ -97,6 +139,14 @@ export const authApi = createApi({
         method: "POST",
         body: credentials,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(setError(null));
+        } catch {
+          // Error handled in baseQueryWithErrorHandling
+        }
+      },
       invalidatesTags: ["Auth", "User"],
     }),
 
@@ -106,6 +156,14 @@ export const authApi = createApi({
         method: "POST",
         body: userData,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(setError(null));
+        } catch {
+          // Error handled in baseQueryWithErrorHandling
+        }
+      },
     }),
 
     getCurrentUser: builder.query<CurrentUserResponse, void>({
@@ -122,10 +180,16 @@ export const authApi = createApi({
         method: "POST",
         body: logoutData,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(clearAuthState());
+        } catch {
+          dispatch(clearAuthState());
+        }
+      },
       invalidatesTags: ["Auth", "User"],
     }),
-
-    // REMOVED: refreshToken endpoint (not needed for simple solution)
   }),
 });
 
@@ -134,5 +198,4 @@ export const {
   useRegisterMutation,
   useGetCurrentUserQuery,
   useLogoutMutation,
-  // REMOVED: useRefreshTokenMutation
 } = authApi;

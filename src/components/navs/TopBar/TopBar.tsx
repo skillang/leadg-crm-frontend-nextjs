@@ -47,7 +47,7 @@ const TopBarComp = () => {
   };
 
   return (
-    <div className="w-full top-bar bg-amber-950">
+    <div className="w-full top-bar">
       <h3 className="text-xl font-semibold text-foreground">
         {getPageTitle()}
       </h3>

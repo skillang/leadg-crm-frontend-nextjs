@@ -17,6 +17,17 @@ interface TimelineItemProps {
   isLast?: boolean;
 }
 
+// Helper function to safely convert unknown values to strings
+const safeString = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  return String(value);
+};
+
+// Helper function to check if a value is a non-empty string
+const isNonEmptyString = (value: unknown): value is string => {
+  return typeof value === "string" && value.trim().length > 0;
+};
+
 const TimelineItem: React.FC<TimelineItemProps> = ({
   activity,
   // isLast = false,
@@ -137,8 +148,11 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
     const metadata = activity.metadata;
     const info: JSX.Element[] = [];
 
-    // Handle common metadata fields
-    if (metadata.stage_from && metadata.stage_to) {
+    // Handle common metadata fields with proper type checking
+    if (
+      isNonEmptyString(metadata.stage_from) &&
+      isNonEmptyString(metadata.stage_to)
+    ) {
       info.push(
         <div
           key="stage"
@@ -154,7 +168,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
       );
     }
 
-    if (metadata.task_type) {
+    if (isNonEmptyString(metadata.task_type)) {
       info.push(
         <div key="task_type" className="text-sm text-gray-600">
           <span className="font-medium">Type:</span> {metadata.task_type}
@@ -162,7 +176,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
       );
     }
 
-    if (metadata.document_type) {
+    if (isNonEmptyString(metadata.document_type)) {
       info.push(
         <div key="document_type" className="text-sm text-gray-600">
           <span className="font-medium">Document:</span>{" "}
@@ -171,10 +185,49 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
       );
     }
 
-    if (metadata.file_name) {
+    if (isNonEmptyString(metadata.file_name)) {
       info.push(
         <div key="file_name" className="text-sm text-gray-600">
           <span className="font-medium">File:</span> {metadata.file_name}
+        </div>
+      );
+    }
+
+    // Handle additional metadata fields with safe string conversion
+    if (metadata.priority && isNonEmptyString(metadata.priority)) {
+      info.push(
+        <div key="priority" className="text-sm text-gray-600">
+          <span className="font-medium">Priority:</span> {metadata.priority}
+        </div>
+      );
+    }
+
+    if (metadata.status && isNonEmptyString(metadata.status)) {
+      info.push(
+        <div key="status" className="text-sm text-gray-600">
+          <span className="font-medium">Status:</span> {metadata.status}
+        </div>
+      );
+    }
+
+    // Handle numeric metadata (convert to string)
+    if (metadata.duration !== undefined && metadata.duration !== null) {
+      const duration = safeString(metadata.duration);
+      if (duration) {
+        info.push(
+          <div key="duration" className="text-sm text-gray-600">
+            <span className="font-medium">Duration:</span> {duration} min
+          </div>
+        );
+      }
+    }
+
+    // Handle assigned_to metadata
+    if (isNonEmptyString(metadata.assigned_to_name)) {
+      info.push(
+        <div key="assigned_to" className="text-sm text-gray-600">
+          <span className="font-medium">Assigned to:</span>{" "}
+          {metadata.assigned_to_name}
         </div>
       );
     }

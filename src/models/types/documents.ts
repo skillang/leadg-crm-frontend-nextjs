@@ -1,4 +1,4 @@
-// src/models/types/document.ts
+// src/models/types/documents.ts
 
 export interface Document {
   id: string;
@@ -18,12 +18,7 @@ export interface Document {
   lead_context: Record<string, unknown>;
 }
 
-// export interface LeadContext {
-//   lead_name: string;
-//   email: string;
-//   phone: string;
-// }
-
+// Request interfaces
 export interface UploadDocumentRequest {
   file: File;
   document_type: string;
@@ -44,6 +39,7 @@ export interface RejectDocumentRequest {
   approval_notes: string;
 }
 
+// Response interfaces
 export interface DocumentsResponse {
   documents: Document[];
   total_count: number;
@@ -60,6 +56,73 @@ export interface DocumentType {
 export interface DocumentStatus {
   value: string;
   label: string;
+}
+
+// API Response interfaces
+export interface ApiDocumentResponse {
+  id: string;
+  lead_id: string;
+  filename: string;
+  document_type: string;
+  file_size: number;
+  mime_type: string;
+  status: "Pending" | "Approved" | "Rejected";
+  uploaded_by_name: string;
+  uploaded_at: string;
+  notes?: string;
+  expiry_date?: string | null;
+  approved_by_name?: string | null;
+  approved_at?: string | null;
+  approval_notes?: string;
+  lead_context?: Record<string, unknown>;
+}
+
+export interface ApiDocumentsListResponse {
+  documents?: ApiDocumentResponse[];
+  total_count?: number;
+  page?: number;
+  limit?: number;
+  total_pages?: number;
+}
+
+export interface ApiDocumentTypesResponse {
+  document_types?: Array<{ value: string; label: string }>;
+}
+
+export interface ApiDocumentStatusesResponse {
+  statuses?: Array<{ value: string; label: string }>;
+}
+
+export interface DocumentUploadResponse {
+  success: boolean;
+  message: string;
+  document: ApiDocumentResponse;
+}
+
+export interface DocumentUpdateResponse {
+  success: boolean;
+  message: string;
+  document: ApiDocumentResponse;
+}
+
+export interface DocumentDeleteResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface DocumentApprovalResponse {
+  success: boolean;
+  message: string;
+  document: ApiDocumentResponse;
+}
+
+export interface AdminDashboardResponse {
+  total_documents: number;
+  pending_approvals: number;
+  approved_documents: number;
+  rejected_documents: number;
+  documents_by_type: Record<string, number>;
+  recent_uploads: ApiDocumentResponse[];
 }
 
 // Document type options (commonly used ones)

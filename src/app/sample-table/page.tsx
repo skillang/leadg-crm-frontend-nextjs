@@ -88,7 +88,7 @@ export default function DemoPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto">
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
           <span className="ml-2 text-lg">
@@ -104,7 +104,7 @@ export default function DemoPage() {
     const errorMessage = getErrorMessage(error);
 
     return (
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto">
         <div className="flex flex-col items-center justify-center h-64">
           <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
           <h2 className="text-xl font-semibold text-red-600 mb-2">
@@ -134,7 +134,7 @@ export default function DemoPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* No Data State */}
       {leads.length === 0 ? (
         <div className="bg-white rounded-lg shadow border p-12 text-center">
@@ -172,7 +172,7 @@ export default function DemoPage() {
         <DataTable
           columns={columns}
           data={filteredLeads}
-          title={isAdmin ? "All Leads" : "My Leads"}
+          title={isAdmin ? "All Leads" : "Leads"}
           description={`${
             isAdmin
               ? "Comprehensive view of all leads in the system"

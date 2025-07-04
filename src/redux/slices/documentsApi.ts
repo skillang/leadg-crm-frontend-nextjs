@@ -11,6 +11,15 @@ import {
   DocumentsResponse,
   DocumentType,
   DocumentStatus,
+  ApiDocumentResponse,
+  ApiDocumentsListResponse,
+  ApiDocumentTypesResponse,
+  ApiDocumentStatusesResponse,
+  DocumentUploadResponse,
+  DocumentUpdateResponse,
+  DocumentDeleteResponse,
+  DocumentApprovalResponse,
+  AdminDashboardResponse,
 } from "@/models/types/documents";
 
 // Base query with authentication
@@ -29,7 +38,7 @@ const baseQuery = fetchBaseQuery({
 });
 
 // Transform API response to match our frontend types
-const transformDocument = (apiDocument: any): Document => ({
+const transformDocument = (apiDocument: ApiDocumentResponse): Document => ({
   id: apiDocument.id,
   lead_id: apiDocument.lead_id,
   filename: apiDocument.filename,
@@ -40,11 +49,11 @@ const transformDocument = (apiDocument: any): Document => ({
   uploaded_by_name: apiDocument.uploaded_by_name,
   uploaded_at: apiDocument.uploaded_at,
   notes: apiDocument.notes || "",
-  expiry_date: apiDocument.expiry_date,
-  approved_by_name: apiDocument.approved_by_name,
-  approved_at: apiDocument.approved_at,
+  expiry_date: apiDocument.expiry_date || "",
+  approved_by_name: apiDocument.approved_by_name || "",
+  approved_at: apiDocument.approved_at || "",
   approval_notes: apiDocument.approval_notes || "",
-  lead_context: apiDocument.lead_context,
+  lead_context: apiDocument.lead_context || {},
 });
 
 export const documentsApi = createApi({
@@ -74,7 +83,9 @@ export const documentsApi = createApi({
 
         return `/documents/leads/${leadId}/documents?${params.toString()}`;
       },
-      transformResponse: (response: any): DocumentsResponse => ({
+      transformResponse: (
+        response: ApiDocumentsListResponse
+      ): DocumentsResponse => ({
         documents: response.documents?.map(transformDocument) || [],
         total_count: response.total_count || 0,
         page: response.page || 1,
@@ -96,7 +107,7 @@ export const documentsApi = createApi({
 
     // Upload a new document
     uploadDocument: builder.mutation<
-      any,
+      DocumentUploadResponse,
       { leadId: string; documentData: UploadDocumentRequest }
     >({
       query: ({ leadId, documentData }) => {
@@ -121,7 +132,7 @@ export const documentsApi = createApi({
 
     // Update a document
     updateDocument: builder.mutation<
-      any,
+      DocumentUpdateResponse,
       { documentId: string; documentData: UpdateDocumentRequest }
     >({
       query: ({ documentId, documentData }) => ({
@@ -136,7 +147,7 @@ export const documentsApi = createApi({
     }),
 
     // Delete a document
-    deleteDocument: builder.mutation<any, string>({
+    deleteDocument: builder.mutation<DocumentDeleteResponse, string>({
       query: (documentId) => ({
         url: `/documents/${documentId}`,
         method: "DELETE",
@@ -158,7 +169,7 @@ export const documentsApi = createApi({
 
     // Approve a document (Admin only)
     approveDocument: builder.mutation<
-      any,
+      DocumentApprovalResponse,
       { documentId: string; approvalData: ApproveDocumentRequest }
     >({
       query: ({ documentId, approvalData }) => ({
@@ -174,7 +185,7 @@ export const documentsApi = createApi({
 
     // Reject a document (Admin only)
     rejectDocument: builder.mutation<
-      any,
+      DocumentApprovalResponse,
       { documentId: string; rejectionData: RejectDocumentRequest }
     >({
       query: ({ documentId, rejectionData }) => ({
@@ -191,11 +202,13 @@ export const documentsApi = createApi({
     // Get document types
     getDocumentTypes: builder.query<DocumentType[], void>({
       query: () => "/documents/types/list",
-      transformResponse: (response: any) => {
-        if (Array.isArray(response)) {
-          return response.map((type) => ({
-            value: type,
-            label: type,
+      transformResponse: (
+        response: ApiDocumentTypesResponse
+      ): DocumentType[] => {
+        if (response.document_types && Array.isArray(response.document_types)) {
+          return response.document_types.map((type) => ({
+            value: type.value,
+            label: type.label,
           }));
         }
         return [];
@@ -206,11 +219,13 @@ export const documentsApi = createApi({
     // Get document statuses
     getDocumentStatuses: builder.query<DocumentStatus[], void>({
       query: () => "/documents/status/list",
-      transformResponse: (response: any) => {
-        if (Array.isArray(response)) {
-          return response.map((status) => ({
-            value: status,
-            label: status,
+      transformResponse: (
+        response: ApiDocumentStatusesResponse
+      ): DocumentStatus[] => {
+        if (response.statuses && Array.isArray(response.statuses)) {
+          return response.statuses.map((status) => ({
+            value: status.value,
+            label: status.label,
           }));
         }
         return [];
@@ -237,7 +252,9 @@ export const documentsApi = createApi({
 
         return `/documents/my-documents?${params.toString()}`;
       },
-      transformResponse: (response: any): DocumentsResponse => ({
+      transformResponse: (
+        response: ApiDocumentsListResponse
+      ): DocumentsResponse => ({
         documents: response.documents?.map(transformDocument) || [],
         total_count: response.total_count || 0,
         page: response.page || 1,
@@ -248,7 +265,7 @@ export const documentsApi = createApi({
     }),
 
     // Get admin document dashboard
-    getAdminDocumentDashboard: builder.query<any, void>({
+    getAdminDocumentDashboard: builder.query<AdminDashboardResponse, void>({
       query: () => "/documents/admin/dashboard",
       providesTags: [{ type: "Document", id: "ADMIN_DASHBOARD" }],
     }),
@@ -269,7 +286,9 @@ export const documentsApi = createApi({
 
         return `/documents/admin/pending?${params.toString()}`;
       },
-      transformResponse: (response: any): DocumentsResponse => ({
+      transformResponse: (
+        response: ApiDocumentsListResponse
+      ): DocumentsResponse => ({
         documents: response.documents?.map(transformDocument) || [],
         total_count: response.total_count || 0,
         page: response.page || 1,

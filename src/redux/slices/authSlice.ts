@@ -1,7 +1,6 @@
-// src/redux/slices/authSlice.ts (UPDATED with token timestamps)
+// src/redux/slices/authSlice.ts (CORRECTED - Multiple action types)
 
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AuthState } from "@/redux/types/Leads";
 
 // Updated User interface to match your API response
 interface ApiUser {
@@ -18,16 +17,20 @@ interface ApiUser {
   last_login: string;
 }
 
-interface AuthStateExtended extends Omit<AuthState, "user"> {
+interface AuthState {
+  isAuthenticated: boolean;
   user: ApiUser | null;
+  token: string | null; // This will store the access token
   accessToken: string | null;
   refreshToken: string | null;
   tokenType: string;
   expiresIn: number | null;
-  tokenCreatedAt: number | null; // NEW: Track when token was created
+  tokenCreatedAt: number | null; // Track when token was created
+  loading: boolean;
+  error: string | null;
 }
 
-const initialState: AuthStateExtended = {
+const initialState: AuthState = {
   isAuthenticated: false,
   user: null,
   token: null, // This will store the access token
@@ -60,7 +63,7 @@ const authSlice = createSlice({
       state.error = null;
     },
 
-    // Set authentication state (after successful login)
+    // Set authentication state from API response (after successful login)
     setAuthState: (
       state,
       action: PayloadAction<{
@@ -80,18 +83,37 @@ const authSlice = createSlice({
       state.refreshToken = action.payload.refresh_token;
       state.tokenType = action.payload.token_type;
       state.expiresIn = action.payload.expires_in;
-      state.tokenCreatedAt = now; // NEW: Track token creation time
+      state.tokenCreatedAt = now; // Track token creation time
       state.loading = false;
       state.error = null;
 
       // Store token creation time in localStorage for persistence
-      localStorage.setItem("token_created_at", now.toString());
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token_created_at", now.toString());
+      }
+    },
+
+    // NEW: Set auth state from localStorage (for app initialization)
+    setAuthFromStorage: (
+      state,
+      action: PayloadAction<{
+        token: string;
+        user: ApiUser;
+      }>
+    ) => {
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.accessToken = action.payload.token;
+      state.loading = false;
+      state.error = null;
     },
 
     // Set user data (after fetching current user)
     setUserData: (state, action: PayloadAction<ApiUser>) => {
       state.user = action.payload;
       state.isAuthenticated = true;
+      state.loading = false;
     },
 
     // Clear authentication state (logout)
@@ -108,7 +130,11 @@ const authSlice = createSlice({
       state.error = null;
 
       // Clear localStorage items
-      localStorage.removeItem("token_created_at");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user_data");
+        localStorage.removeItem("token_created_at");
+      }
     },
 
     // Update user data
@@ -133,17 +159,22 @@ const authSlice = createSlice({
       state.accessToken = action.payload.access_token;
       state.refreshToken = action.payload.refresh_token;
       state.expiresIn = action.payload.expires_in;
-      state.tokenCreatedAt = now; // NEW: Update token creation time
+      state.tokenCreatedAt = now; // Update token creation time
 
       // Update localStorage
-      localStorage.setItem("token_created_at", now.toString());
+      if (typeof window !== "undefined") {
+        localStorage.setItem("access_token", action.payload.access_token);
+        localStorage.setItem("token_created_at", now.toString());
+      }
     },
 
-    // NEW: Initialize token timestamp from localStorage (for page refresh)
+    // Initialize token timestamp from localStorage (for page refresh)
     initializeTokenTimestamp: (state) => {
-      const storedTimestamp = localStorage.getItem("token_created_at");
-      if (storedTimestamp) {
-        state.tokenCreatedAt = parseInt(storedTimestamp);
+      if (typeof window !== "undefined") {
+        const storedTimestamp = localStorage.getItem("token_created_at");
+        if (storedTimestamp) {
+          state.tokenCreatedAt = parseInt(storedTimestamp);
+        }
       }
     },
   },
@@ -153,7 +184,8 @@ export const {
   setLoading,
   setError,
   clearError,
-  setAuthState,
+  setAuthState, // For API login response
+  setAuthFromStorage, // For localStorage initialization
   setUserData,
   clearAuthState,
   updateUser,
