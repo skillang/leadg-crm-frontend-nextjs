@@ -15,8 +15,14 @@ export interface Document {
   approved_by_name: string | null;
   approved_at: string | null;
   approval_notes: string;
-  lead_context: any;
+  lead_context: Record<string, unknown>;
 }
+
+// export interface LeadContext {
+//   lead_name: string;
+//   email: string;
+//   phone: string;
+// }
 
 export interface UploadDocumentRequest {
   file: File;

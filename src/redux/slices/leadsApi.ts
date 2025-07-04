@@ -133,6 +133,41 @@ interface CreateLeadApiRequest {
   };
 }
 
+interface BulkLeadData {
+  name: string;
+  email: string;
+  contact_number: string;
+  source: string;
+  country_of_interest: string;
+  course_level: string;
+}
+
+interface BulkCreateLeadsRequest {
+  leads: BulkLeadData[];
+  force_create?: boolean;
+}
+
+interface BulkCreateResult {
+  index: number;
+  status: "created" | "failed" | "skipped";
+  lead_id?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  error?: string;
+}
+
+interface BulkCreateLeadsResponse {
+  success: boolean;
+  message: string;
+  summary: {
+    total_attempted: number;
+    successful_creates: number;
+    failed_creates: number;
+    duplicates_skipped: number;
+  };
+  results: BulkCreateResult[];
+}
+
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
   baseQuery,
@@ -261,6 +296,31 @@ export const leadsApi = createApi({
       },
     }),
 
+    // NEW: Bulk Create Leads Mutation
+    bulkCreateLeads: builder.mutation<
+      BulkCreateLeadsResponse,
+      BulkCreateLeadsRequest
+    >({
+      query: ({ leads, force_create = false }) => {
+        console.log("🚀 Bulk creating leads:", leads);
+
+        return {
+          url: `/leads/bulk-create?force_create=${force_create}`,
+          method: "POST",
+          body: leads,
+        };
+      },
+      transformResponse: (response: BulkCreateLeadsResponse) => {
+        console.log("✅ Bulk create response:", response);
+        return response;
+      },
+      transformErrorResponse: (response: any) => {
+        console.error("❌ Bulk create error:", response);
+        return response;
+      },
+      invalidatesTags: ["Lead", "LeadStats"],
+    }),
+
     // UPDATED: New updateLeadStage mutation using the /leads/update endpoint
     updateLeadStage: builder.mutation<
       any,
@@ -332,4 +392,5 @@ export const {
   useCreateLeadMutation,
   useDeleteLeadMutation,
   useGetAssignableUsersQuery,
+  useBulkCreateLeadsMutation,
 } = leadsApi;

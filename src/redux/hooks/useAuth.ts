@@ -24,18 +24,28 @@ export const useAuth = () => {
             // Call logout API with refresh token
             await logoutMutation({ refresh_token: refreshToken }).unwrap();
             // console.log("✅ API logout successful");
-          } catch (apiError: any) {
-            console.error("❌ API logout failed:", apiError);
+          } catch (apiError: unknown) {
+            if (
+              typeof apiError === "object" &&
+              apiError !== null &&
+              "status" in apiError
+            ) {
+              const errorWithStatus = apiError as { status: number };
 
-            // If API logout fails due to expired token, continue with local logout
-            if (apiError?.status === 401 || apiError?.status === 422) {
-              // console.log(
-              // "🔄 API logout failed due to expired token, continuing with local logout"
-              // );
+              if (
+                errorWithStatus.status === 401 ||
+                errorWithStatus.status === 422
+              ) {
+                // Token expired
+              } else {
+                console.error(
+                  "⚠️ API logout failed with unexpected error, continuing with local logout"
+                );
+              }
             } else {
-              // For other errors, still continue but log them
               console.error(
-                "⚠️ API logout failed with unexpected error, continuing with local logout"
+                "❌ API logout failed with unknown error:",
+                apiError
               );
             }
           }
