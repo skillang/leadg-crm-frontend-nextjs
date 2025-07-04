@@ -8,6 +8,7 @@ import {
   UpdateTaskRequest,
   TasksResponse,
   CompleteTaskRequest,
+  TaskStats,
 } from "@/models/types/task";
 
 // Base query with authentication
@@ -26,25 +27,36 @@ const baseQuery = fetchBaseQuery({
 });
 
 // Transform API response to match our frontend types
-const transformTask = (apiTask: any): Task => ({
-  id: apiTask.id,
-  task_title: apiTask.task_title,
-  task_description: apiTask.task_description,
-  task_type: apiTask.task_type,
-  priority: apiTask.priority,
-  assigned_to: apiTask.assigned_to,
-  assigned_to_name: apiTask.assigned_to_name,
-  due_date: apiTask.due_date,
-  due_time: apiTask.due_time,
-  notes: apiTask.notes,
-  lead_id: apiTask.lead_id,
-  status: apiTask.status,
-  created_by: apiTask.created_by,
-  created_by_name: apiTask.created_by_name,
-  created_at: apiTask.created_at,
-  updated_at: apiTask.updated_at,
-  completed_at: apiTask.completed_at,
-  is_overdue: apiTask.is_overdue,
+const transformTask = (apiTask: Record<string, unknown>): Task => ({
+  id: apiTask.id as string,
+  task_title: apiTask.task_title as string,
+  task_description: apiTask.task_description as string,
+  task_type: apiTask.task_type as
+    | "call"
+    | "email"
+    | "meeting"
+    | "follow_up"
+    | "other",
+  priority: apiTask.priority as "low" | "medium" | "high" | "urgent",
+  assigned_to: apiTask.assigned_to as string,
+  assigned_to_name: apiTask.assigned_to_name as string,
+  due_date: apiTask.due_date as string,
+  due_time: apiTask.due_time as string,
+  notes: apiTask.notes as string,
+  lead_id: apiTask.lead_id as string,
+  status: apiTask.status as
+    | "pending"
+    | "in_progress"
+    | "completed"
+    | "overdue"
+    | "cancelled",
+  string: apiTask.string as string,
+  created_by: apiTask.created_by as string,
+  created_by_name: apiTask.created_by_name as string,
+  created_at: apiTask.created_at as string,
+  updated_at: apiTask.updated_at as string,
+  completed_at: apiTask.completed_at as string,
+  is_overdue: apiTask.is_overdue as boolean,
 });
 
 export const tasksApi = createApi({
@@ -52,56 +64,57 @@ export const tasksApi = createApi({
   baseQuery,
   tagTypes: ["Task"],
   endpoints: (builder) => ({
-    // Get tasks for a specific lead
     getLeadTasks: builder.query<
       TasksResponse,
-      {
-        leadId: string;
-        status_filter?: string;
-      }
+      { leadId: string; status_filter?: string }
     >({
       query: ({ leadId, status_filter }) => {
         const params = new URLSearchParams();
         if (status_filter) params.append("status_filter", status_filter);
-
         return `/tasks/leads/${leadId}/tasks?${params.toString()}`;
       },
-      transformResponse: (response: any): TasksResponse => ({
-        tasks: response.tasks?.map(transformTask) || [],
-        total: response.total || 0,
-        stats: response.stats || {
-          total_tasks: 0,
-          pending_tasks: 0,
-          overdue_tasks: 0,
-          due_today: 0,
-          completed_tasks: 0,
-          in_progress_tasks: 0,
-        },
-      }),
-      providesTags: (result, error, { leadId }) => [
+      transformResponse: (response: unknown): TasksResponse => {
+        const parsed = response as {
+          tasks?: Record<string, unknown>[];
+          total?: number;
+          stats?: TaskStats;
+        };
+        return {
+          tasks: parsed.tasks?.map(transformTask) || [],
+          total: parsed.total || 0,
+          stats: parsed.stats || {
+            total_tasks: 0,
+            pending_tasks: 0,
+            overdue_tasks: 0,
+            due_today: 0,
+            completed_tasks: 0,
+            in_progress_tasks: 0,
+          },
+        };
+      },
+      providesTags: (result, _error, { leadId }) => [
         { type: "Task", id: "LIST" },
         { type: "Task", id: leadId },
       ],
     }),
 
-    // Get task statistics for a lead
-    getLeadTaskStats: builder.query<any, string>({
+    getLeadTaskStats: builder.query<TaskStats, string>({
       query: (leadId) => `/tasks/leads/${leadId}/tasks/stats`,
-      providesTags: (result, error, leadId) => [
+      providesTags: (result, _error, leadId) => [
         { type: "Task", id: `${leadId}-stats` },
       ],
     }),
 
-    // Get a specific task
     getTask: builder.query<Task, string>({
       query: (taskId) => `/tasks/${taskId}`,
-      transformResponse: transformTask,
-      providesTags: (result, error, id) => [{ type: "Task", id }],
+      transformResponse: (response: unknown): Task => {
+        return transformTask(response as Record<string, unknown>);
+      },
+      providesTags: (result, _error, id) => [{ type: "Task", id }],
     }),
 
-    // Create a new task
     createTask: builder.mutation<
-      any,
+      { message: string },
       { leadId: string; taskData: CreateTaskRequest }
     >({
       query: ({ leadId, taskData }) => ({
@@ -109,16 +122,15 @@ export const tasksApi = createApi({
         method: "POST",
         body: taskData,
       }),
-      invalidatesTags: (result, error, { leadId }) => [
+      invalidatesTags: (_result, _error, { leadId }) => [
         { type: "Task", id: "LIST" },
         { type: "Task", id: leadId },
         { type: "Task", id: `${leadId}-stats` },
       ],
     }),
 
-    // Update a task
     updateTask: builder.mutation<
-      any,
+      { message: string },
       { taskId: string; taskData: UpdateTaskRequest }
     >({
       query: ({ taskId, taskData }) => ({
@@ -126,15 +138,14 @@ export const tasksApi = createApi({
         method: "PUT",
         body: taskData,
       }),
-      invalidatesTags: (result, error, { taskId }) => [
+      invalidatesTags: (_result, _error, { taskId }) => [
         { type: "Task", id: taskId },
         { type: "Task", id: "LIST" },
       ],
     }),
 
-    // Complete a task
     completeTask: builder.mutation<
-      any,
+      { message: string },
       { taskId: string; completionData: CompleteTaskRequest }
     >({
       query: ({ taskId, completionData }) => ({
@@ -142,42 +153,48 @@ export const tasksApi = createApi({
         method: "PATCH",
         body: completionData,
       }),
-      invalidatesTags: (result, error, { taskId }) => [
+      invalidatesTags: (_result, _error, { taskId }) => [
         { type: "Task", id: taskId },
         { type: "Task", id: "LIST" },
       ],
     }),
 
-    // Delete a task
-    deleteTask: builder.mutation<any, string>({
+    deleteTask: builder.mutation<{ message: string }, string>({
       query: (taskId) => ({
         url: `/tasks/${taskId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, taskId) => [
+      invalidatesTags: (_result, _error, taskId) => [
         { type: "Task", id: taskId },
         { type: "Task", id: "LIST" },
       ],
     }),
 
-    // Get my tasks (across all leads)
-    getMyTasks: builder.query<
-      TasksResponse,
-      {
-        status_filter?: string;
-      }
-    >({
+    getMyTasks: builder.query<TasksResponse, { status_filter?: string }>({
       query: ({ status_filter }) => {
         const params = new URLSearchParams();
         if (status_filter) params.append("status_filter", status_filter);
-
         return `/tasks/my-tasks?${params.toString()}`;
       },
-      transformResponse: (response: any): TasksResponse => ({
-        tasks: response.tasks?.map(transformTask) || [],
-        total: response.total || 0,
-        stats: response.stats || {},
-      }),
+      transformResponse: (response: unknown): TasksResponse => {
+        const parsed = response as {
+          tasks?: Record<string, unknown>[];
+          total?: number;
+          stats?: TaskStats;
+        };
+        return {
+          tasks: parsed.tasks?.map(transformTask) || [],
+          total: parsed.total || 0,
+          stats: parsed.stats || {
+            total_tasks: 0,
+            pending_tasks: 0,
+            overdue_tasks: 0,
+            due_today: 0,
+            completed_tasks: 0,
+            in_progress_tasks: 0,
+          },
+        };
+      },
       providesTags: [{ type: "Task", id: "MY_TASKS" }],
     }),
   }),

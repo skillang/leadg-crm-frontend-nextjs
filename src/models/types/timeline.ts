@@ -9,7 +9,7 @@ export interface TimelineActivity {
   performed_by: string;
   performed_by_name: string;
   lead_id: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

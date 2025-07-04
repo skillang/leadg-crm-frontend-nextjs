@@ -1,7 +1,10 @@
-// src/redux/slices/contactsApi.ts - IMPROVED with better error handling
+// src/redux/slices/contactsApi.ts
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import {
+  createApi,
+  fetchBaseQuery,
+  BaseQueryFn,
+} from "@reduxjs/toolkit/query/react";
 import {
   Contact,
   CreateContactRequest,
@@ -9,35 +12,56 @@ import {
   ContactsResponse,
   validateContactData,
 } from "@/models/types/contact";
+import type { RootState } from "../store";
+import type { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
-// Enhanced base query with better error handling
-const baseQuery = fetchBaseQuery({
+// Define raw contact shape received from API
+interface RawContact {
+  id: string;
+  lead_id: string;
+  first_name: string;
+  last_name: string;
+  full_name?: string;
+  email: string;
+  phone: string;
+  role: string;
+  relationship: string;
+  is_primary?: boolean;
+  address?: string;
+  notes?: string;
+  linked_leads?: string[];
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const rawBaseQuery = fetchBaseQuery({
   baseUrl:
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
 
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
+    if (token) headers.set("authorization", `Bearer ${token}`);
     headers.set("content-type", "application/json");
+
     return headers;
   },
 });
 
-// Enhanced base query with request/response logging
-const baseQueryWithLogging = async (args: any, api: any, extraOptions: any) => {
-  // Log outgoing requests
+const baseQueryWithLogging: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
   console.log("🌐 API Request:", {
     url: typeof args === "string" ? args : args.url,
     method: typeof args === "string" ? "GET" : args.method,
     body: typeof args === "string" ? undefined : args.body,
   });
 
-  const result = await baseQuery(args, api, extraOptions);
+  const result = await rawBaseQuery(args, api, extraOptions);
 
-  // Log responses
   if (result.error) {
     console.error("❌ API Error:", {
       status: result.error.status,
@@ -50,8 +74,7 @@ const baseQueryWithLogging = async (args: any, api: any, extraOptions: any) => {
   return result;
 };
 
-// Transform API response to match our frontend types
-const transformContact = (apiContact: any): Contact => ({
+const transformContact = (apiContact: RawContact): Contact => ({
   id: apiContact.id,
   lead_id: apiContact.lead_id,
   first_name: apiContact.first_name,
@@ -73,66 +96,67 @@ const transformContact = (apiContact: any): Contact => ({
 
 export const contactsApi = createApi({
   reducerPath: "contactsApi",
-  baseQuery: baseQueryWithLogging, // Use enhanced base query with logging
+  baseQuery: baseQueryWithLogging,
   tagTypes: ["Contact"],
   endpoints: (builder) => ({
-    // Get contacts for a specific lead
     getLeadContacts: builder.query<ContactsResponse, string>({
-      query: (leadId) => {
-        console.log("🔍 Fetching contacts for lead:", leadId);
-        return `/contacts/leads/${leadId}/contacts`;
-      },
-      transformResponse: (response: any): ContactsResponse => {
-        console.log("📥 Raw contacts response:", response);
-
-        return {
-          success: response.success || true,
-          data: {
-            ...response.data,
-            contacts: response.data?.contacts?.map(transformContact) || [],
-            primary_contact: response.data?.primary_contact
-              ? transformContact(response.data.primary_contact)
-              : null,
-          },
-          timestamp: response.timestamp || new Date().toISOString(),
+      query: (leadId) => `/contacts/leads/${leadId}/contacts`,
+      transformResponse: (response: {
+        success: boolean;
+        data: {
+          lead_id: string;
+          lead_info: {
+            lead_id: string;
+            name: string;
+            email: string;
+            status: string;
+          };
+          contacts: RawContact[];
+          total_count: number;
+          primary_contact?: RawContact;
+          contact_summary: {
+            total: number;
+            by_role: Record<string, number>;
+            by_relationship: Record<string, number>;
+          };
         };
-      },
-      providesTags: (result, error, leadId) => [
+        timestamp?: string;
+      }): ContactsResponse => ({
+        success: response.success || true,
+        data: {
+          lead_id: response.data.lead_id,
+          lead_info: response.data.lead_info,
+          contacts: response.data.contacts.map(transformContact),
+          total_count: response.data.total_count,
+          primary_contact: response.data.primary_contact
+            ? transformContact(response.data.primary_contact)
+            : null,
+          contact_summary: response.data.contact_summary,
+        },
+        timestamp: response.timestamp || new Date().toISOString(),
+      }),
+      providesTags: (result, _error, leadId) => [
         { type: "Contact", id: "LIST" },
         { type: "Contact", id: leadId },
       ],
     }),
 
-    // Get a specific contact
     getContact: builder.query<Contact, string>({
-      query: (contactId) => {
-        console.log("🔍 Fetching contact:", contactId);
-        return `/contacts/${contactId}`;
-      },
-      transformResponse: (response: any) => {
-        console.log("📥 Raw contact response:", response);
-        return transformContact(response);
-      },
-      providesTags: (result, error, id) => [{ type: "Contact", id }],
+      query: (contactId) => `/contacts/${contactId}`,
+      transformResponse: (response: RawContact) => transformContact(response),
+      providesTags: (result, _error, id) => [{ type: "Contact", id }],
     }),
 
-    // Create a new contact
     createContact: builder.mutation<
-      any,
+      unknown,
       { leadId: string; contactData: CreateContactRequest }
     >({
       query: ({ leadId, contactData }) => {
-        // Client-side validation
         const validationErrors = validateContactData(contactData);
         if (validationErrors.length > 0) {
-          console.error("❌ Client validation failed:", validationErrors);
           throw new Error(`Validation failed: ${validationErrors.join(", ")}`);
         }
 
-        console.log("📤 Creating contact for lead:", leadId);
-        console.log("📤 Contact data:", contactData);
-
-        // Clean the data before sending
         const cleanedData = {
           first_name: contactData.first_name.trim(),
           last_name: contactData.last_name.trim(),
@@ -143,13 +167,10 @@ export const contactsApi = createApi({
           is_primary: contactData.is_primary || false,
           address: contactData.address?.trim() || "",
           notes: contactData.notes?.trim() || "",
-          // NOTE: Some APIs might not need linked_leads for creation
           ...(contactData.linked_leads && {
             linked_leads: contactData.linked_leads,
           }),
         };
-
-        console.log("📤 Cleaned contact data:", cleanedData);
 
         return {
           url: `/contacts/leads/${leadId}/contacts`,
@@ -157,34 +178,22 @@ export const contactsApi = createApi({
           body: cleanedData,
         };
       },
-      transformResponse: (response: any) => {
-        console.log("📥 Create contact response:", response);
-        return response;
-      },
-      invalidatesTags: (result, error, { leadId }) => [
+      invalidatesTags: (_result, _error, { leadId }) => [
         { type: "Contact", id: "LIST" },
         { type: "Contact", id: leadId },
       ],
     }),
 
-    // Update a contact
     updateContact: builder.mutation<
-      any,
+      unknown,
       { contactId: string; contactData: UpdateContactRequest }
     >({
       query: ({ contactId, contactData }) => {
-        console.log("📤 Updating contact:", contactId);
-        console.log("📤 Update data:", contactData);
-
-        // Clean the data before sending
         const cleanedData = Object.fromEntries(
           Object.entries(contactData).filter(
-            ([_, value]) =>
-              value !== undefined && value !== null && value !== ""
+            ([, value]) => value !== undefined && value !== null && value !== ""
           )
         );
-
-        console.log("📤 Cleaned update data:", cleanedData);
 
         return {
           url: `/contacts/${contactId}`,
@@ -192,64 +201,36 @@ export const contactsApi = createApi({
           body: cleanedData,
         };
       },
-      transformResponse: (response: any) => {
-        console.log("📥 Update contact response:", response);
-        return response;
-      },
-      invalidatesTags: (result, error, { contactId }) => [
+      invalidatesTags: (_result, _error, { contactId }) => [
         { type: "Contact", id: contactId },
         { type: "Contact", id: "LIST" },
       ],
     }),
 
-    // Set primary contact
-    setPrimaryContact: builder.mutation<any, string>({
-      query: (contactId) => {
-        console.log("📤 Setting primary contact:", contactId);
-        return {
-          url: `/contacts/${contactId}/primary`,
-          method: "PATCH",
-        };
-      },
-      transformResponse: (response: any) => {
-        console.log("📥 Set primary response:", response);
-        return response;
-      },
-      invalidatesTags: (result, error, contactId) => [
+    setPrimaryContact: builder.mutation<unknown, string>({
+      query: (contactId) => ({
+        url: `/contacts/${contactId}/primary`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (_result, _error, contactId) => [
         { type: "Contact", id: contactId },
         { type: "Contact", id: "LIST" },
       ],
     }),
 
-    // Delete a contact
-    deleteContact: builder.mutation<any, string>({
-      query: (contactId) => {
-        console.log("📤 Deleting contact:", contactId);
-        return {
-          url: `/contacts/${contactId}`,
-          method: "DELETE",
-        };
-      },
-      transformResponse: (response: any) => {
-        console.log("📥 Delete contact response:", response);
-        return response;
-      },
-      invalidatesTags: (result, error, contactId) => [
+    deleteContact: builder.mutation<unknown, string>({
+      query: (contactId) => ({
+        url: `/contacts/${contactId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, contactId) => [
         { type: "Contact", id: contactId },
         { type: "Contact", id: "LIST" },
       ],
     }),
 
-    // Test API connection
-    testContactsAPI: builder.query<any, void>({
-      query: () => {
-        console.log("🔧 Testing contacts API connection...");
-        return "/contacts/test"; // Assuming your backend has a test endpoint
-      },
-      transformResponse: (response: any) => {
-        console.log("✅ API test response:", response);
-        return response;
-      },
+    testContactsAPI: builder.query<unknown, void>({
+      query: () => "/contacts/test",
     }),
   }),
 });

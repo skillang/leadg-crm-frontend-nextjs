@@ -103,7 +103,7 @@ const DashboardPage = () => {
                   Total Leads
                 </h3>
                 <p className="text-3xl font-bold text-gray-900">
-                  {stats.total}
+                  {stats.total_leads}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   {isAdmin ? "All leads in system" : "Your assigned leads"}
@@ -121,12 +121,12 @@ const DashboardPage = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Open</h3>
                 <p className="text-3xl font-bold text-blue-600">
-                  {stats.byStage?.open || 0}
+                  {stats.open_leads || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.total > 0
+                  {stats.total_leads > 0
                     ? `${Math.round(
-                        ((stats.byStage?.open || 0) / stats.total) * 100
+                        ((stats.open_leads || 0) / stats.total_leads) * 100
                       )}% of total`
                     : "0% of total"}
                 </p>
@@ -145,12 +145,13 @@ const DashboardPage = () => {
                   In Progress
                 </h3>
                 <p className="text-3xl font-bold text-yellow-600">
-                  {stats.byStage?.in_progress || 0}
+                  {stats.in_progress_leads || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.total > 0
+                  {stats.total_leads > 0
                     ? `${Math.round(
-                        ((stats.byStage?.in_progress || 0) / stats.total) * 100
+                        ((stats.in_progress_leads || 0) / stats.total_leads) *
+                          100
                       )}% of total`
                     : "0% of total"}
                 </p>
@@ -169,10 +170,10 @@ const DashboardPage = () => {
                   Closed Won
                 </h3>
                 <p className="text-3xl font-bold text-green-600">
-                  {stats.byStage?.[`closed-won`] || 0}
+                  {stats.closed_won_leads || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.conversionRate?.toFixed(1)}% conversion rate
+                  {stats.closed_won_leads || 0} / {stats.total_leads || 1} * 100
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">

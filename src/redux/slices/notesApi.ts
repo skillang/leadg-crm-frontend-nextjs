@@ -1,4 +1,4 @@
-// src/redux/slices/notesApi.ts (SIMPLIFIED)
+// src/redux/slices/notesApi.ts
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
@@ -8,6 +8,33 @@ import {
   UpdateNoteRequest,
   NotesResponse,
 } from "@/models/types/note";
+
+// Define raw API note type
+type ApiNote = {
+  id?: string;
+  _id?: string;
+  title: string;
+  content: string;
+  tags?: string[];
+  lead_id: string;
+  created_by: string;
+  created_by_name: string;
+  created_at: string;
+  updated_at: string;
+  updated_by: string;
+  updated_by_name: string;
+};
+
+// Define raw notes response type
+type ApiNotesResponse = {
+  notes?: ApiNote[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
+  available_tags?: string[];
+};
 
 // Base query with authentication
 const baseQuery = fetchBaseQuery({
@@ -25,8 +52,8 @@ const baseQuery = fetchBaseQuery({
 });
 
 // Transform API response to match our frontend types
-const transformNote = (apiNote: any): Note => ({
-  id: apiNote.id || apiNote._id,
+const transformNote = (apiNote: ApiNote): Note => ({
+  id: apiNote.id || apiNote._id || "",
   title: apiNote.title,
   content: apiNote.content,
   tags: apiNote.tags || [],
@@ -64,7 +91,7 @@ export const notesApi = createApi({
 
         return `/notes/leads/${leadId}/notes?${params.toString()}`;
       },
-      transformResponse: (response: any): NotesResponse => ({
+      transformResponse: (response: ApiNotesResponse): NotesResponse => ({
         notes: response.notes?.map(transformNote) || [],
         total: response.total || 0,
         page: response.page || 1,
@@ -82,13 +109,13 @@ export const notesApi = createApi({
     // Get a specific note
     getNote: builder.query<Note, string>({
       query: (noteId) => `/notes/${noteId}`,
-      transformResponse: transformNote,
+      transformResponse: (response: ApiNote) => transformNote(response),
       providesTags: (result, error, id) => [{ type: "Note", id }],
     }),
 
     // Create a new note
     createNote: builder.mutation<
-      any,
+      { message: string; note: Note },
       { leadId: string; noteData: CreateNoteRequest }
     >({
       query: ({ leadId, noteData }) => ({
@@ -97,10 +124,10 @@ export const notesApi = createApi({
         body: {
           title: noteData.title,
           content: noteData.content,
-          note_type: "general", // Default type for API compatibility
+          note_type: "general",
           tags: noteData.tags,
-          is_important: false, // Default for API compatibility
-          is_private: false, // Default for API compatibility
+          is_important: false,
+          is_private: false,
         },
       }),
       invalidatesTags: (result, error, { leadId }) => [
@@ -111,7 +138,7 @@ export const notesApi = createApi({
 
     // Update a note
     updateNote: builder.mutation<
-      any,
+      { message: string; note: Note },
       { noteId: string; noteData: UpdateNoteRequest }
     >({
       query: ({ noteId, noteData }) => ({
@@ -130,7 +157,7 @@ export const notesApi = createApi({
     }),
 
     // Delete a note
-    deleteNote: builder.mutation<any, string>({
+    deleteNote: builder.mutation<{ message: string }, string>({
       query: (noteId) => ({
         url: `/notes/${noteId}`,
         method: "DELETE",

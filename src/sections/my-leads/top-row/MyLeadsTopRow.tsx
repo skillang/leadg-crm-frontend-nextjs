@@ -43,9 +43,11 @@ const MyLeadsTopRowComp = () => {
     // console.log("New lead clicked");
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // console.log("Search:", e.target.value);
-  };
+  const handleSearch = () =>
+    // e: React.ChangeEvent<HTMLInputElement>
+    {
+      // console.log("Search:", e.target.value);
+    };
 
   return (
     <div className="flex items-center justify-between">

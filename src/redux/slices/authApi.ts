@@ -1,6 +1,7 @@
 // src/redux/slices/authApi.ts (REVERTED to simple version)
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { RootState } from "@/redux/store";
 // import { User, LoginCredentials, RegisterData } from "@/redux/types/Leads";
 
 // API Base URL
@@ -47,7 +48,7 @@ interface RegisterRequest {
 interface RegisterResponse {
   success: boolean;
   message: string;
-  user: Record<string, any>;
+  user: CurrentUserResponse;
 }
 
 interface LogoutRequest {
@@ -57,7 +58,7 @@ interface LogoutRequest {
 interface LogoutResponse {
   success: boolean;
   message: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 interface CurrentUserResponse {
@@ -80,7 +81,7 @@ export const authApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/api/v1/auth`,
     prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as any).auth.token;
+      const token = (getState() as RootState).auth.token;
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
       }

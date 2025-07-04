@@ -1,48 +1,216 @@
-// src/redux/slices/leadsApi.ts
-
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
-import { Lead, CreateLeadRequest } from "@/models/types/lead";
+import { Lead } from "@/models/types/lead";
 
-// Real base query with authentication
+interface ApiLead {
+  lead_id?: string;
+  id?: string;
+  name: string;
+  stage?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  lead_score?: number;
+  contact_number?: string;
+  phone_number?: string;
+  email?: string;
+  source?: string;
+  last_contacted?: string;
+  notes?: string;
+}
+
+interface AssignmentHistory {
+  assigned_to: string;
+  assigned_to_name: string;
+  assigned_by: string;
+  assigned_by_name: string;
+  assigned_at: string;
+  assignment_method: string;
+  notes: string;
+}
+
+interface RawLeadDetails {
+  system_info: {
+    id: string;
+    lead_id: string;
+    created_at: string;
+    updated_at: string;
+    last_contacted: string | null;
+    status: string;
+  };
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    country_of_interest?: string;
+    course_level?: string;
+    source: string;
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    priority: string;
+    tags: string[];
+  };
+  assignment: {
+    assigned_to: string;
+    assigned_to_name: string;
+    assignment_history: AssignmentHistory[];
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
+interface LeadDetailsResponse {
+  id: string;
+  leadId: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  contact: string;
+  countryOfInterest: string;
+  courseLevel: string;
+  source: string;
+  stage: string;
+  leadScore: number;
+  priority: string;
+  tags: string[];
+  assignedTo: string;
+  assignedToName: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  lastContacted: string | null;
+  status: string;
+  assignmentHistory: AssignmentHistory[];
+}
+
+interface LeadStatsResponse {
+  total_leads: number;
+  open_leads: number;
+  in_progress_leads: number;
+  closed_won_leads: number;
+  closed_lost_leads: number;
+  my_leads: number;
+}
+
+interface CreateLeadApiRequest {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  assignment: {
+    assigned_to: string | null;
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
+interface CreateLeadResponse {
+  success: boolean;
+  message: string;
+  lead: ApiLead;
+  assignment_info?: Record<string, unknown>;
+  duplicate_check?: Record<string, unknown>;
+}
+
+interface UpdateLeadRequest {
+  lead_id: string;
+  name: string;
+  lead_score: number;
+  stage: string;
+  email?: string;
+  contact_number?: string;
+  source?: string;
+  notes?: string;
+}
+
+interface BulkLeadData {
+  name: string;
+  email: string;
+  contact_number: string;
+  source: string;
+  country_of_interest: string;
+  course_level: string;
+}
+
+interface BulkCreateResult {
+  index: number;
+  status: "created" | "failed" | "skipped";
+  lead_id?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  error?: string;
+}
+
+interface BulkCreateLeadsResponse {
+  success: boolean;
+  message: string;
+  summary: {
+    total_attempted: number;
+    successful_creates: number;
+    failed_creates: number;
+    duplicates_skipped: number;
+  };
+  results: BulkCreateResult[];
+}
+
+interface AssignableUser {
+  id: string;
+  name: string;
+}
+
 const baseQuery = fetchBaseQuery({
   baseUrl:
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
-
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }
+    headers.set("content-type", "application/json");
     return headers;
+  },
+  fetchFn: async (input, init) => {
+    try {
+      return await fetch(input, init);
+    } catch (error) {
+      console.error("Network error:", error);
+      throw error;
+    }
   },
 });
 
-// Transform backend data to frontend format
-const transformApiLead = (apiLead: any): Lead => ({
-  // ✅ FIX: Use lead_id (LD-1000 format) as primary ID
-  id: apiLead.lead_id || apiLead.id, // Priority to lead_id
-  name: apiLead.name,
-  stage: apiLead.stage || apiLead.status,
-  createdOn: apiLead.created_at?.split("T")[0] || "",
-  leadScore: apiLead.lead_score || 0,
+const transformApiLead = (apiLead: ApiLead): Lead => ({
+  id: apiLead.lead_id || apiLead.id || "unknown",
+  name: apiLead.name || "Unknown",
+  stage: apiLead.stage || apiLead.status || "initial",
+  createdOn:
+    apiLead.created_at?.split("T")[0] || new Date().toISOString().split("T")[0],
+  leadScore: Number(apiLead.lead_score) || 0,
   contact: apiLead.contact_number || apiLead.phone_number || "",
   email: apiLead.email || "",
-  source: apiLead.source || "Unknown",
+  source: apiLead.source || "website",
   media: "Email",
   lastActivity:
     apiLead.last_contacted?.split("T")[0] ||
     apiLead.updated_at?.split("T")[0] ||
-    "",
+    new Date().toISOString().split("T")[0],
   department: "Sales",
   notes: apiLead.notes || "",
 });
 
-// Transform backend response to frontend format
-const transformLeadDetailsResponse = (response: any): LeadDetailsResponse => {
+const transformLeadDetailsResponse = (response: {
+  lead: RawLeadDetails;
+}): LeadDetailsResponse => {
   const lead = response.lead;
-
   return {
     id: lead.system_info.id,
     leadId: lead.system_info.lead_id,
@@ -68,106 +236,6 @@ const transformLeadDetailsResponse = (response: any): LeadDetailsResponse => {
   };
 };
 
-// Interface for the new update endpoint
-interface UpdateLeadRequest {
-  lead_id: string;
-  name: string;
-  lead_score: number;
-  stage: string;
-  // Add other fields that might be updated
-  email?: string;
-  contact_number?: string;
-  source?: string;
-  notes?: string;
-}
-
-// Extended interface for detailed lead response
-interface LeadDetailsResponse {
-  id: string;
-  leadId: string;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  contact: string;
-  countryOfInterest: string;
-  courseLevel: string;
-  source: string;
-  stage: string;
-  leadScore: number;
-  priority: string;
-  tags: string[];
-  assignedTo: string;
-  assignedToName: string;
-  notes: string;
-  createdAt: string;
-  updatedAt: string;
-  lastContacted: string | null;
-  status: string;
-  assignmentHistory: Array<{
-    assigned_to: string;
-    assigned_to_name: string;
-    assigned_by: string;
-    assigned_by_name: string;
-    assigned_at: string;
-    assignment_method: string;
-    notes: string;
-  }>;
-}
-
-// Add this interface to the top of src/redux/slices/leadsApi.ts
-
-interface CreateLeadApiRequest {
-  basic_info: {
-    name: string;
-    email: string;
-    contact_number: string;
-    stage: string;
-    lead_score: number;
-    tags: string[];
-  };
-  assignment: {
-    assigned_to: string | null;
-  };
-  additional_info: {
-    notes: string;
-  };
-}
-
-interface BulkLeadData {
-  name: string;
-  email: string;
-  contact_number: string;
-  source: string;
-  country_of_interest: string;
-  course_level: string;
-}
-
-interface BulkCreateLeadsRequest {
-  leads: BulkLeadData[];
-  force_create?: boolean;
-}
-
-interface BulkCreateResult {
-  index: number;
-  status: "created" | "failed" | "skipped";
-  lead_id?: string;
-  assigned_to?: string;
-  assigned_to_name?: string;
-  error?: string;
-}
-
-interface BulkCreateLeadsResponse {
-  success: boolean;
-  message: string;
-  summary: {
-    total_attempted: number;
-    successful_creates: number;
-    failed_creates: number;
-    duplicates_skipped: number;
-  };
-  results: BulkCreateResult[];
-}
-
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
   baseQuery,
@@ -175,23 +243,22 @@ export const leadsApi = createApi({
   endpoints: (builder) => ({
     getLeads: builder.query<Lead[], void>({
       query: () => "/leads/",
-      transformResponse: (response: any) => {
-        return response.leads?.map(transformApiLead) || [];
-      },
-      providesTags: ["Lead"],
+      transformResponse: (response: { leads: ApiLead[] }) =>
+        response.leads.map(transformApiLead),
     }),
 
     getMyLeads: builder.query<Lead[], void>({
       query: () => "/leads/my-leads-fast",
-      transformResponse: (response: any) => {
-        return response.leads?.map(transformApiLead) || [];
-      },
-      providesTags: ["Lead"],
+      transformResponse: (response: { leads: ApiLead[] }) =>
+        Array.isArray(response.leads)
+          ? response.leads.map(transformApiLead)
+          : [],
     }),
 
     getLead: builder.query<Lead, string>({
-      query: (id) => `/leads/${id}`,
-      transformResponse: transformApiLead,
+      query: (leadId) => `/leads/${leadId}`,
+      transformResponse: (response: { lead: ApiLead }) =>
+        transformApiLead(response.lead),
       providesTags: (result, error, id) => [{ type: "Lead", id }],
     }),
 
@@ -201,167 +268,63 @@ export const leadsApi = createApi({
       providesTags: (result, error, id) => [{ type: "Lead", id }],
     }),
 
-    // ✅ ALSO UPDATE: getLeadDetails to use correct ID
-    // getLeadDetails: builder.query<any, string>({
-    //   query: (leadId) => `/leads/${leadId}`,
-    //   transformResponse: (response: any) => {
-    //     const lead = response.lead || response;
-    //     return {
-    //       // ✅ FIX: Use lead_id consistently
-    //       id: lead.lead_id || lead.id, // Priority to lead_id
-    //       leadId: lead.lead_id || lead.id,
-    //       name: lead.name,
-    //       email: lead.email,
-    //       phoneNumber: lead.contact_number || lead.phone_number,
-    //       contact: lead.contact_number || lead.phone_number,
-    //       countryOfInterest: Array.isArray(lead.country_of_interest)
-    //         ? lead.country_of_interest
-    //         : lead.country_of_interest
-    //         ? [lead.country_of_interest]
-    //         : [],
-    //       courseLevel: lead.course_level || "Not specified",
-    //       source: lead.source,
-    //       tags: lead.tags || [],
-    //       createdOn: lead.created_at?.split("T")[0] || "",
-    //       stage: lead.stage || lead.status,
-    //       leadScore: lead.lead_score || 0,
-    //       department: "Sales",
-    //       notes: lead.notes || "",
-    //       lastActivity:
-    //         lead.last_contacted?.split("T")[0] ||
-    //         lead.updated_at?.split("T")[0] ||
-    //         "",
-    //       media: "Email",
-    //     };
-    //   },
-    //   providesTags: (result, error, id) => [{ type: "Lead", id }],
-    // }),
-
-    getLeadStats: builder.query<any, void>({
+    getLeadStats: builder.query<LeadStatsResponse, void>({
       query: () => "/leads/stats",
-      transformResponse: (response: any) => ({
-        total: response.total_leads || 0,
-        byStage: {
-          open: response.open_leads || 0,
-          in_progress: response.in_progress_leads || 0,
-          "closed-won": response.closed_won_leads || 0,
-          "closed-lost": response.closed_lost_leads || 0,
-        },
-        byDepartment: {
-          Sales: response.my_leads || 0,
-          Marketing: 0,
-        },
-        averageScore: 0,
-        conversionRate:
-          response.total_leads > 0
-            ? (response.closed_won_leads / response.total_leads) * 100
-            : 0,
-      }),
+      transformResponse: (response: LeadStatsResponse) => response,
       providesTags: ["LeadStats"],
     }),
 
-    // Replace the existing createLead mutation with this:
-
-    createLead: builder.mutation<any, CreateLeadApiRequest>({
-      query: (leadData) => {
-        console.log("🚀 Creating lead with API payload:", leadData);
-
-        return {
-          url: "/leads/",
-          method: "POST",
-          body: leadData,
-        };
-      },
-      transformResponse: (response: any) => {
-        console.log("✅ Create lead response:", response);
-
-        // The API returns a success object with lead data
-        if (response.success) {
-          return {
-            success: response.success,
-            message: response.message,
-            lead: response.lead,
-            assignment_info: response.assignment_info,
-            duplicate_check: response.duplicate_check,
-          };
-        }
-
-        return response;
-      },
+    createLead: builder.mutation<CreateLeadResponse, CreateLeadApiRequest>({
+      query: (body) => ({
+        url: "/leads/",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["Lead", "LeadStats"],
-      // Handle errors
-      transformErrorResponse: (response: any) => {
-        console.error("❌ Create lead error:", response);
-        return response;
-      },
     }),
 
-    // NEW: Bulk Create Leads Mutation
     bulkCreateLeads: builder.mutation<
       BulkCreateLeadsResponse,
-      BulkCreateLeadsRequest
+      { leads: BulkLeadData[]; force_create?: boolean }
     >({
-      query: ({ leads, force_create = false }) => {
-        console.log("🚀 Bulk creating leads:", leads);
-
-        return {
-          url: `/leads/bulk-create?force_create=${force_create}`,
-          method: "POST",
-          body: leads,
-        };
-      },
-      transformResponse: (response: BulkCreateLeadsResponse) => {
-        console.log("✅ Bulk create response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("❌ Bulk create error:", response);
-        return response;
-      },
+      query: ({ leads, force_create = false }) => ({
+        url: `/leads/bulk-create?force_create=${force_create}`,
+        method: "POST",
+        body: leads,
+      }),
       invalidatesTags: ["Lead", "LeadStats"],
     }),
 
-    // UPDATED: New updateLeadStage mutation using the /leads/update endpoint
     updateLeadStage: builder.mutation<
-      any,
+      ApiLead,
       {
-        leadId: string; // This should be LD-1000 format
+        leadId: string;
         stage: string;
         currentLead: Lead;
       }
     >({
-      query: ({ leadId, stage, currentLead }) => {
-        // console.log("🔍 API Call - Lead ID being sent:", leadId);
-        // console.log("🔍 API Call - Current lead:", currentLead);
-
-        return {
-          url: "/leads/update",
-          method: "PUT",
-          body: {
-            lead_id: leadId, // ✅ Should now be LD-1000 format
-            name: currentLead.name,
-            lead_score: currentLead.leadScore,
-            stage: stage,
-            email: currentLead.email,
-            contact_number: currentLead.contact,
-            source: currentLead.source,
-            notes: currentLead.notes,
-          } as UpdateLeadRequest,
-        };
-      },
-      invalidatesTags: ["Lead", "LeadStats"],
-      transformResponse: (response: any) => {
-        // console.log("🎯 API Response:", response);
-        return response.lead || response;
-      },
-    }),
-
-    // Alternative mutation if you want to update multiple fields at once
-    updateLead: builder.mutation<any, UpdateLeadRequest>({
-      query: (updateData) => ({
+      query: ({ leadId, stage, currentLead }) => ({
         url: "/leads/update",
         method: "PUT",
-        body: updateData,
+        body: {
+          lead_id: leadId,
+          name: currentLead.name,
+          lead_score: currentLead.leadScore,
+          stage: stage,
+          email: currentLead.email,
+          contact_number: currentLead.contact,
+          source: currentLead.source,
+          notes: currentLead.notes,
+        },
+      }),
+      invalidatesTags: ["Lead", "LeadStats"],
+    }),
+
+    updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
+      query: (body) => ({
+        url: "/leads/update",
+        method: "PUT",
+        body,
       }),
       invalidatesTags: ["Lead", "LeadStats"],
     }),
@@ -374,9 +337,18 @@ export const leadsApi = createApi({
       invalidatesTags: ["Lead", "LeadStats"],
     }),
 
-    getAssignableUsers: builder.query<any[], void>({
+    fixMissingFields: builder.mutation<{ success: boolean }, void>({
+      query: () => ({
+        url: "/leads/fix-missing-fields",
+        method: "POST",
+      }),
+      invalidatesTags: ["Lead", "LeadStats"],
+    }),
+
+    getAssignableUsers: builder.query<AssignableUser[], void>({
       query: () => "/leads/users/assignable",
-      transformResponse: (response: any) => response.users || [],
+      transformResponse: (response: { users: AssignableUser[] }) =>
+        response.users || [],
     }),
   }),
 });
@@ -385,7 +357,7 @@ export const {
   useGetLeadsQuery,
   useGetMyLeadsQuery,
   useGetLeadQuery,
-  useGetLeadDetailsQuery, // This now returns the properly typed response
+  useGetLeadDetailsQuery,
   useGetLeadStatsQuery,
   useUpdateLeadStageMutation,
   useUpdateLeadMutation,
@@ -393,4 +365,5 @@ export const {
   useDeleteLeadMutation,
   useGetAssignableUsersQuery,
   useBulkCreateLeadsMutation,
+  useFixMissingFieldsMutation,
 } = leadsApi;

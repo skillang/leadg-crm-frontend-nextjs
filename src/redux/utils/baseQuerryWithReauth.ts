@@ -4,6 +4,7 @@ import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type {
   BaseQueryFn,
   FetchArgs,
+  BaseQueryApi,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
 import { RootState } from "../store";
@@ -91,7 +92,7 @@ export const createBaseQueryWithReauth = (
 };
 
 // Helper function to handle forced logout
-const handleForceLogout = async (api: any) => {
+const handleForceLogout = async (api: BaseQueryApi) => {
   // console.log("🚪 Forcing logout due to token expiration");
 
   // Clear tokens from localStorage

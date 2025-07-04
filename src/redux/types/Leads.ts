@@ -13,6 +13,9 @@ export interface Lead {
   lastActivity: string;
   department: string;
   notes: string;
+  // ✅ Add these for selector type safety
+  assignedTo?: string;
+  assignedToId?: string;
 }
 
 export interface LeadsState {

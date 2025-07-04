@@ -65,8 +65,8 @@ export const createUserFilteredLeadsSelector = (leads: Lead[] = []) =>
         // Assuming leads have an assignedTo field - adjust based on your Lead interface
         userLeads = leads.filter(
           (lead) =>
-            (lead as any).assignedTo === user.id ||
-            (lead as any).assignedToId === user.id ||
+            lead.assignedTo === user.id ||
+            lead.assignedToId === user.id ||
             lead.contact === user.email // fallback logic
         );
       }

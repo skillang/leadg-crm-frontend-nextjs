@@ -93,34 +93,43 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [parsedLeads, setParsedLeads] = useState<BulkLeadData[]>([]);
-  const [results, setResults] = useState<any>(null);
-  const [showResults, setShowResults] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      const err = validateFile(file);
+      if (err) return notifications.error(err, "Invalid File");
+      setSelectedFile(file);
+      setParsedLeads([]);
+    },
+    [notifications]
+  );
+
+  const handleDragEvents = {
+    enter: useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      setDragActive(true);
+    }, []),
+    leave: useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      setDragActive(false);
+    }, []),
+    over: useCallback((e: React.DragEvent) => e.preventDefault(), []),
+    drop: useCallback(
+      (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragActive(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) handleFileSelect(file);
+      },
+      [handleFileSelect]
+    ),
+  };
 
   const normalizeHeader = (header: string): string | null => {
     const normalizedHeader = header.toLowerCase().trim();
     return HEADER_MAPPING[normalizedHeader] || null;
   };
-
-  if (!isAdmin) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              Access Denied
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-center py-4">
-            <p className="text-muted-foreground">
-              Only administrators can access the bulk lead creation feature.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   const validateFile = (file: File): string | null => {
     const maxSize = 10 * 1024 * 1024;
@@ -164,7 +173,7 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
 
   const processCsvFile = (file: File): Promise<BulkLeadData[]> => {
     return new Promise((resolve, reject) => {
-      Papa.parse(file, {
+      Papa.parse<Record<string, string>>(file, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
@@ -183,12 +192,13 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
               return;
             }
 
-            results.data.forEach((row: any) => {
+            results.data.forEach((row) => {
               const lead: Partial<BulkLeadData> = {};
               Object.keys(row).forEach((key) => {
                 const field = normalizeHeader(key);
                 if (field && row[key]) {
-                  (lead as any)[field] = String(row[key]).trim();
+                  (lead as Partial<BulkLeadData>)[field as keyof BulkLeadData] =
+                    String(row[key]).trim();
                 }
               });
 
@@ -206,37 +216,6 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
         },
       });
     });
-  };
-
-  const handleFileSelect = useCallback(
-    (file: File) => {
-      const err = validateFile(file);
-      if (err) return notifications.error(err, "Invalid File");
-      setSelectedFile(file);
-      setParsedLeads([]);
-    },
-    [notifications]
-  );
-
-  const handleDragEvents = {
-    enter: useCallback((e: React.DragEvent) => {
-      e.preventDefault();
-      setDragActive(true);
-    }, []),
-    leave: useCallback((e: React.DragEvent) => {
-      e.preventDefault();
-      setDragActive(false);
-    }, []),
-    over: useCallback((e: React.DragEvent) => e.preventDefault(), []),
-    drop: useCallback(
-      (e: React.DragEvent) => {
-        e.preventDefault();
-        setDragActive(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) handleFileSelect(file);
-      },
-      [handleFileSelect]
-    ),
   };
 
   const processUploadedFile = async () => {
@@ -263,8 +242,9 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
 
       setParsedLeads(unique);
       notifications.success(`Parsed ${unique.length} leads.`, "Success");
-    } catch (e: any) {
-      notifications.error(e?.message || "Unknown error", "Processing Error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      notifications.error(message, "Processing Error");
     } finally {
       setIsProcessingFile(false);
     }
@@ -282,11 +262,17 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
         leads: parsedLeads,
         force_create: false,
       }).unwrap();
-      setResults(res);
-      setShowResults(true);
+
       if (res.success) notifications.success(res.message, "Leads Created");
-    } catch (err: any) {
-      notifications.error(err?.data?.detail || "Bulk creation failed", "Error");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" &&
+        err !== null &&
+        "data" in err &&
+        typeof (err as { data?: { detail?: string } }).data?.detail === "string"
+          ? (err as { data?: { detail?: string } }).data!.detail
+          : "Bulk creation failed";
+      notifications.error(message!, "Error");
     }
   };
 
@@ -300,6 +286,26 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
     a.download = "bulk_leads_template.csv";
     a.click();
   };
+
+  if (!isAdmin) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              Access Denied
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">
+              Only administrators can access the bulk lead creation feature.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (!isOpen) return null;
 
