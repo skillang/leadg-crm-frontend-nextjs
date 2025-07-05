@@ -87,7 +87,7 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
 }) => {
   const { isAdmin } = useAuth();
   const [bulkCreateLeads, { isLoading }] = useBulkCreateLeadsMutation();
-  const notifications = useNotifications();
+  const { showError, showWarning, showSuccess } = useNotifications();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -98,11 +98,11 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   const handleFileSelect = useCallback(
     (file: File) => {
       const err = validateFile(file);
-      if (err) return notifications.error(err, "Invalid File");
+      if (err) return showError(err, "Invalid File");
       setSelectedFile(file);
       setParsedLeads([]);
     },
-    [notifications]
+    [showError]
   );
 
   const handleDragEvents = {
@@ -225,7 +225,7 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
     try {
       const leads = await processCsvFile(selectedFile);
       if (!leads.length) {
-        notifications.error("No valid leads found", "Empty File");
+        showError("No valid leads found", "Empty File");
         return;
       }
 
@@ -234,17 +234,17 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
       );
 
       if (unique.length < leads.length) {
-        notifications.warning(
+        showWarning(
           `${leads.length - unique.length} duplicates removed.`,
           "Deduplication"
         );
       }
 
       setParsedLeads(unique);
-      notifications.success(`Parsed ${unique.length} leads.`, "Success");
+      showSuccess(`Parsed ${unique.length} leads.`, "Success");
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      notifications.error(message, "Processing Error");
+      showError(message, "Processing Error");
     } finally {
       setIsProcessingFile(false);
     }
@@ -256,14 +256,14 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   };
 
   const handleBulkCreate = async () => {
-    if (!parsedLeads.length) return notifications.error("No leads to create.");
+    if (!parsedLeads.length) return showError("No leads to create.");
     try {
       const res = await bulkCreateLeads({
         leads: parsedLeads,
         force_create: false,
       }).unwrap();
 
-      if (res.success) notifications.success(res.message, "Leads Created");
+      if (res.success) showSuccess(res.message, "Leads Created");
     } catch (err: unknown) {
       const message =
         typeof err === "object" &&
@@ -272,7 +272,7 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
         typeof (err as { data?: { detail?: string } }).data?.detail === "string"
           ? (err as { data?: { detail?: string } }).data!.detail
           : "Bulk creation failed";
-      notifications.error(message!, "Error");
+      showError(message!, "Error");
     }
   };
 

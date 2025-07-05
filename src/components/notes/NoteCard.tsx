@@ -1,4 +1,4 @@
-// src/components/notes/NoteCard.tsx (UPDATED - Clean Design)
+// src/components/notes/NoteCard.tsx (UPDATED with Notification System)
 
 "use client";
 
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Pen, Trash, Calendar, Clock } from "lucide-react";
 import { Note } from "@/models/types/note";
 import { useDeleteNoteMutation } from "@/redux/slices/notesApi";
+import { useNotifications } from "@/components/common/NotificationSystem"; // ✅ New import
 import { cn } from "@/lib/utils";
 
 interface NoteCardProps {
@@ -29,16 +30,26 @@ const NoteCard: React.FC<NoteCardProps> = ({
 }) => {
   const [deleteNote, { isLoading: isDeleting }] = useDeleteNoteMutation();
 
-  const handleDelete = async () => {
-    if (window.confirm(`Are you sure you want to delete "${note.title}"?`)) {
-      try {
-        await deleteNote(note.id).unwrap();
-        // console.log("Note deleted successfully");
-      } catch (error) {
-        console.error("Failed to delete note:", error);
-        alert("Failed to delete note. Please try again.");
-      }
-    }
+  // ✅ NEW: Use simplified notification system
+  const { showSuccess, showError, showConfirm } = useNotifications();
+
+  // ✅ UPDATED: Replaced window.confirm with notification dialog
+  const handleDelete = () => {
+    showConfirm({
+      title: "Delete Note",
+      description: `Are you sure you want to delete "${note.title}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteNote(note.id).unwrap();
+          showSuccess(`Note "${note.title}" deleted successfully`);
+        } catch (error) {
+          console.error("Failed to delete note:", error);
+          showError("Failed to delete note. Please try again.");
+        }
+      },
+    });
   };
 
   const handleEdit = () => {

@@ -54,11 +54,11 @@ const baseQueryWithLogging: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  console.log("🌐 API Request:", {
-    url: typeof args === "string" ? args : args.url,
-    method: typeof args === "string" ? "GET" : args.method,
-    body: typeof args === "string" ? undefined : args.body,
-  });
+  // console.log("🌐 API Request:", {
+  //   url: typeof args === "string" ? args : args.url,
+  //   method: typeof args === "string" ? "GET" : args.method,
+  //   body: typeof args === "string" ? undefined : args.body,
+  // });
 
   const result = await rawBaseQuery(args, api, extraOptions);
 

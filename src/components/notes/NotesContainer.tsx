@@ -1,13 +1,17 @@
-// src/components/notes/NotesContainer.tsx (SIMPLIFIED)
+// src/components/notes/NotesContainer.tsx (UPDATED with Notification System)
 
 "use client";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, PlusIcon, Loader2, AlertCircle } from "lucide-react";
+import { Search, PlusIcon, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { Note } from "@/models/types/note";
-import { useGetLeadNotesQuery } from "@/redux/slices/notesApi";
+import {
+  useGetLeadNotesQuery,
+  useDeleteNoteMutation,
+} from "@/redux/slices/notesApi";
+import { useNotifications } from "@/components/common/NotificationSystem"; // ✅ New import
 import NoteCard from "./NoteCard";
 import NoteEditor from "./NoteEditor";
 
@@ -21,6 +25,12 @@ const NotesContainer: React.FC<NotesContainerProps> = ({ leadId }) => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | undefined>();
   const [page, setPage] = useState(1);
+
+  // ✅ NEW: Use simplified notification system
+  const { showSuccess, showError, showConfirm } = useNotifications();
+
+  // ✅ NEW: Add bulk delete mutation
+  const [deleteNote, { isLoading: isDeletingNote }] = useDeleteNoteMutation();
 
   // API queries
   const {
@@ -64,24 +74,116 @@ const NotesContainer: React.FC<NotesContainerProps> = ({ leadId }) => {
     );
   };
 
-  if (isLoading && page === 1) {
+  // ✅ NEW: Bulk delete functionality with confirmation
+  const handleBulkDelete = () => {
+    if (selectedNotes.length === 0) return;
+
+    const selectedNoteTitles = notes
+      .filter((note) => selectedNotes.includes(note.id))
+      .map((note) => note.title)
+      .slice(0, 3); // Show max 3 titles
+
+    const titleDisplay =
+      selectedNoteTitles.length === selectedNotes.length
+        ? selectedNoteTitles.join(", ")
+        : `${selectedNoteTitles.join(", ")} and ${
+            selectedNotes.length - selectedNoteTitles.length
+          } more`;
+
+    showConfirm({
+      title: "Delete Notes",
+      description: `Are you sure you want to delete ${
+        selectedNotes.length
+      } note${
+        selectedNotes.length > 1 ? "s" : ""
+      }? (${titleDisplay})\n\nThis action cannot be undone.`,
+      confirmText: "Delete All",
+      variant: "destructive",
+      onConfirm: async () => {
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const noteId of selectedNotes) {
+          try {
+            await deleteNote(noteId).unwrap();
+            successCount++;
+          } catch (error) {
+            console.error(`Failed to delete note ${noteId}:`, error);
+            errorCount++;
+          }
+        }
+
+        // Clear selection
+        setSelectedNotes([]);
+
+        // Show result notification
+        if (successCount > 0 && errorCount === 0) {
+          showSuccess(
+            `Successfully deleted ${successCount} note${
+              successCount > 1 ? "s" : ""
+            }`,
+            "Notes Deleted"
+          );
+        } else if (successCount > 0 && errorCount > 0) {
+          showError(
+            `Deleted ${successCount} note${
+              successCount > 1 ? "s" : ""
+            }, but failed to delete ${errorCount} note${
+              errorCount > 1 ? "s" : ""
+            }`,
+            "Partial Success"
+          );
+        } else {
+          showError(
+            `Failed to delete ${errorCount} note${
+              errorCount > 1 ? "s" : ""
+            }. Please try again.`,
+            "Delete Failed"
+          );
+        }
+      },
+    });
+  };
+
+  // ✅ NEW: Clear selection handler
+  const handleClearSelection = () => {
+    setSelectedNotes([]);
+  };
+
+  // ✅ NEW: Select all handler
+  const handleSelectAll = () => {
+    if (selectedNotes.length === notes.length) {
+      setSelectedNotes([]);
+    } else {
+      setSelectedNotes(notes.map((note) => note.id));
+    }
+  };
+
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
-          <p className="text-gray-600">Loading notes...</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Loading notes...</span>
         </div>
       </div>
     );
   }
 
+  // ✅ UPDATED: Better error handling with retry option
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-          <p className="text-gray-600 mb-4">Failed to load notes</p>
-          <Button onClick={() => refetch()} variant="outline">
+      <div className="space-y-4">
+        <div className="text-center py-8">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Failed to load notes
+          </h3>
+          <p className="text-gray-600 mb-4">
+            There was an error loading the notes. Please try again.
+          </p>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
             Try Again
           </Button>
         </div>
@@ -91,146 +193,91 @@ const NotesContainer: React.FC<NotesContainerProps> = ({ leadId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Updated Filtering Header - Clean Layout */}
-      <div className="space-y-4">
-        {/* First Row: Only Search + New Note Button */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-gray-300"
-            />
+      {/* Header with Search and Actions */}
+      <div className="flex items-center gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* ✅ NEW: Bulk actions when notes are selected */}
+        {selectedNotes.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">
+              {selectedNotes.length} selected
+            </span>
+            <Button variant="outline" size="sm" onClick={handleClearSelection}>
+              Clear
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={isDeletingNote}
+              className="text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
           </div>
+        )}
 
-          <Button
-            onClick={handleCreateNote}
-            className="gap-2 bg-gray-900 hover:bg-gray-800"
-          >
-            <PlusIcon className="h-4 w-4" />
-            New note
+        {/* ✅ NEW: Select all button when there are notes */}
+        {notes.length > 0 && (
+          <Button variant="outline" size="sm" onClick={handleSelectAll}>
+            {selectedNotes.length === notes.length
+              ? "Deselect All"
+              : "Select All"}
           </Button>
-        </div>
+        )}
 
-        {/* Second Row: All Filter Options */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" className="gap-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            Created by
-          </Button>
-
-          <Button variant="outline" className="gap-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-              />
-            </svg>
-            Tags
-          </Button>
-
-          <Button variant="outline" className="gap-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
-              />
-            </svg>
-            Mentions
-          </Button>
-
-          <Button variant="outline" className="gap-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Documents
-          </Button>
-
-          <Button variant="outline" className="gap-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"
-              />
-            </svg>
-            Sort
-          </Button>
-        </div>
+        {/* Create Note Button */}
+        <Button onClick={handleCreateNote} className="gap-2">
+          <PlusIcon className="h-4 w-4" />
+          New Note
+        </Button>
       </div>
 
       {/* Notes List */}
       {notes.length === 0 ? (
         <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <svg
-              className="h-12 w-12 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchQuery ? "No notes match your search" : "No notes yet"}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {searchQuery
-              ? "Try adjusting your search criteria"
-              : "Start by creating your first note for this lead"}
-          </p>
-          {!searchQuery && (
-            <Button onClick={handleCreateNote}>Create First Note</Button>
+          {searchQuery ? (
+            <div>
+              <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No notes found
+              </h3>
+              <p className="text-gray-600 mb-4">
+                No notes match your search criteria.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery("")}
+                size="sm"
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <PlusIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No notes yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Start by creating your first note for this lead.
+              </p>
+              <Button onClick={handleCreateNote}>
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Create First Note
+              </Button>
+            </div>
           )}
         </div>
       ) : (

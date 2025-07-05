@@ -18,11 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { X, CheckCircle, AlertCircle } from "lucide-react";
+import { X, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Simplified Types - Only success and error
-type NotificationType = "success" | "error";
+// ✅ UPDATED: Added warning to notification types
+type NotificationType = "success" | "error" | "warning";
 
 interface Toast {
   id: string;
@@ -55,7 +55,7 @@ interface PromptDialogOptions {
   onCancel?: () => void;
 }
 
-// ✅ FIXED: Updated interface with correct method names
+// ✅ UPDATED: Added showWarning to the interface
 interface NotificationContextType {
   // Toast notifications
   toasts: Toast[];
@@ -65,12 +65,13 @@ interface NotificationContextType {
   // Confirmation dialogs
   showConfirm: (options: ConfirmDialogOptions) => void;
 
-  // Prompt dialogs (keep if you use them)
+  // Prompt dialogs
   showPrompt: (options: PromptDialogOptions) => void;
 
-  // ✅ FIXED: Renamed to avoid naming conflicts
+  // Convenience methods
   showSuccess: (description: string, title?: string) => void;
   showError: (description: string, title?: string) => void;
+  showWarning: (description: string, title?: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -173,7 +174,7 @@ export function NotificationProvider({
     setPromptValue("");
   };
 
-  // ✅ FIXED: Renamed convenience methods to avoid naming conflicts
+  // Convenience methods for different notification types
   const showSuccess = useCallback(
     (description: string, title?: string) => {
       showToast({ type: "success", description, title });
@@ -188,7 +189,15 @@ export function NotificationProvider({
     [showToast]
   );
 
-  // ✅ FIXED: Updated contextValue with correct method names
+  // ✅ NEW: Added showWarning method
+  const showWarning = useCallback(
+    (description: string, title?: string) => {
+      showToast({ type: "warning", description, title });
+    },
+    [showToast]
+  );
+
+  // ✅ UPDATED: Added showWarning to context value
   const contextValue: NotificationContextType = {
     toasts,
     showToast,
@@ -197,6 +206,7 @@ export function NotificationProvider({
     showPrompt,
     showSuccess,
     showError,
+    showWarning,
   };
 
   return (
@@ -319,14 +329,17 @@ function ToastContainer() {
 function ToastItem({ toast }: { toast: Toast }) {
   const { removeToast } = useNotifications();
 
+  // ✅ UPDATED: Added warning icon and styles
   const icons = {
     success: CheckCircle,
     error: AlertCircle,
+    warning: AlertTriangle,
   };
 
   const styles = {
     success: "bg-green-50 border-green-200 text-green-800",
     error: "bg-red-50 border-red-200 text-red-800",
+    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
   };
 
   const Icon = icons[toast.type];
