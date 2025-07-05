@@ -14,7 +14,7 @@ import {
 import ContactEditor from "./ContactEditor";
 import ContactViewModal from "./ContactViewModal";
 import { Contact } from "@/models/types/contact";
-import { useContactNotifications } from "@/hooks/useNotificationHelpers";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface ContactsContainerProps {
   leadId: string;
@@ -27,7 +27,7 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
   const [viewingContact, setViewingContact] = useState<Contact | undefined>();
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  const notifications = useContactNotifications();
+  const { showSuccess, showError, showConfirm } = useNotifications();
 
   // Add delete mutation
   const [deleteContact, { isLoading: isDeleting }] = useDeleteContactMutation();
@@ -265,18 +265,25 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
                   onClick={() => {
-                    notifications.confirmContactDelete(
-                      contact.full_name,
-                      async () => {
+                    showConfirm({
+                      title: "Delete Contact",
+                      description: `Are you sure you want to delete "${contact.full_name}"? This action cannot be undone.`,
+                      confirmText: "Delete",
+                      variant: "destructive",
+                      onConfirm: async () => {
                         try {
                           await deleteContact(contact.id).unwrap();
-                          notifications.contactDeleted(contact.full_name);
+                          showSuccess(
+                            `Contact "${contact.full_name}" deleted successfully`
+                          );
                         } catch (error) {
                           console.error("Failed to delete contact:", error);
-                          notifications.contactDeleteError();
+                          showError(
+                            "Failed to delete contact. Please try again."
+                          );
                         }
-                      }
-                    );
+                      },
+                    });
                   }}
                   disabled={isDeleting}
                 >

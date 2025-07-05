@@ -23,8 +23,8 @@ import {
   useDeleteContactMutation,
   useSetPrimaryContactMutation,
 } from "@/redux/slices/contactsApi";
-import { useContactNotifications } from "@/hooks/useNotificationHelpers";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface ContactCardProps {
   contact: Contact;
@@ -43,20 +43,26 @@ const ContactCard: React.FC<ContactCardProps> = ({
   onView,
   className,
 }) => {
-  const notifications = useContactNotifications();
+  const { showSuccess, showError, showConfirm } = useNotifications();
   const [deleteContact, { isLoading: isDeleting }] = useDeleteContactMutation();
   const [setPrimaryContact, { isLoading: isSettingPrimary }] =
     useSetPrimaryContactMutation();
 
   const handleDelete = async () => {
-    notifications.confirmContactDelete(contact.full_name, async () => {
-      try {
-        await deleteContact(contact.id).unwrap();
-        notifications.deleted(contact.full_name, "contact");
-      } catch (error) {
-        console.error("Failed to delete contact:", error);
-        notifications.deleteError("contact");
-      }
+    showConfirm({
+      title: "Delete Contact",
+      description: `Are you sure you want to delete "${contact.full_name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteContact(contact.id).unwrap();
+          showSuccess(`Contact "${contact.full_name}" deleted successfully`);
+        } catch (error) {
+          console.error("Failed to delete contact:", error);
+          showError("Failed to delete contact. Please try again.");
+        }
+      },
     });
   };
 
@@ -65,10 +71,10 @@ const ContactCard: React.FC<ContactCardProps> = ({
 
     try {
       await setPrimaryContact(contact.id).unwrap();
-      notifications.success(`${contact.full_name} is now the primary contact`);
+      showSuccess(`${contact.full_name} is now the primary contact`);
     } catch (error) {
-      console.error("Failed to set primary contact:", error);
-      notifications.error("Failed to set primary contact");
+      // console.error("Failed to set primary contact:", error);
+      showError("Failed to set primary contact, error:" + error?.toString());
     }
   };
 

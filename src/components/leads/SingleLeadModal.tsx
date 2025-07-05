@@ -52,6 +52,7 @@ type UserForAssignment = {
   last_name?: string;
   username?: string;
 };
+
 interface SingleLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -132,7 +133,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   const { data: assignableUsers = [], isLoading: isLoadingUsers } =
     useGetAssignableUsersQuery();
 
-  const notifications = useNotifications();
+  // ✅ UPDATED: Use the new notification method names
+  const { showSuccess, showError } = useNotifications();
 
   useEffect(() => {
     if (!isOpen) {
@@ -232,7 +234,9 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       };
 
       await createLead(apiPayload).unwrap();
-      notifications.success(
+
+      // ✅ UPDATED: Use showSuccess instead of notifications.success
+      showSuccess(
         `Lead "${formData.name}" created successfully!`,
         "Lead Created"
       );
@@ -251,7 +255,9 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       } else if (apiError?.message) {
         errorMessage = apiError.message;
       }
-      notifications.error(errorMessage, "Error Creating Lead");
+
+      // ✅ UPDATED: Use showError instead of notifications.error
+      showError(errorMessage, "Error Creating Lead");
     }
   };
 

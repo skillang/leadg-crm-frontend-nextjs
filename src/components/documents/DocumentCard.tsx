@@ -7,6 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   FileText,
   Download,
@@ -30,7 +31,6 @@ import {
 } from "@/redux/slices/documentsApi";
 import { useAppSelector } from "@/redux/hooks";
 import { selectIsAdmin } from "@/redux/selectors";
-import { useDocumentNotifications } from "@/hooks/useNotificationHelpers";
 import { cn } from "@/lib/utils";
 
 interface DocumentCardProps {
@@ -49,7 +49,9 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   className,
 }) => {
   const isAdmin = useAppSelector(selectIsAdmin);
-  const notifications = useDocumentNotifications();
+  // ✅ SIMPLE: Direct hook usage - no naming conflicts
+  const { showSuccess, showError, showConfirm, showPrompt } =
+    useNotifications();
   const [deleteDocument, { isLoading: isDeleting }] =
     useDeleteDocumentMutation();
   const [downloadDocument, { isLoading: isDownloading }] =
@@ -58,20 +60,26 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     useApproveDocumentMutation();
   const [rejectDocument, { isLoading: isRejecting }] =
     useRejectDocumentMutation();
-
-  const handleDelete = async () => {
-    notifications.confirmDocumentDelete(document.filename, async () => {
-      try {
-        await deleteDocument(document.id).unwrap();
-        notifications.deleted(document.filename);
-        // console.log("Document deleted successfully");
-      } catch (error) {
-        console.error("Failed to delete document:", error);
-        notifications.deleteError("document");
-      }
+  // ✅ SIMPLE: Direct confirmation calls
+  const handleDelete = () => {
+    showConfirm({
+      title: "Delete Document",
+      description: `Are you sure you want to delete "${document.filename}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteDocument(document.id).unwrap();
+          showSuccess(`Document "${document.filename}" deleted successfully`);
+        } catch (error) {
+          console.error("Failed to delete document:", error);
+          showError("Failed to delete document. Please try again.");
+        }
+      },
     });
   };
 
+  // ✅ SIMPLE: Direct success/error calls
   const handleDownload = async () => {
     try {
       const blob = await downloadDocument(document.id).unwrap();
@@ -86,53 +94,62 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       window.document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      notifications.downloaded(document.filename);
-      // console.log("Document downloaded successfully");
+      showSuccess(`Document "${document.filename}" downloaded successfully`);
     } catch (error) {
       console.error("Failed to download document:", error);
-      notifications.downloadError();
+      showError("Failed to download document. Please try again.");
     }
   };
 
-  const handleApprove = async () => {
+  // ✅ SIMPLE: Using showPrompt for approval notes
+  const handleApprove = () => {
     if (!isAdmin) return;
 
-    notifications.promptForApproval(
-      document.filename,
-      async (notes: string) => {
+    showPrompt({
+      title: "Approve Document",
+      description: `You are about to approve "${document.filename}". You can add optional notes below.`,
+      placeholder: "Optional approval notes...",
+      multiline: true,
+      confirmText: "Approve",
+      onConfirm: async (notes: string) => {
         try {
           await approveDocument({
             documentId: document.id,
             approvalData: { approval_notes: notes || "Approved" },
           }).unwrap();
-          notifications.documentApproved(document.filename);
-          // console.log("Document approved successfully");
+          showSuccess(`Document "${document.filename}" approved successfully`);
         } catch (error) {
           console.error("Failed to approve document:", error);
-          notifications.error("Failed to approve document. Please try again.");
+          showError("Failed to approve document. Please try again.");
         }
-      }
-    );
+      },
+    });
   };
 
-  const handleReject = async () => {
+  // ✅ SIMPLE: Using showPrompt for rejection reason
+  const handleReject = () => {
     if (!isAdmin) return;
 
-    notifications.promptForRejection(
-      document.filename,
-      async (reason: string) => {
+    showPrompt({
+      title: "Reject Document",
+      description: `Please provide a reason for rejecting "${document.filename}".`,
+      placeholder: "Reason for rejection (required)...",
+      required: true,
+      multiline: true,
+      confirmText: "Reject",
+      onConfirm: async (reason: string) => {
         try {
           await rejectDocument({
             documentId: document.id,
             rejectionData: { approval_notes: reason },
           }).unwrap();
-          notifications.documentRejected(document.filename);
+          showSuccess(`Document "${document.filename}" rejected successfully`);
         } catch (error) {
-          notifications.error("Failed to reject document. Please try again.");
           console.error("Failed to reject document:", error);
+          showError("Failed to reject document. Please try again.");
         }
-      }
-    );
+      },
+    });
   };
 
   const handleEdit = () => {

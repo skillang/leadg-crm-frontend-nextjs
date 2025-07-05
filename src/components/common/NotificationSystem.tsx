@@ -1,5 +1,4 @@
 // src/components/common/NotificationSystem.tsx
-
 "use client";
 
 import * as React from "react";
@@ -19,11 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { X, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Types for notifications
-type NotificationType = "success" | "error" | "warning" | "info";
+// Simplified Types - Only success and error
+type NotificationType = "success" | "error";
 
 interface Toast {
   id: string;
@@ -56,7 +55,7 @@ interface PromptDialogOptions {
   onCancel?: () => void;
 }
 
-// Context type
+// ✅ FIXED: Updated interface with correct method names
 interface NotificationContextType {
   // Toast notifications
   toasts: Toast[];
@@ -66,14 +65,12 @@ interface NotificationContextType {
   // Confirmation dialogs
   showConfirm: (options: ConfirmDialogOptions) => void;
 
-  // Prompt dialogs
+  // Prompt dialogs (keep if you use them)
   showPrompt: (options: PromptDialogOptions) => void;
 
-  // Convenience methods
-  success: (description: string, title?: string) => void;
-  error: (description: string, title?: string) => void;
-  warning: (description: string, title?: string) => void;
-  info: (description: string, title?: string) => void;
+  // ✅ FIXED: Renamed to avoid naming conflicts
+  showSuccess: (description: string, title?: string) => void;
+  showError: (description: string, title?: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -95,12 +92,11 @@ export function NotificationProvider({
   const [promptValue, setPromptValue] = useState("");
   const [isConfirmLoading, setIsConfirmLoading] = useState(false);
 
-  // Toast functions - Define removeToast first
+  // Toast functions
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  // FIXED: Added removeToast to dependency array
   const showToast = useCallback(
     (toast: Omit<Toast, "id">) => {
       const id = Math.random().toString(36).substring(2, 9);
@@ -116,7 +112,7 @@ export function NotificationProvider({
       }
     },
     [removeToast]
-  ); // Added removeToast to dependencies
+  );
 
   // Confirmation dialog
   const showConfirm = useCallback((options: ConfirmDialogOptions) => {
@@ -177,45 +173,30 @@ export function NotificationProvider({
     setPromptValue("");
   };
 
-  // Convenience methods
-  const success = useCallback(
+  // ✅ FIXED: Renamed convenience methods to avoid naming conflicts
+  const showSuccess = useCallback(
     (description: string, title?: string) => {
       showToast({ type: "success", description, title });
     },
     [showToast]
   );
 
-  const error = useCallback(
+  const showError = useCallback(
     (description: string, title?: string) => {
       showToast({ type: "error", description, title });
     },
     [showToast]
   );
 
-  const warning = useCallback(
-    (description: string, title?: string) => {
-      showToast({ type: "warning", description, title });
-    },
-    [showToast]
-  );
-
-  const info = useCallback(
-    (description: string, title?: string) => {
-      showToast({ type: "info", description, title });
-    },
-    [showToast]
-  );
-
+  // ✅ FIXED: Updated contextValue with correct method names
   const contextValue: NotificationContextType = {
     toasts,
     showToast,
     removeToast,
     showConfirm,
     showPrompt,
-    success,
-    error,
-    warning,
-    info,
+    showSuccess,
+    showError,
   };
 
   return (
@@ -283,8 +264,7 @@ export function NotificationProvider({
                   value={promptValue}
                   onChange={(e) => setPromptValue(e.target.value)}
                   placeholder={promptDialog.placeholder}
-                  className="w-full"
-                  rows={3}
+                  required={promptDialog.required}
                 />
               ) : (
                 <Input
@@ -292,14 +272,8 @@ export function NotificationProvider({
                   value={promptValue}
                   onChange={(e) => setPromptValue(e.target.value)}
                   placeholder={promptDialog.placeholder}
-                  className="w-full"
+                  required={promptDialog.required}
                 />
-              )}
-              {promptDialog.required && !promptValue.trim() && (
-                <Alert variant="destructive" className="mt-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>This field is required.</AlertDescription>
-                </Alert>
               )}
             </div>
             <AlertDialogFooter>
@@ -348,15 +322,11 @@ function ToastItem({ toast }: { toast: Toast }) {
   const icons = {
     success: CheckCircle,
     error: AlertCircle,
-    warning: AlertTriangle,
-    info: Info,
   };
 
   const styles = {
     success: "bg-green-50 border-green-200 text-green-800",
     error: "bg-red-50 border-red-200 text-red-800",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
   };
 
   const Icon = icons[toast.type];
