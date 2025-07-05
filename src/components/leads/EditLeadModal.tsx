@@ -56,6 +56,37 @@ interface UserStats {
   assigned_leads_count: number;
 }
 
+// ✅ NEW: Proper interface for update data payload
+interface UpdateLeadData {
+  lead_id: string;
+  name: string;
+  lead_score: number;
+  stage: string;
+  email?: string;
+  contact_number?: string;
+  source?: string;
+  notes?: string;
+  tags?: string[];
+  assigned_to?: string;
+  assigned_to_name?: string;
+  assignment_method?: string;
+}
+
+// ✅ NEW: Proper error types for RTK Query
+interface ApiErrorDetail {
+  msg: string;
+  type?: string;
+  loc?: string[];
+}
+
+interface ApiError {
+  data?: {
+    detail?: string | ApiErrorDetail[];
+  };
+  message?: string;
+  status?: number;
+}
+
 const LEAD_STAGES = [
   { value: "open", label: "Open" },
   { value: "contacted", label: "Contacted" },
@@ -246,7 +277,8 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     if (!validateForm() || !lead) return;
 
     try {
-      const updateData: any = {
+      // ✅ FIXED: Use proper typed interface instead of 'any'
+      const updateData: UpdateLeadData = {
         lead_id: lead.id,
         name: formData.name,
         lead_score: formData.lead_score,
@@ -281,18 +313,23 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
       await updateLead(updateData).unwrap();
       onClose();
-    } catch (error: any) {
-      console.error("Failed to update lead:", error);
+    } catch (error) {
+      // ✅ FIXED: Use proper typed error instead of 'any'
+      const apiError = error as ApiError;
+      console.error("Failed to update lead:", apiError);
       let errorMessage = "Failed to update lead";
 
-      if (error?.data?.detail) {
-        if (Array.isArray(error.data.detail)) {
-          errorMessage = error.data.detail.map((e: any) => e.msg).join(", ");
-        } else if (typeof error.data.detail === "string") {
-          errorMessage = error.data.detail;
+      if (apiError?.data?.detail) {
+        if (Array.isArray(apiError.data.detail)) {
+          // ✅ FIXED: Properly typed error detail items
+          errorMessage = apiError.data.detail
+            .map((e: ApiErrorDetail) => e.msg)
+            .join(", ");
+        } else if (typeof apiError.data.detail === "string") {
+          errorMessage = apiError.data.detail;
         }
-      } else if (error?.message) {
-        errorMessage = error.message;
+      } else if (apiError?.message) {
+        errorMessage = apiError.message;
       }
 
       setErrors({ general: errorMessage });

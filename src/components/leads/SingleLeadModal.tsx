@@ -43,17 +43,15 @@ interface ApiErrorResponse {
   status?: number;
 }
 
-// interface AssignableUser {
-//   id: string;
-//   name: string;
-//   email: string;
-//   role: string;
-//   department?: string;
-//   first_name?: string;
-//   last_name?: string;
-//   username?: string;
-// }
-
+// ✅ FIXED: Type definition to work with existing AssignableUser interface
+type UserForAssignment = {
+  id?: string;
+  email?: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+};
 interface SingleLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -68,6 +66,24 @@ interface LeadFormData {
   lead_score: number;
   notes: string;
   tags: string[];
+}
+
+// ✅ NEW: Interface for create lead API payload
+interface CreateLeadPayload {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  assignment: {
+    assigned_to: string | null;
+  };
+  additional_info: {
+    notes: string;
+  };
 }
 
 const LEAD_STAGES = [
@@ -111,6 +127,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
+
+  // ✅ FIXED: Use the existing AssignableUser type from the API
   const { data: assignableUsers = [], isLoading: isLoadingUsers } =
     useGetAssignableUsersQuery();
 
@@ -195,7 +213,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     if (!validateForm()) return;
 
     try {
-      const apiPayload = {
+      // ✅ FIXED: Properly typed API payload
+      const apiPayload: CreateLeadPayload = {
         basic_info: {
           name: formData.name.trim(),
           email: formData.email.trim() || "",
@@ -219,7 +238,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       );
       onClose();
     } catch (error) {
-      // FIXED: Properly typed error handling
+      // ✅ FIXED: Properly typed error handling
       const apiError = error as ApiErrorResponse;
       let errorMessage = "Failed to create lead. Please try again.";
 
@@ -288,13 +307,26 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                     Loading users...
                   </SelectItem>
                 ) : (
-                  assignableUsers.map((user: any) => (
-                    <SelectItem key={user.id} value={user.email || user.id}>
-                      {user.first_name && user.last_name
-                        ? `${user.first_name} ${user.last_name}`
-                        : user.email || user.username || user.id}
-                    </SelectItem>
-                  ))
+                  // ✅ FIXED: Clean type assertion with proper fallbacks
+                  assignableUsers.map((user, index) => {
+                    const typedUser = user as UserForAssignment;
+                    const displayName =
+                      typedUser.name ||
+                      (typedUser.first_name && typedUser.last_name
+                        ? `${typedUser.first_name} ${typedUser.last_name}`
+                        : typedUser.email ||
+                          typedUser.username ||
+                          typedUser.id ||
+                          "Unknown User");
+                    const value =
+                      typedUser.email || typedUser.id || `user_${index}`;
+
+                    return (
+                      <SelectItem key={typedUser.id || index} value={value}>
+                        {displayName}
+                      </SelectItem>
+                    );
+                  })
                 )}
               </SelectContent>
             </Select>
