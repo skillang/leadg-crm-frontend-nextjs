@@ -12,8 +12,7 @@ import {
 
 // Base query with authentication
 const baseQuery = fetchBaseQuery({
-  baseUrl:
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1",
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;

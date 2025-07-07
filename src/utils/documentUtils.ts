@@ -262,7 +262,7 @@ export const createDocumentPreviewUrl = (
 ): string => {
   const base =
     baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-  return `${base}/api/v1/documents/${documentId}/preview`;
+  return `${base}/documents/${documentId}/preview`;
 };
 
 /**

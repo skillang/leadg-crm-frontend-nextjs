@@ -83,7 +83,7 @@ interface CurrentUserResponse {
 
 // Base query with headers
 const baseQuery = fetchBaseQuery({
-  baseUrl: `${API_BASE_URL}/api/v1/auth`,
+  baseUrl: `${API_BASE_URL}/auth`,
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
     if (token) {
