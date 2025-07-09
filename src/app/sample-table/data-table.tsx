@@ -5,7 +5,6 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
-import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,

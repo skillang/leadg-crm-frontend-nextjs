@@ -1,7 +1,5 @@
-// src/app/sample-table/columns.tsx
-
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Row } from "@tanstack/react-table";
 import {
@@ -38,6 +36,7 @@ import {
 import { Lead } from "@/models/types/lead";
 import EditLeadModal from "@/components/leads/EditLeadModal";
 import { LEAD_STAGES } from "@/constants/stageConfig";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
   if (!phoneNumber) return alert("No phone number available");
@@ -90,8 +89,11 @@ const WhatsAppButton: React.FC<{
   );
 };
 
+// FINAL StageSelectCell with Notifications (Clean - No Debug Logs)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
+  const { showSuccess, showError } = useNotifications();
+
   const stage = row.getValue("stage") as string;
   const currentLead = row.original;
 
@@ -104,6 +106,11 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
         stage: newStage,
         currentLead,
       }).unwrap();
+
+      // Show success notification
+      showSuccess(`${currentLead.name}'s stage updated to "${newStage}"`);
+
+      // Cache invalidation will automatically refetch and update the UI
     } catch (err: unknown) {
       const error = err as {
         message?: string;
@@ -111,10 +118,8 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
           detail?: { msg: string }[] | string;
         };
       };
-      console.error("Failed to update stage:", error);
 
       let errorMessage = "Failed to update stage";
-
       if (error?.data?.detail) {
         if (Array.isArray(error.data.detail)) {
           errorMessage = error.data.detail
@@ -127,14 +132,16 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
         errorMessage = error.message;
       }
 
-      alert(`Error: ${errorMessage}`);
+      showError(
+        `Failed to update ${currentLead.name}'s stage: ${errorMessage}`
+      );
     }
   };
 
   return (
-    <div className="relative ">
+    <div className="relative">
       <StageSelect
-        value={stage}
+        value={stage} // Direct value from server data, no local state
         onValueChange={handleStageChange}
         options={LEAD_STAGES}
         placeholder="Select stage..."

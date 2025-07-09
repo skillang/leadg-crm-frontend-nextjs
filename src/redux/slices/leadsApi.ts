@@ -130,9 +130,9 @@ interface UpdateLeadRequest {
   source?: string;
   notes?: string;
   tags?: string[];
-  assigned_to?: string; // This will be the email
-  assigned_to_name?: string; // This will be the full name
-  assignment_method?: string; // This will be "manual by admin"
+  assigned_to?: string;
+  assigned_to_name?: string;
+  assignment_method?: string;
 }
 
 interface BulkLeadData {
@@ -262,20 +262,28 @@ const transformLeadDetailsResponse = (response: {
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
   baseQuery,
-  tagTypes: ["Lead", "LeadStats"],
+  tagTypes: ["Lead", "LeadStats", "LeadDetails"],
   endpoints: (builder) => ({
     getLeads: builder.query<Lead[], void>({
       query: () => "/leads/",
       transformResponse: (response: { leads: ApiLead[] }) =>
         response.leads.map(transformApiLead),
+      providesTags: (result) => [
+        { type: "Lead", id: "LIST" },
+        ...(result || []).map(({ id }) => ({ type: "Lead" as const, id })),
+      ],
     }),
 
     getMyLeads: builder.query<Lead[], void>({
-      query: () => "/leads/my-leads-fast",
+      query: () => "/leads/my-leads",
       transformResponse: (response: { leads: ApiLead[] }) =>
         Array.isArray(response.leads)
           ? response.leads.map(transformApiLead)
           : [],
+      providesTags: (result) => [
+        { type: "Lead", id: "MY_LIST" },
+        ...(result || []).map(({ id }) => ({ type: "Lead" as const, id })),
+      ],
     }),
 
     getLead: builder.query<Lead, string>({
@@ -288,7 +296,10 @@ export const leadsApi = createApi({
     getLeadDetails: builder.query<LeadDetailsResponse, string>({
       query: (leadId) => `/leads/${leadId}`,
       transformResponse: transformLeadDetailsResponse,
-      providesTags: (result, error, id) => [{ type: "Lead", id }],
+      providesTags: (result, error, id) => [
+        { type: "LeadDetails", id },
+        { type: "Lead", id: result?.leadId },
+      ],
     }),
 
     getLeadStats: builder.query<LeadStatsResponse, void>({
@@ -303,7 +314,11 @@ export const leadsApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Lead", "LeadStats"],
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
     }),
 
     bulkCreateLeads: builder.mutation<
@@ -315,9 +330,14 @@ export const leadsApi = createApi({
         method: "POST",
         body: leads,
       }),
-      invalidatesTags: ["Lead", "LeadStats"],
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
     }),
 
+    // CLEAN VERSION - Optimistic updates without debug logs
     updateLeadStage: builder.mutation<
       ApiLead,
       {
@@ -340,17 +360,30 @@ export const leadsApi = createApi({
           notes: currentLead.notes,
         },
       }),
-      invalidatesTags: ["Lead", "LeadStats"],
+      // SIMPLE: Just use cache invalidation like the detail page
+      invalidatesTags: (_result, _error, { leadId }) => [
+        { type: "Lead", id: leadId },
+        { type: "LeadDetails", id: leadId },
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
+      // REMOVED: All the complex optimistic update logic
     }),
 
-    // Update your existing updateLead mutation to handle more fields
     updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
       query: (body) => ({
         url: "/leads/update",
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["Lead", "LeadStats"],
+      invalidatesTags: (result, error, { lead_id }) => [
+        { type: "Lead", id: lead_id },
+        { type: "LeadDetails", id: lead_id },
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
     }),
 
     deleteLead: builder.mutation<void, string>({
@@ -358,7 +391,11 @@ export const leadsApi = createApi({
         url: `/leads/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Lead", "LeadStats"],
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
     }),
 
     fixMissingFields: builder.mutation<{ success: boolean }, void>({
@@ -366,7 +403,11 @@ export const leadsApi = createApi({
         url: "/leads/fix-missing-fields",
         method: "POST",
       }),
-      invalidatesTags: ["Lead", "LeadStats"],
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
     }),
 
     getAssignableUsers: builder.query<AssignableUser[], void>({

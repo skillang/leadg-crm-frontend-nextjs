@@ -1,4 +1,4 @@
-// src/app/sample-table/[leadId]/page.tsx - UPDATED with WhatsApp Modal integration
+// src/app/sample-table/[leadId]/page.tsx
 
 "use client";
 
@@ -17,6 +17,7 @@ import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer";
 import ContactsContainer from "@/components/contacts/ContactsContainer";
 import { LEAD_STAGES } from "@/constants/stageConfig";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 // Simple Card components
 const Card = ({
@@ -77,7 +78,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-// Tab definitions - UPDATED to include Timeline
+// Tab definitions
 const tabs = [
   { id: "notes", label: "Notes" },
   { id: "tasks", label: "Tasks & reminders" },
@@ -101,6 +102,7 @@ export default function LeadDetailsPage() {
   const [activeTab, setActiveTab] = useState("notes");
   const [updateStage, { isLoading: isUpdatingStage }] =
     useUpdateLeadStageMutation();
+  const { showSuccess, showError } = useNotifications();
   const params = useParams();
   const router = useRouter();
   const leadId = params?.leadId as string;
@@ -127,13 +129,14 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // UPDATED: WhatsApp handler to open modal instead of wa.me
+  // WhatsApp handler with notification instead of alert
   const handleWhatsApp = () => {
     if (!leadDetails?.phoneNumber) {
-      alert("No phone number available for this lead");
+      showError("No phone number available for this lead");
       return;
     }
-    console.log("Whastapp button clicked");
+    // TODO: Implement WhatsApp modal
+    showSuccess("WhatsApp feature coming soon!");
   };
 
   // Loading state
@@ -168,13 +171,14 @@ export default function LeadDetailsPage() {
     );
   }
 
+  // Enhanced stage change handler with notifications
   const handleStageChange = async (newStage: string) => {
     if (!leadDetails || newStage === leadDetails.stage) return;
 
     try {
       // Create a mock Lead object for the API call
       const currentLead = {
-        id: leadDetails.id,
+        id: leadDetails.leadId,
         name: leadDetails.name,
         stage: leadDetails.stage,
         leadScore: leadDetails.leadScore,
@@ -194,6 +198,9 @@ export default function LeadDetailsPage() {
         stage: newStage,
         currentLead: currentLead,
       }).unwrap();
+
+      // Show success notification
+      showSuccess(`${leadDetails.name}'s stage updated to "${newStage}"`);
     } catch (err: unknown) {
       const error = err as {
         message?: string;
@@ -201,8 +208,6 @@ export default function LeadDetailsPage() {
           detail?: { msg: string }[] | string;
         };
       };
-
-      console.error("Failed to update stage:", error);
 
       let errorMessage = "Failed to update stage";
 
@@ -218,11 +223,14 @@ export default function LeadDetailsPage() {
         errorMessage = error.message;
       }
 
-      alert(`Error: ${errorMessage}`);
+      // Show error notification instead of alert
+      showError(
+        `Failed to update ${leadDetails.name}'s stage: ${errorMessage}`
+      );
     }
   };
 
-  // UPDATED: Render tab content with Timeline integration
+  // Render tab content
   const renderTabContent = () => {
     switch (activeTab) {
       case "timeline":
@@ -274,7 +282,7 @@ export default function LeadDetailsPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto py-8 space-y-6">
+      <div className="container mx-auto space-y-6">
         {/* Top Header */}
         <div className="flex items-center">
           {/* Breadcrumb */}
@@ -322,19 +330,21 @@ export default function LeadDetailsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Stage Dropdown - Now shows current stage from API */}
-              <StageSelect
-                value={leadDetails.stage}
-                onValueChange={handleStageChange}
-                options={LEAD_STAGES}
-                placeholder="Select stage..."
-                disabled={isUpdatingStage}
-              />
-              {isUpdatingStage && (
-                <div className="absolute top-full left-0 mt-1 p-2 bg-blue-100 border border-blue-200 rounded text-xs text-blue-600 z-10">
-                  Updating stage...
-                </div>
-              )}
+              {/* Stage Dropdown */}
+              <div className="relative">
+                <StageSelect
+                  value={leadDetails.stage}
+                  onValueChange={handleStageChange}
+                  options={LEAD_STAGES}
+                  placeholder="Select stage..."
+                  disabled={isUpdatingStage}
+                />
+                {isUpdatingStage && (
+                  <div className="absolute top-full left-0 mt-1 p-2 bg-blue-100 border border-blue-200 rounded text-xs text-blue-600 z-10">
+                    Updating stage...
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
               <Button
@@ -351,7 +361,7 @@ export default function LeadDetailsPage() {
                 <Mail className="mr-2 h-4 w-4" />
                 Mail
               </Button>
-              {/* UPDATED: WhatsApp Button */}
+              {/* WhatsApp Button */}
               <Button
                 onClick={handleWhatsApp}
                 className="bg-green-600 hover:bg-green-700 text-white"
