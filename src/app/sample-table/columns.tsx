@@ -37,57 +37,7 @@ import {
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
 import EditLeadModal from "@/components/leads/EditLeadModal";
-
-// Stage Config
-const LEAD_STAGES = [
-  {
-    value: "open",
-    label: "Open",
-    variant: "secondary" as const,
-    className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
-  },
-  {
-    value: "initial",
-    label: "Initial",
-    variant: "secondary" as const,
-    className: "bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200",
-  },
-
-  {
-    value: "contacted",
-    label: "Contacted",
-    variant: "secondary" as const,
-    className:
-      "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200",
-  },
-  {
-    value: "in_progress",
-    label: "In Progress",
-    variant: "secondary" as const,
-    className:
-      "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200",
-  },
-  {
-    value: "qualified",
-    label: "Qualified",
-    variant: "secondary" as const,
-    className:
-      "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200",
-  },
-  {
-    value: "closed_won",
-    label: "Closed Won",
-    variant: "secondary" as const,
-    className:
-      "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
-  },
-  {
-    value: "closed_lost",
-    label: "Closed Lost",
-    variant: "secondary" as const,
-    className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200",
-  },
-];
+import { LEAD_STAGES } from "@/constants/stageConfig";
 
 const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
   if (!phoneNumber) return alert("No phone number available");

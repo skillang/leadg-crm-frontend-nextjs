@@ -16,6 +16,7 @@ import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer";
 import ContactsContainer from "@/components/contacts/ContactsContainer";
+import { LEAD_STAGES } from "@/constants/stageConfig";
 
 // Simple Card components
 const Card = ({
@@ -62,43 +63,6 @@ const CardContent = ({
   className?: string;
 }) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
 
-// Stage configurations (matching backend values)
-const LEAD_STAGES = [
-  {
-    value: "open",
-    label: "Open",
-    variant: "secondary" as const,
-    className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200",
-  },
-  {
-    value: "contacted",
-    label: "Contacted",
-    variant: "secondary" as const,
-    className:
-      "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200",
-  },
-  {
-    value: "qualified",
-    label: "Qualified",
-    variant: "secondary" as const,
-    className:
-      "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200",
-  },
-  {
-    value: "closed_won",
-    label: "Closed Won",
-    variant: "secondary" as const,
-    className:
-      "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
-  },
-  {
-    value: "closed_lost",
-    label: "Closed Lost",
-    variant: "secondary" as const,
-    className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200",
-  },
-];
-
 // Priority badge colors
 const getPriorityColor = (priority: string) => {
   switch (priority.toLowerCase()) {
@@ -115,9 +79,9 @@ const getPriorityColor = (priority: string) => {
 
 // Tab definitions - UPDATED to include Timeline
 const tabs = [
-  { id: "timeline", label: "Timeline" },
-  { id: "tasks", label: "Tasks & reminders" },
   { id: "notes", label: "Notes" },
+  { id: "tasks", label: "Tasks & reminders" },
+  { id: "timeline", label: "Timeline" },
   { id: "documents", label: "Documents" },
   { id: "activity", label: "Activity log" },
   { id: "contacts", label: "Contacts" },
@@ -134,7 +98,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function LeadDetailsPage() {
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState("notes");
   const [updateStage, { isLoading: isUpdatingStage }] =
     useUpdateLeadStageMutation();
   const params = useParams();

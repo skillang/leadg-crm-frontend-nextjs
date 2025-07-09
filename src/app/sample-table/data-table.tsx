@@ -5,6 +5,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -64,7 +65,14 @@ import {
   ChevronDown,
   ArrowUp,
   ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
+
+// Import the LEAD_STAGES configuration
+import { LEAD_STAGES } from "@/constants/stageConfig";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -90,6 +98,10 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   // Local filter states
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -110,6 +122,7 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     globalFilterFn: "includesString",
     state: {
       sorting,
@@ -117,6 +130,7 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       globalFilter,
+      pagination,
     },
   });
 
@@ -150,33 +164,26 @@ export function DataTable<TData, TValue>({
   ].reduce((a, b) => a + b, 0);
 
   // Handler functions
-  // Replace the handleExportCsv function (around lines 161-163)
   const handleExportCsv = () => {
     if (onExportCsv) {
       onExportCsv();
     } else {
-      // console.log("Export CSV clicked");
-
-      // Type-safe CSV export
       if (data.length === 0) {
         console.warn("No data to export");
         return;
       }
 
-      // Get headers from the first data item
       const firstItem = data[0] as Record<string, unknown>;
       const headers = Object.keys(firstItem);
 
-      // Convert data to CSV format with proper typing
       const csvContent =
         "data:text/csv;charset=utf-8," +
         [
-          headers, // Header row
+          headers,
           ...data.map((row) => {
             const typedRow = row as Record<string, unknown>;
             return headers.map((header) => {
               const value = typedRow[header];
-              // Handle different data types safely
               if (value === null || value === undefined) {
                 return "";
               }
@@ -235,6 +242,149 @@ export function DataTable<TData, TValue>({
     );
   };
 
+  // Helper function to get stage label by value
+  const getStageLabel = (value: string) => {
+    const stage = LEAD_STAGES.find((stage) => stage.value === value);
+    return stage?.label || value;
+  };
+
+  // Improved pagination component
+  const ImprovedPagination = () => {
+    const {
+      getState,
+      getCanPreviousPage,
+      getCanNextPage,
+      getPageCount,
+      setPageIndex,
+      previousPage,
+      nextPage,
+      setPageSize,
+      getFilteredRowModel,
+      getFilteredSelectedRowModel,
+    } = table;
+
+    const { pageIndex, pageSize } = getState().pagination;
+    const totalRows = getFilteredRowModel().rows.length;
+    const selectedRows = getFilteredSelectedRowModel().rows.length;
+
+    // Calculate page numbers to show
+    const getPageNumbers = () => {
+      const totalPages = getPageCount();
+      const currentPage = pageIndex + 1;
+      const delta = 2; // Number of pages to show on each side of current page
+
+      let start = Math.max(1, currentPage - delta);
+      let end = Math.min(totalPages, currentPage + delta);
+
+      // Adjust if we're near the beginning or end
+      if (currentPage <= delta + 1) {
+        end = Math.min(totalPages, delta * 2 + 1);
+      }
+      if (currentPage >= totalPages - delta) {
+        start = Math.max(1, totalPages - delta * 2);
+      }
+
+      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    };
+
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        {/* Left side - Selection info */}
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-muted-foreground">
+            {selectedRows} of {totalRows} row(s) selected
+          </div>
+
+          {/* Page size selector */}
+          <div className="flex items-center space-x-2">
+            <p className="text-sm text-muted-foreground">Rows per page:</p>
+            <Select
+              value={`${pageSize}`}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+              }}
+            >
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue placeholder={pageSize} />
+              </SelectTrigger>
+              <SelectContent side="top">
+                {[5, 10, 20, 30, 40, 50, 100].map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Right side - Navigation */}
+        <div className="flex items-center space-x-2">
+          {/* Page info */}
+          <div className="text-sm text-muted-foreground">
+            Page {pageIndex + 1} of {getPageCount()}
+          </div>
+
+          {/* Navigation buttons */}
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex(0)}
+              disabled={!getCanPreviousPage()}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => previousPage()}
+              disabled={!getCanPreviousPage()}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Page numbers */}
+            {getPageNumbers().map((page) => (
+              <Button
+                key={page}
+                variant={pageIndex + 1 === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPageIndex(page - 1)}
+                className="h-8 w-8 p-0"
+              >
+                {page}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => nextPage()}
+              disabled={!getCanNextPage()}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex(getPageCount() - 1)}
+              disabled={!getCanNextPage()}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Top Row - Integrated Header */}
@@ -283,7 +433,7 @@ export function DataTable<TData, TValue>({
             />
           </div>
 
-          {/* Sort by Dropdown - Now Working */}
+          {/* Sort by Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
@@ -311,15 +461,6 @@ export function DataTable<TData, TValue>({
                   {getSortIcon("createdDate")}
                 </span>
               </DropdownMenuItem>
-              {/* <DropdownMenuItem
-                onClick={() => handleSort("score")}
-                className="cursor-pointer"
-              >
-                <span className="flex items-center justify-between w-full">
-                  Lead score
-                  {getSortIcon("score")}
-                </span>
-              </DropdownMenuItem> */}
               <DropdownMenuItem
                 onClick={() => handleSort("lastActivity")}
                 className="cursor-pointer"
@@ -358,7 +499,7 @@ export function DataTable<TData, TValue>({
               </DialogHeader>
 
               <div className="space-y-6 py-4">
-                {/* Lead Stage Filter */}
+                {/* Lead Stage Filter - Updated to use LEAD_STAGES */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Lead Stage</label>
                   <Select value={stageFilter} onValueChange={setStageFilter}>
@@ -367,13 +508,11 @@ export function DataTable<TData, TValue>({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Stages</SelectItem>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="contacted">Contacted</SelectItem>
-                      <SelectItem value="qualified">Qualified</SelectItem>
-                      <SelectItem value="proposal">Proposal</SelectItem>
-                      <SelectItem value="negotiation">Negotiation</SelectItem>
-                      <SelectItem value="closed-won">Closed Won</SelectItem>
-                      <SelectItem value="closed-lost">Closed Lost</SelectItem>
+                      {LEAD_STAGES.map((stage) => (
+                        <SelectItem key={stage.value} value={stage.value}>
+                          {stage.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -434,7 +573,7 @@ export function DataTable<TData, TValue>({
                     <div className="flex flex-wrap gap-2">
                       {stageFilter !== "all" && (
                         <Badge variant="secondary" className="text-xs">
-                          Stage: {stageFilter}
+                          Stage: {getStageLabel(stageFilter)}
                           <X
                             className="ml-1 h-3 w-3 cursor-pointer"
                             onClick={() => setStageFilter("all")}
@@ -523,15 +662,6 @@ export function DataTable<TData, TValue>({
             <DownloadIcon className="h-4 w-4" />
             .csv
           </Button>
-
-          {/* <Button
-            variant="outline"
-            onClick={handleAddNew}
-            className="flex items-center gap-2 bg-blue-200 border-blue-500 border-2 text-blue-800 hover:bg-blue-100 hover:text-blue-800"
-          >
-            <PlusIcon className="h-4 w-4" />
-            New lead
-          </Button> */}
           <NewLeadDropdown />
         </div>
       </div>
@@ -545,7 +675,7 @@ export function DataTable<TData, TValue>({
           <span className="text-sm text-gray-600">Active filters:</span>
           {stageFilter !== "all" && (
             <Badge variant="secondary" className="text-xs">
-              Stage: {stageFilter}
+              Stage: {getStageLabel(stageFilter)}
               <X
                 className="ml-1 h-3 w-3 cursor-pointer"
                 onClick={() => setStageFilter("all")}
@@ -635,31 +765,8 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      {/* Improved Pagination */}
+      <ImprovedPagination />
     </div>
   );
 }

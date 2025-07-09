@@ -28,6 +28,7 @@ import {
   useGetUserLeadStatsQuery,
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
+import { LEAD_STAGES } from "@/constants/stageConfig";
 
 interface EditLeadModalProps {
   isOpen: boolean;
@@ -86,16 +87,6 @@ interface ApiError {
   message?: string;
   status?: number;
 }
-
-const LEAD_STAGES = [
-  { value: "open", label: "Open" },
-  { value: "contacted", label: "Contacted" },
-  { value: "qualified", label: "Qualified" },
-  { value: "proposal", label: "Proposal" },
-  { value: "negotiation", label: "Negotiation" },
-  { value: "closed_won", label: "Closed Won" },
-  { value: "closed_lost", label: "Closed Lost" },
-];
 
 const SOURCES = [
   { value: "website", label: "Website" },

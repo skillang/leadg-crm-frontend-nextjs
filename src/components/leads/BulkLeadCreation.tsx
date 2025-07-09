@@ -8,6 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   X,
   Upload,
   FileText,
@@ -27,7 +34,6 @@ interface BulkLeadData {
   name: string;
   email: string;
   contact_number: string;
-  source: string;
   country_of_interest: string;
   course_level: string;
 }
@@ -37,7 +43,31 @@ interface BulkLeadCreationProps {
   onClose: () => void;
 }
 
-// Header mapping
+// Department options
+const DEPARTMENT_OPTIONS = [
+  { value: "nursing", label: "Nursing" },
+  { value: "study_abroad", label: "Study Abroad" },
+];
+
+// Source options (based on backend LeadSource enum)
+const SOURCE_OPTIONS = [
+  { value: "advertisement", label: "Advertisement" },
+  { value: "bulk_upload", label: "Bulk Upload" },
+  { value: "cold_call", label: "Cold Call" },
+  { value: "email_campaign", label: "Email Campaign" },
+  { value: "facebook", label: "Facebook" },
+  { value: "instagram", label: "Instagram" },
+  { value: "naukri", label: "Naukri" },
+  { value: "reddit", label: "Reddit" },
+  { value: "referral", label: "Referral" },
+  { value: "social_media", label: "Social Media" },
+  { value: "walk_in", label: "Walk In" },
+  { value: "website", label: "Website" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "youtube", label: "YouTube" },
+];
+
+// Header mapping (removed source and department since they're set globally)
 const HEADER_MAPPING: Record<string, string> = {
   name: "name",
   "full name": "name",
@@ -60,11 +90,6 @@ const HEADER_MAPPING: Record<string, string> = {
   "mobile number": "contact_number",
   telephone: "contact_number",
   tel: "contact_number",
-
-  source: "source",
-  "lead source": "source",
-  "referral source": "source",
-  "how did you hear": "source",
 
   country_of_interest: "country_of_interest",
   "country of interest": "country_of_interest",
@@ -93,6 +118,9 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [parsedLeads, setParsedLeads] = useState<BulkLeadData[]>([]);
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<string>("study_abroad");
+  const [selectedSource, setSelectedSource] = useState<string>("website");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback(
@@ -165,7 +193,6 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
       name: lead.name.trim(),
       email: lead.email.trim().toLowerCase(),
       contact_number: lead.contact_number.trim(),
-      source: lead.source?.trim() || "website",
       country_of_interest: lead.country_of_interest?.trim() || "",
       course_level: lead.course_level?.trim() || "bachelor's_degree",
     };
@@ -257,9 +284,17 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
 
   const handleBulkCreate = async () => {
     if (!parsedLeads.length) return showError("No leads to create.");
+
+    // Add department and source to all leads
+    const leadsWithMetadata = parsedLeads.map((lead) => ({
+      ...lead,
+      source: selectedSource,
+      department: selectedDepartment,
+    }));
+
     try {
       const res = await bulkCreateLeads({
-        leads: parsedLeads,
+        leads: leadsWithMetadata,
         force_create: false,
       }).unwrap();
 
@@ -278,13 +313,24 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
 
   const downloadTemplate = () => {
     const content =
-      "Name,Email,Contact Number,Source,Country of Interest,Course Level\n" +
-      "John Doe,john@example.com,1234567890,website,USA,bachelor's_degree";
+      "Name,Email,Contact Number,Country of Interest,Course Level\n" +
+      "John Doe,john@example.com,1234567890,USA,bachelor's_degree\n" +
+      "Jane Smith,jane@example.com,9876543210,Canada,master's_degree";
     const blob = new Blob([content], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "bulk_leads_template.csv";
     a.click();
+  };
+
+  const updateLeadField = (
+    index: number,
+    field: keyof BulkLeadData,
+    value: string
+  ) => {
+    const updated = [...parsedLeads];
+    updated[index][field] = value;
+    setParsedLeads(updated);
   };
 
   if (!isAdmin) {
@@ -310,90 +356,144 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+      // style={{ overflowY: "hidden" }}
+    >
+      <DialogContent
+        className="max-w-7xl"
+        style={{ maxHeight: "90vh", minWidth: "80%" }}
+      >
         <DialogHeader>
           <DialogTitle className="flex gap-2 items-center">
             <Users className="w-5 h-5" />
             Bulk Lead Upload
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple leads.
+            Upload a CSV file to add multiple leads. Department and source will
+            be applied to all leads.
           </DialogDescription>
         </DialogHeader>
 
-        <div
-          className={`border-2 border-dashed p-6 rounded-lg text-center ${
-            dragActive ? "bg-primary/10" : "bg-muted/10"
-          }`}
-          onDragEnter={handleDragEvents.enter}
-          onDragLeave={handleDragEvents.leave}
-          onDragOver={handleDragEvents.over}
-          onDrop={handleDragEvents.drop}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept=".csv"
-            onChange={handleFileInputChange}
-          />
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 rounded-lg ">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div>
+              <label className="text-sm font-medium text-blue-900 mb-2 block">
+                Department (Applied to all leads)
+              </label>
+              <Select
+                value={selectedDepartment}
+                onValueChange={setSelectedDepartment}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENT_OPTIONS.map((dept) => (
+                    <SelectItem key={dept.value} value={dept.value}>
+                      {dept.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-blue-900 mb-2 block">
+                Source (Applied to all leads)
+              </label>
+              <Select value={selectedSource} onValueChange={setSelectedSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOURCE_OPTIONS.map((source) => (
+                    <SelectItem key={source.value} value={source.value}>
+                      {source.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {/* Global Department and Source Selection */}
 
-          {selectedFile ? (
-            <>
-              <FileText className="w-10 h-10 mx-auto text-green-600" />
-              <p className="mt-2 font-medium text-green-700">
-                {selectedFile.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-              </p>
-              <div className="mt-4 flex justify-center gap-3">
-                <Button
-                  onClick={processUploadedFile}
-                  disabled={isProcessingFile}
-                >
-                  {isProcessingFile ? (
-                    <>
-                      <RefreshCw className="animate-spin w-4 h-4 mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Process File
-                    </>
-                  )}
-                </Button>
-                <Button variant="outline" onClick={() => setSelectedFile(null)}>
-                  <X className="w-4 h-4 mr-2" />
-                  Remove
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <Upload className="w-10 h-10 mx-auto text-muted-foreground" />
-              <p className="mt-2 font-medium">Drop your CSV file here</p>
-              <p className="text-sm text-muted-foreground">
-                or click to browse files
-              </p>
-              <div className="mt-4">
-                <Button onClick={() => fileInputRef.current?.click()}>
-                  <File className="w-4 h-4 mr-2" />
-                  Browse
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={downloadTemplate}
-                  className="ml-2"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Template
-                </Button>
-              </div>
-            </>
-          )}
+          <div
+            className={`border-2 border-dashed p-6 rounded-lg text-center ${
+              dragActive ? "bg-primary/10" : "bg-muted/10"
+            }`}
+            onDragEnter={handleDragEvents.enter}
+            onDragLeave={handleDragEvents.leave}
+            onDragOver={handleDragEvents.over}
+            onDrop={handleDragEvents.drop}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".csv"
+              onChange={handleFileInputChange}
+            />
+
+            {selectedFile ? (
+              <>
+                <FileText className="w-10 h-10 mx-auto text-green-600" />
+                <p className="mt-2 font-medium text-green-700">
+                  {selectedFile.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+                <div className="mt-4 flex justify-center gap-3">
+                  <Button
+                    onClick={processUploadedFile}
+                    disabled={isProcessingFile}
+                  >
+                    {isProcessingFile ? (
+                      <>
+                        <RefreshCw className="animate-spin w-4 h-4 mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Process File
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Remove
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Upload className="w-10 h-10 mx-auto text-muted-foreground" />
+                <p className="mt-2 font-medium">Drop your CSV file here</p>
+                <p className="text-sm text-muted-foreground">
+                  or click to browse files
+                </p>
+                <div className="mt-4">
+                  <Button onClick={() => fileInputRef.current?.click()}>
+                    <File className="w-4 h-4 mr-2" />
+                    Browse
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={downloadTemplate}
+                    className="ml-2"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Template
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {parsedLeads.length > 0 && (
@@ -401,28 +501,127 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
             <h4 className="text-lg font-semibold mb-3">
               Parsed Leads ({parsedLeads.length})
             </h4>
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {parsedLeads.slice(0, 10).map((lead, i) => (
-                <div
-                  key={i}
-                  className="p-2 bg-muted/30 rounded flex justify-between"
-                >
-                  <div>
-                    <div className="font-medium">{lead.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {lead.email}
+
+            <div className="max-h-96 overflow-y-auto space-y-3">
+              {parsedLeads.map((lead, i) => (
+                <div key={i} className="p-4 bg-muted/30 rounded-lg border">
+                  {/* Row 1: Basic Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Name *
+                      </label>
+                      <input
+                        className="w-full border px-3 py-2 rounded text-sm"
+                        value={lead.name}
+                        onChange={(e) =>
+                          updateLeadField(i, "name", e.target.value)
+                        }
+                        placeholder="Full name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Email *
+                      </label>
+                      <input
+                        className="w-full border px-3 py-2 rounded text-sm"
+                        value={lead.email}
+                        onChange={(e) =>
+                          updateLeadField(i, "email", e.target.value)
+                        }
+                        placeholder="email@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Contact Number *
+                      </label>
+                      <input
+                        className="w-full border px-3 py-2 rounded text-sm"
+                        value={lead.contact_number}
+                        onChange={(e) =>
+                          updateLeadField(i, "contact_number", e.target.value)
+                        }
+                        placeholder="Phone number"
+                      />
                     </div>
                   </div>
-                  <div className="text-sm">{lead.contact_number}</div>
+
+                  {/* Row 2: Country and Course Level */}
+                  <div className="flex flex-col md:flex-row gap-3 items-end">
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Country of Interest
+                      </label>
+                      <input
+                        className="w-full border px-3 py-2 rounded text-sm"
+                        value={lead.country_of_interest}
+                        onChange={(e) =>
+                          updateLeadField(
+                            i,
+                            "country_of_interest",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Country"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Course Level
+                      </label>
+                      <input
+                        className="w-full border px-3 py-2 rounded text-sm"
+                        value={lead.course_level}
+                        onChange={(e) =>
+                          updateLeadField(i, "course_level", e.target.value)
+                        }
+                        placeholder="Course level"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const updated = parsedLeads.filter(
+                          (_, index) => index !== i
+                        );
+                        setParsedLeads(updated);
+                      }}
+                      className="shrink-0"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               ))}
-              {parsedLeads.length > 10 && (
-                <div className="text-sm text-center text-muted-foreground">
-                  ... and {parsedLeads.length - 10} more leads
-                </div>
-              )}
             </div>
-            <div className="mt-4">
+
+            <div className="mt-6">
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>Ready to create {parsedLeads.length} leads</strong>
+                  <br />
+                  Department:{" "}
+                  <span className="font-medium">
+                    {
+                      DEPARTMENT_OPTIONS.find(
+                        (d) => d.value === selectedDepartment
+                      )?.label
+                    }
+                  </span>
+                  <br />
+                  Source:{" "}
+                  <span className="font-medium">
+                    {
+                      SOURCE_OPTIONS.find((s) => s.value === selectedSource)
+                        ?.label
+                    }
+                  </span>
+                </p>
+              </div>
               <Button
                 onClick={handleBulkCreate}
                 disabled={isLoading}
@@ -436,7 +635,7 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
                 ) : (
                   <>
                     <Users className="w-4 h-4 mr-2" />
-                    Create Leads
+                    Create {parsedLeads.length} Leads
                   </>
                 )}
               </Button>

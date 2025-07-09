@@ -26,6 +26,7 @@ import {
   useGetAssignableUsersQuery,
 } from "@/redux/slices/leadsApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
+import { LEAD_STAGES } from "@/constants/stageConfig";
 
 // Type definitions for better type safety
 interface ValidationError {
@@ -86,16 +87,6 @@ interface CreateLeadPayload {
     notes: string;
   };
 }
-
-const LEAD_STAGES = [
-  { value: "initial", label: "Initial" },
-  { value: "contacted", label: "Contacted" },
-  { value: "qualified", label: "Qualified" },
-  { value: "proposal", label: "Proposal" },
-  { value: "negotiation", label: "Negotiation" },
-  { value: "closed_won", label: "Closed Won" },
-  { value: "closed_lost", label: "Closed Lost" },
-];
 
 const PREDEFINED_TAGS = [
   "IELTS Ready",
