@@ -275,7 +275,7 @@ export const leadsApi = createApi({
     }),
 
     getMyLeads: builder.query<Lead[], void>({
-      query: () => "/leads/my-leads",
+      query: () => "/leads/my-leads-fast",
       transformResponse: (response: { leads: ApiLead[] }) =>
         Array.isArray(response.leads)
           ? response.leads.map(transformApiLead)

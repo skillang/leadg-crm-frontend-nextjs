@@ -1,3 +1,5 @@
+// src/components/leads/BulkLeadCreation.tsx - Enhanced with notes formatting
+
 import React, { useState, useRef, useCallback } from "react";
 import {
   Dialog,
@@ -15,9 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  X,
   Upload,
-  FileText,
   AlertCircle,
   Download,
   Users,
@@ -29,6 +29,100 @@ import { useBulkCreateLeadsMutation } from "@/redux/slices/leadsApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import Papa from "papaparse";
 
+// ADD THIS: Notes formatting utility
+class BulkUploadNotesFormatter {
+  static formatNaukriNurses(row: any): string {
+    const notesLines = ["=== NAUKRI NURSES IMPORT ===", ""];
+
+    // Personal Information
+    const personalInfo = [];
+    if (row["DATE OF BIRTH"]) personalInfo.push(`DOB: ${row["DATE OF BIRTH"]}`);
+    if (row["AGE"]) personalInfo.push(`Age: ${row["AGE"]}`);
+    if (row["NATIONALITY"])
+      personalInfo.push(`Nationality: ${row["NATIONALITY"]}`);
+    if (row["CURRENT LOCATION"])
+      personalInfo.push(`Location: ${row["CURRENT LOCATION"]}`);
+
+    if (personalInfo.length > 0) {
+      notesLines.push("Personal Info:");
+      personalInfo.forEach((info) => notesLines.push(`• ${info}`));
+      notesLines.push("");
+    }
+
+    // Professional Information
+    const professionalInfo = [];
+    if (row["EXPERIENCE-SPECIALITY"])
+      professionalInfo.push(
+        `Experience & Speciality: ${row["EXPERIENCE-SPECIALITY"]}`
+      );
+    if (row["EXPERIENCE"])
+      professionalInfo.push(`Experience: ${row["EXPERIENCE"]}`);
+    if (row["QUALIFICATION"])
+      professionalInfo.push(`Qualification: ${row["QUALIFICATION"]}`);
+
+    if (professionalInfo.length > 0) {
+      notesLines.push("Professional Info:");
+      professionalInfo.forEach((info) => notesLines.push(`• ${info}`));
+      notesLines.push("");
+    }
+
+    // Areas of Interest
+    if (row["Areas of interest and other details"]) {
+      notesLines.push("Areas of Interest:");
+      notesLines.push(`• ${row["Areas of interest and other details"]}`);
+    }
+
+    return notesLines.join("\n").trim();
+  }
+
+  static formatSocialNursing(row: any): string {
+    const notesLines = ["=== SOCIAL MEDIA - NURSING ===", ""];
+
+    const fields = [
+      {
+        key: "What is your current qualification?",
+        label: "Current Qualification",
+      },
+      { key: "Years of experience ?", label: "Years of Experience" },
+      { key: "German language status?", label: "German Language Status" },
+      { key: "Planning to start?", label: "Planning to Start" },
+    ];
+
+    fields.forEach((field) => {
+      if (row[field.key]) {
+        notesLines.push(`• ${field.label}: ${row[field.key]}`);
+      }
+    });
+
+    return notesLines.join("\n").trim();
+  }
+
+  static formatStudyAbroad(row: any): string {
+    const notesLines = ["=== STUDY ABROAD - SOCIAL MEDIA ===", ""];
+
+    const fields = [
+      { key: "Current Status", label: "Current Status" },
+      { key: "Program", label: "Program" },
+      {
+        key: "When do you plan to start your studies abroad?",
+        label: "Study Start Date",
+      },
+      {
+        key: "Which intake are you planning to join?",
+        label: "Intake Planning",
+      },
+    ];
+
+    fields.forEach((field) => {
+      if (row[field.key]) {
+        notesLines.push(`• ${field.label}: ${row[field.key]}`);
+      }
+    });
+
+    return notesLines.join("\n").trim();
+  }
+}
+
 // Types
 interface BulkLeadData {
   name: string;
@@ -36,6 +130,7 @@ interface BulkLeadData {
   contact_number: string;
   country_of_interest: string;
   course_level: string;
+  notes?: string; // ADD THIS
 }
 
 interface BulkLeadCreationProps {
@@ -49,7 +144,7 @@ const DEPARTMENT_OPTIONS = [
   { value: "study_abroad", label: "Study Abroad" },
 ];
 
-// Source options (based on backend LeadSource enum)
+// Source options (based on backend LeadSource enum) - ADD THESE NEW OPTIONS
 const SOURCE_OPTIONS = [
   { value: "advertisement", label: "Advertisement" },
   { value: "bulk_upload", label: "Bulk Upload" },
@@ -65,10 +160,15 @@ const SOURCE_OPTIONS = [
   { value: "website", label: "Website" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "youtube", label: "YouTube" },
+  // ADD THESE NEW SOURCE TYPES FOR BULK UPLOADS
+  { value: "naukri_nurses", label: "Naukri Nurses" },
+  { value: "social_nursing", label: "Social Media - Nursing" },
+  { value: "study_abroad", label: "Study Abroad - Social Media" },
 ];
 
-// Header mapping (removed source and department since they're set globally)
+// MODIFY THIS: Enhanced header mapping
 const HEADER_MAPPING: Record<string, string> = {
+  // Existing mappings
   name: "name",
   "full name": "name",
   fullname: "name",
@@ -76,11 +176,18 @@ const HEADER_MAPPING: Record<string, string> = {
   "customer name": "name",
   "student name": "name",
 
+  // ADD THESE FOR BULK UPLOAD FORMATS
+  "CANDIDATE NAME": "name",
+  Name: "name",
+
   email: "email",
   "email address": "email",
   "e-mail": "email",
   mail: "email",
   "email id": "email",
+  // ADD THESE
+  "Mail ID": "email",
+  "Mail id": "email",
 
   contact_number: "contact_number",
   "contact number": "contact_number",
@@ -90,6 +197,9 @@ const HEADER_MAPPING: Record<string, string> = {
   "mobile number": "contact_number",
   telephone: "contact_number",
   tel: "contact_number",
+  // ADD THESE
+  "PHONE NUMBER": "contact_number",
+  "Phone Number": "contact_number",
 
   country_of_interest: "country_of_interest",
   "country of interest": "country_of_interest",
@@ -97,6 +207,9 @@ const HEADER_MAPPING: Record<string, string> = {
   "destination country": "country_of_interest",
   "target country": "country_of_interest",
   country: "country_of_interest",
+  // ADD THESE
+  "Interested Country": "country_of_interest",
+  "Which country are you interested in studying abroad?": "country_of_interest",
 
   course_level: "course_level",
   "course level": "course_level",
@@ -104,6 +217,8 @@ const HEADER_MAPPING: Record<string, string> = {
   "degree level": "course_level",
   "program level": "course_level",
   "qualification level": "course_level",
+  // ADD THESE
+  "What level of study are you planning to pursue?": "course_level",
 };
 
 const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
@@ -111,171 +226,169 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   onClose,
 }) => {
   const { isAdmin } = useAuth();
-  const [bulkCreateLeads, { isLoading }] = useBulkCreateLeadsMutation();
-  const { showError, showWarning, showSuccess } = useNotifications();
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [parsedLeads, setParsedLeads] = useState<BulkLeadData[]>([]);
+  const [selectedSource, setSelectedSource] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [parsedLeads, setParsedLeads] = useState<BulkLeadData[]>([]);
-  const [selectedDepartment, setSelectedDepartment] =
-    useState<string>("study_abroad");
-  const [selectedSource, setSelectedSource] = useState<string>("website");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = useCallback(
-    (file: File) => {
-      const err = validateFile(file);
-      if (err) return showError(err, "Invalid File");
-      setSelectedFile(file);
-      setParsedLeads([]);
-    },
-    [showError]
-  );
+  const [bulkCreateLeads] = useBulkCreateLeadsMutation();
+  const { showSuccess, showError } = useNotifications();
 
-  const handleDragEvents = {
-    enter: useCallback((e: React.DragEvent) => {
-      e.preventDefault();
-      setDragActive(true);
-    }, []),
-    leave: useCallback((e: React.DragEvent) => {
-      e.preventDefault();
-      setDragActive(false);
-    }, []),
-    over: useCallback((e: React.DragEvent) => e.preventDefault(), []),
-    drop: useCallback(
-      (e: React.DragEvent) => {
-        e.preventDefault();
-        setDragActive(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) handleFileSelect(file);
-      },
-      [handleFileSelect]
-    ),
-  };
+  // ADD THIS: Enhanced file processing with notes formatting
+  const processLeadData = (
+    mappedLead: Record<string, string>,
+    rawRow: any
+  ): BulkLeadData => {
+    let notes = "";
 
-  const normalizeHeader = (header: string): string | null => {
-    const normalizedHeader = header.toLowerCase().trim();
-    return HEADER_MAPPING[normalizedHeader] || null;
-  };
+    // Format notes based on source type
+    if (selectedSource === "naukri_nurses") {
+      notes = BulkUploadNotesFormatter.formatNaukriNurses(rawRow);
+    } else if (selectedSource === "social_nursing") {
+      notes = BulkUploadNotesFormatter.formatSocialNursing(rawRow);
+    } else if (selectedSource === "study_abroad") {
+      notes = BulkUploadNotesFormatter.formatStudyAbroad(rawRow);
+    } else {
+      // For other sources, format remaining fields as notes
+      const usedFields = new Set(Object.values(HEADER_MAPPING));
+      const extraFields = Object.entries(rawRow)
+        .filter(
+          ([key, value]) =>
+            !usedFields.has(key.toLowerCase()) &&
+            value &&
+            value.toString().trim()
+        )
+        .map(([key, value]) => `• ${key}: ${value}`)
+        .join("\n");
 
-  const validateFile = (file: File): string | null => {
-    const maxSize = 10 * 1024 * 1024;
-    const fileExtension = file.name
-      .toLowerCase()
-      .slice(file.name.lastIndexOf("."));
-    if (file.size > maxSize) {
-      return `File must be less than 10MB. Got ${(
-        file.size /
-        1024 /
-        1024
-      ).toFixed(2)}MB`;
+      if (extraFields) {
+        notes = `=== BULK IMPORT ===\n\n${extraFields}`;
+      }
     }
-    if (fileExtension !== ".csv") {
-      return "Only .csv files are allowed.";
-    }
-    return null;
-  };
-
-  const validateLead = (lead: Partial<BulkLeadData>): BulkLeadData | null => {
-    if (
-      !lead.name?.trim() ||
-      !lead.email?.trim() ||
-      !lead.contact_number?.trim()
-    )
-      return null;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(lead.email)) return null;
-    const phoneRegex = /[\d\s\-\(\)]{10,}/;
-    if (!phoneRegex.test(lead.contact_number)) return null;
 
     return {
-      name: lead.name.trim(),
-      email: lead.email.trim().toLowerCase(),
-      contact_number: lead.contact_number.trim(),
-      country_of_interest: lead.country_of_interest?.trim() || "",
-      course_level: lead.course_level?.trim() || "bachelor's_degree",
+      name: mappedLead.name || "",
+      email: mappedLead.email || "",
+      contact_number: mappedLead.contact_number || "",
+      country_of_interest: mappedLead.country_of_interest || "",
+      course_level: mappedLead.course_level || "",
+      notes: notes || `Imported via bulk upload from ${selectedSource}`, // Always have some notes
     };
   };
 
-  const processCsvFile = (file: File): Promise<BulkLeadData[]> => {
-    return new Promise((resolve, reject) => {
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          try {
-            const validLeads: BulkLeadData[] = [];
-            const headers = results.meta.fields || [];
-            const required = ["name", "email", "contact_number"];
-            const mappedHeaders = headers.map(normalizeHeader).filter(Boolean);
-            if (!required.every((field) => mappedHeaders.includes(field))) {
-              const missing = required.filter(
-                (f) => !mappedHeaders.includes(f)
-              );
-              reject(
-                new Error(`Missing required fields: ${missing.join(", ")}`)
-              );
-              return;
-            }
-
-            results.data.forEach((row) => {
-              const lead: Partial<BulkLeadData> = {};
-              Object.keys(row).forEach((key) => {
-                const field = normalizeHeader(key);
-                if (field && row[key]) {
-                  (lead as Partial<BulkLeadData>)[field as keyof BulkLeadData] =
-                    String(row[key]).trim();
-                }
-              });
-
-              const validated = validateLead(lead);
-              if (validated) validLeads.push(validated);
-            });
-
-            resolve(validLeads);
-          } catch (e) {
-            reject(e);
-          }
-        },
-        error: (error) => {
-          reject(new Error(`CSV parse error: ${error.message}`));
-        },
-      });
-    });
-  };
-
-  const processUploadedFile = async () => {
-    if (!selectedFile) return;
-    setIsProcessingFile(true);
-
-    try {
-      const leads = await processCsvFile(selectedFile);
-      if (!leads.length) {
-        showError("No valid leads found", "Empty File");
+  // MODIFY THIS: Enhanced file processing function
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        showError("Please select a CSV file.", "Invalid File Type");
         return;
       }
 
-      const unique = leads.filter(
-        (lead, i, arr) => arr.findIndex((l) => l.email === lead.email) === i
-      );
+      setIsProcessingFile(true);
 
-      if (unique.length < leads.length) {
-        showWarning(
-          `${leads.length - unique.length} duplicates removed.`,
-          "Deduplication"
-        );
+      try {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            try {
+              const leads: BulkLeadData[] = [];
+              let processedCount = 0;
+              let skippedCount = 0;
+
+              results.data.forEach((row: any, index: number) => {
+                try {
+                  const mappedLead: Record<string, string> = {};
+                  let hasRequiredField = false;
+
+                  // Map headers to our lead fields
+                  Object.entries(row).forEach(([header, value]) => {
+                    const normalizedHeader = header.trim().toLowerCase();
+                    const mappedField =
+                      HEADER_MAPPING[normalizedHeader] ||
+                      HEADER_MAPPING[header.trim()];
+
+                    if (mappedField && value) {
+                      mappedLead[mappedField] = String(value).trim();
+                      if (
+                        mappedField === "name" ||
+                        mappedField === "email" ||
+                        mappedField === "contact_number"
+                      ) {
+                        hasRequiredField = true;
+                      }
+                    }
+                  });
+
+                  // Only process if we have at least name or contact info
+                  if (
+                    hasRequiredField &&
+                    (mappedLead.name ||
+                      mappedLead.email ||
+                      mappedLead.contact_number)
+                  ) {
+                    const processedLead = processLeadData(mappedLead, row);
+                    leads.push(processedLead);
+                    processedCount++;
+                  } else {
+                    skippedCount++;
+                    console.warn(
+                      `Row ${index + 1} skipped - missing required fields:`,
+                      row
+                    );
+                  }
+                } catch (error) {
+                  console.error(`Error processing row ${index + 1}:`, error);
+                  skippedCount++;
+                }
+              });
+
+              setParsedLeads(leads);
+
+              if (leads.length > 0) {
+                showSuccess(
+                  `Successfully parsed ${processedCount} leads${
+                    skippedCount > 0
+                      ? `, skipped ${skippedCount} invalid rows`
+                      : ""
+                  }.`,
+                  "File Processed"
+                );
+              } else {
+                showError(
+                  "No valid leads found in the CSV file. Please check the format and try again.",
+                  "No Valid Data"
+                );
+              }
+            } catch (error) {
+              console.error("Error processing CSV:", error);
+              showError(
+                "Failed to process CSV file. Please check the format.",
+                "Processing Error"
+              );
+            } finally {
+              setIsProcessingFile(false);
+            }
+          },
+          error: (error) => {
+            console.error("Papa Parse error:", error);
+            showError(
+              "Failed to parse CSV file. Please check the format.",
+              "Parse Error"
+            );
+            setIsProcessingFile(false);
+          },
+        });
+      } catch (error: any) {
+        const message = error?.message || "Unknown error";
+        showError(message, "Processing Error");
+        setIsProcessingFile(false);
       }
-
-      setParsedLeads(unique);
-      showSuccess(`Parsed ${unique.length} leads.`, "Success");
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      showError(message, "Processing Error");
-    } finally {
-      setIsProcessingFile(false);
-    }
-  };
+    },
+    [showError, showSuccess, selectedSource]
+  );
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -311,15 +424,42 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
     }
   };
 
+  // MODIFY THIS: Enhanced template download with different formats
   const downloadTemplate = () => {
-    const content =
-      "Name,Email,Contact Number,Country of Interest,Course Level\n" +
-      "John Doe,john@example.com,1234567890,USA,bachelor's_degree\n" +
-      "Jane Smith,jane@example.com,9876543210,Canada,master's_degree";
+    let content = "";
+    let filename = "bulk_leads_template.csv";
+
+    switch (selectedSource) {
+      case "naukri_nurses":
+        content =
+          "CANDIDATE NAME,Mail ID,PHONE NUMBER,DATE OF BIRTH,AGE,EXPERIENCE-SPECIALITY,EXPERIENCE,QUALIFICATION,Areas of interest and other details,NATIONALITY,CURRENT LOCATION\n" +
+          "John Doe,john@example.com,1234567890,1995-05-15,28,ICU Nursing,5 years,B.Sc. Nursing,Critical care nursing,Indian,Mumbai Maharashtra";
+        filename = "naukri_nurses_template.csv";
+        break;
+      case "social_nursing":
+        content =
+          "Name,Mail id,Phone Number,What is your current qualification?,Years of experience ?,German language status?,Planning to start?\n" +
+          "Jane Smith,jane@example.com,9876543210,B.Sc. Nursing,3,A2 Level,January 2025";
+        filename = "social_nursing_template.csv";
+        break;
+      case "study_abroad":
+        content =
+          "Name,Mail id,Phone Number,Current Status,Interested Country,Program,When do you plan to start your studies abroad?,What level of study are you planning to pursue?,Which intake are you planning to join?\n" +
+          "Alex Johnson,alex@example.com,5555555555,Final year student,Canada,Computer Science,Fall 2025,Master's degree,September 2025";
+        filename = "study_abroad_template.csv";
+        break;
+      default:
+        content =
+          "Name,Email,Contact Number,Country of Interest,Course Level\n" +
+          "John Doe,john@example.com,1234567890,USA,bachelor's_degree\n" +
+          "Jane Smith,jane@example.com,9876543210,Canada,master's_degree";
+        filename = "bulk_leads_template.csv";
+    }
+
     const blob = new Blob([content], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "bulk_leads_template.csv";
+    a.download = filename;
     a.click();
   };
 
@@ -356,11 +496,7 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={onClose}
-      // style={{ overflowY: "hidden" }}
-    >
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="max-w-7xl"
         style={{ maxHeight: "90vh", minWidth: "80%" }}
@@ -416,232 +552,129 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
               </Select>
             </div>
           </div>
-          {/* Global Department and Source Selection */}
 
           <div
             className={`border-2 border-dashed p-6 rounded-lg text-center ${
-              dragActive ? "bg-primary/10" : "bg-muted/10"
+              dragActive ? "border-blue-400 bg-blue-50" : "border-gray-300"
             }`}
-            onDragEnter={handleDragEvents.enter}
-            onDragLeave={handleDragEvents.leave}
-            onDragOver={handleDragEvents.over}
-            onDrop={handleDragEvents.drop}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".csv"
-              onChange={handleFileInputChange}
-            />
-
-            {selectedFile ? (
-              <>
-                <FileText className="w-10 h-10 mx-auto text-green-600" />
-                <p className="mt-2 font-medium text-green-700">
-                  {selectedFile.name}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-                <div className="mt-4 flex justify-center gap-3">
-                  <Button
-                    onClick={processUploadedFile}
-                    disabled={isProcessingFile}
-                  >
-                    {isProcessingFile ? (
-                      <>
-                        <RefreshCw className="animate-spin w-4 h-4 mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Process File
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedFile(null)}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Remove
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <Upload className="w-10 h-10 mx-auto text-muted-foreground" />
-                <p className="mt-2 font-medium">Drop your CSV file here</p>
-                <p className="text-sm text-muted-foreground">
-                  or click to browse files
-                </p>
-                <div className="mt-4">
-                  <Button onClick={() => fileInputRef.current?.click()}>
-                    <File className="w-4 h-4 mr-2" />
-                    Browse
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={downloadTemplate}
-                    className="ml-2"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Template
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {parsedLeads.length > 0 && (
-          <div className="mt-6">
-            <h4 className="text-lg font-semibold mb-3">
-              Parsed Leads ({parsedLeads.length})
-            </h4>
-
-            <div className="max-h-96 overflow-y-auto space-y-3">
-              {parsedLeads.map((lead, i) => (
-                <div key={i} className="p-4 bg-muted/30 rounded-lg border">
-                  {/* Row 1: Basic Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Name *
-                      </label>
-                      <input
-                        className="w-full border px-3 py-2 rounded text-sm"
-                        value={lead.name}
-                        onChange={(e) =>
-                          updateLeadField(i, "name", e.target.value)
-                        }
-                        placeholder="Full name"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Email *
-                      </label>
-                      <input
-                        className="w-full border px-3 py-2 rounded text-sm"
-                        value={lead.email}
-                        onChange={(e) =>
-                          updateLeadField(i, "email", e.target.value)
-                        }
-                        placeholder="email@example.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Contact Number *
-                      </label>
-                      <input
-                        className="w-full border px-3 py-2 rounded text-sm"
-                        value={lead.contact_number}
-                        onChange={(e) =>
-                          updateLeadField(i, "contact_number", e.target.value)
-                        }
-                        placeholder="Phone number"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Country and Course Level */}
-                  <div className="flex flex-col md:flex-row gap-3 items-end">
-                    <div className="flex-1">
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Country of Interest
-                      </label>
-                      <input
-                        className="w-full border px-3 py-2 rounded text-sm"
-                        value={lead.country_of_interest}
-                        onChange={(e) =>
-                          updateLeadField(
-                            i,
-                            "country_of_interest",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Country"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Course Level
-                      </label>
-                      <input
-                        className="w-full border px-3 py-2 rounded text-sm"
-                        value={lead.course_level}
-                        onChange={(e) =>
-                          updateLeadField(i, "course_level", e.target.value)
-                        }
-                        placeholder="Course level"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const updated = parsedLeads.filter(
-                          (_, index) => index !== i
-                        );
-                        setParsedLeads(updated);
-                      }}
-                      className="shrink-0"
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6">
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800">
-                  <strong>Ready to create {parsedLeads.length} leads</strong>
-                  <br />
-                  Department:{" "}
-                  <span className="font-medium">
-                    {
-                      DEPARTMENT_OPTIONS.find(
-                        (d) => d.value === selectedDepartment
-                      )?.label
-                    }
-                  </span>
-                  <br />
-                  Source:{" "}
-                  <span className="font-medium">
-                    {
-                      SOURCE_OPTIONS.find((s) => s.value === selectedSource)
-                        ?.label
-                    }
-                  </span>
-                </p>
-              </div>
+            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
               <Button
-                onClick={handleBulkCreate}
-                disabled={isLoading}
-                className="bg-green-600 hover:bg-green-700"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessingFile}
+                className="mb-2"
               >
-                {isLoading ? (
+                {isProcessingFile ? (
                   <>
-                    <RefreshCw className="animate-spin w-4 h-4 mr-2" />
-                    Creating...
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
                   </>
                 ) : (
                   <>
-                    <Users className="w-4 h-4 mr-2" />
-                    Create {parsedLeads.length} Leads
+                    <File className="w-4 h-4 mr-2" />
+                    Choose CSV File
                   </>
                 )}
               </Button>
+
+              {/* ADD THIS: Show template download based on selected source */}
+              {selectedSource && (
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={downloadTemplate}
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download {selectedSource
+                      .replace("_", " ")
+                      .toUpperCase()}{" "}
+                    Template
+                  </Button>
+                </div>
+              )}
+
+              <p className="text-sm text-gray-500">
+                Drag and drop a CSV file here, or click to select
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ADD THIS: Enhanced preview with notes */}
+        {parsedLeads.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
+                Preview ({parsedLeads.length} leads)
+              </h3>
+              <p className="text-sm text-gray-500">
+                First 5 leads shown. All extra information will be saved in
+                notes.
+              </p>
+            </div>
+
+            <div className="border rounded-lg overflow-hidden">
+              <div className="max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="text-left p-3 border-b">Name</th>
+                      <th className="text-left p-3 border-b">Email</th>
+                      <th className="text-left p-3 border-b">Phone</th>
+                      <th className="text-left p-3 border-b">Country</th>
+                      <th className="text-left p-3 border-b">Notes Preview</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedLeads.slice(0, 5).map((lead, index) => (
+                      <tr key={index} className="border-b hover:bg-gray-50">
+                        <td className="p-3">{lead.name}</td>
+                        <td className="p-3">{lead.email}</td>
+                        <td className="p-3">{lead.contact_number}</td>
+                        <td className="p-3">{lead.country_of_interest}</td>
+                        <td className="p-3">
+                          <details className="max-w-xs">
+                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                              {lead.notes?.split("\n")[0] || "No notes"}...
+                            </summary>
+                            <pre className="mt-2 text-xs whitespace-pre-wrap bg-gray-100 p-2 rounded max-h-32 overflow-y-auto">
+                              {lead.notes}
+                            </pre>
+                          </details>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
+
+        <div className="flex justify-end space-x-3">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBulkCreate}
+            disabled={
+              !parsedLeads.length || !selectedDepartment || !selectedSource
+            }
+          >
+            Create {parsedLeads.length} Leads
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
