@@ -38,23 +38,18 @@ import EditLeadModal from "@/components/leads/EditLeadModal";
 import { LEAD_STAGES } from "@/constants/stageConfig";
 import { useNotifications } from "@/components/common/NotificationSystem";
 
-const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
-  if (!phoneNumber) return alert("No phone number available");
-  alert(`Calling ${leadName || phoneNumber} at ${phoneNumber}`);
-};
-
-const handleEmail = (email: string) => {
-  if (!email) return alert("No email address available");
-  window.open(`mailto:${email}`, "_self");
-};
-
 const WhatsAppButton: React.FC<{
   phoneNumber: string;
   leadName?: string;
 }> = ({ phoneNumber, leadName }) => {
+  const { showWarning } = useNotifications();
+
   const handleWhatsAppClick = () => {
-    if (!phoneNumber) return alert("No phone number available");
-    alert(`Open WhatsApp modal for ${leadName || phoneNumber}`);
+    if (!phoneNumber) return showWarning("No phone number available");
+    showWarning(
+      `WhatsApp chat with ${leadName || phoneNumber} - is not available yet`,
+      "Feature coming soon"
+    );
   };
 
   return (
@@ -92,7 +87,8 @@ const WhatsAppButton: React.FC<{
 // FINAL StageSelectCell with Notifications (Clean - No Debug Logs)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError, showPrompt, showWarning } =
+    useNotifications();
 
   const stage = row.getValue("stage") as string;
   const currentLead = row.original;
@@ -166,6 +162,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const router = useRouter();
   const lead = row.original;
+  const { showPrompt, showConfirm } = useNotifications();
 
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete lead "${lead.name}"?`))
@@ -317,6 +314,7 @@ export const columns: ColumnDef<Lead>[] = [
     header: "Stage",
     cell: StageSelectCell,
   },
+  // Fixed contact cell - move useNotifications inside the cell component
   {
     accessorKey: "contact",
     header: "Contact",
@@ -324,6 +322,25 @@ export const columns: ColumnDef<Lead>[] = [
       const contact = row.getValue("contact") as string;
       const email = row.original.email || "";
       const leadName = row.original.name;
+
+      // ✅ Move the hook call inside the component
+      const { showWarning } = useNotifications();
+
+      const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
+        if (!phoneNumber) return showWarning("No phone number available");
+        showWarning(
+          `Phone call to ${leadName || phoneNumber} is not available yet`,
+          "Feature Coming Soon..."
+        );
+      };
+
+      const handleEmail = (email: string) => {
+        if (!email) return showWarning("No email address available");
+        showWarning(
+          "Email feature is not available yet",
+          "Feature Coming Soon..."
+        );
+      };
 
       return (
         <div className="flex items-center gap-1">
@@ -334,7 +351,7 @@ export const columns: ColumnDef<Lead>[] = [
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handlePhoneCall(contact, leadName)}
+                  onClick={() => handlePhoneCall(contact, leadName)} // ✅ No need to pass notifications
                   disabled={!contact}
                 >
                   <Phone
@@ -365,7 +382,7 @@ export const columns: ColumnDef<Lead>[] = [
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handleEmail(email)}
+                  onClick={() => handleEmail(email)} // ✅ No need to pass notifications
                   disabled={!email}
                 >
                   <Mail

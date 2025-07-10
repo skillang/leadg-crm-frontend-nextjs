@@ -502,6 +502,29 @@ export default function LeadDetailsPage() {
                 </Table>
               </CardContent>
             </Card>
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Extra Info</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {leadDetails.notes ? (
+                  <ul className="list-disc pl-5 space-y-1">
+                    {leadDetails.notes.split("•").map((line, index) => {
+                      const trimmedLine = line.trim();
+                      return trimmedLine ? (
+                        <li key={index} className="text-gray-900">
+                          {trimmedLine}
+                        </li>
+                      ) : null;
+                    })}
+                  </ul>
+                ) : (
+                  <span className="text-gray-900">
+                    No extra info was given while lead creation
+                  </span>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right Column - Tabbed Interface */}

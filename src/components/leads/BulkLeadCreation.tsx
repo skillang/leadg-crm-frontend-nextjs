@@ -147,7 +147,7 @@ const DEPARTMENT_OPTIONS = [
 // Source options (based on backend LeadSource enum) - ADD THESE NEW OPTIONS
 const SOURCE_OPTIONS = [
   { value: "advertisement", label: "Advertisement" },
-  { value: "bulk_upload", label: "Bulk Upload" },
+  { value: "bulk upload", label: "Bulk Upload" },
   { value: "cold_call", label: "Cold Call" },
   { value: "email_campaign", label: "Email Campaign" },
   { value: "facebook", label: "Facebook" },
