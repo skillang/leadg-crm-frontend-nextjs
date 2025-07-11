@@ -183,10 +183,10 @@ const SideNavBarComp = () => {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="p-4 border-t">
+      <SidebarFooter className="p-2 border-t">
         <div className="space-y-3">
           {/* Notifications */}
-          <div className="flex items-center justify-between text-sm">
+          {/* <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Notifications</span>
@@ -194,7 +194,7 @@ const SideNavBarComp = () => {
             <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
               {notificationCount}
             </span>
-          </div>
+          </div> */}
 
           {/* User Account */}
           <div className="relative">

@@ -239,7 +239,7 @@ const transformApiLead = (apiLead: ApiLead): Lead => ({
     apiLead.last_contacted?.split("T")[0] ||
     apiLead.updated_at?.split("T")[0] ||
     new Date().toISOString().split("T")[0],
-  department: "Sales",
+  department: apiLead.category || "Not Given",
   notes: apiLead.notes || "",
 });
 
