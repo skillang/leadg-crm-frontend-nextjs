@@ -13,8 +13,9 @@ import {
   User,
   LogOut,
   UserCircle,
+  UserPlus,
+  Building2,
 } from "lucide-react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -62,6 +63,18 @@ const items = [
     url: "#",
     icon: Settings,
   },
+  {
+    title: "Register User",
+    url: "/admin/register-user",
+    icon: UserPlus,
+    adminOnly: true, // Add this flag
+  },
+  {
+    title: "Manage Departments",
+    url: "/admin/departments",
+    icon: Building2,
+    adminOnly: true,
+  },
 ];
 
 const SideNavBarComp = () => {
@@ -85,12 +98,17 @@ const SideNavBarComp = () => {
     }
   };
 
-  // Filter menu items based on user role (optional)
   const filteredItems = items.filter((item) => {
-    // Example: Only show Reports to Admin users
+    // Only show Reports to Admin users
     if (item.title === "Reports" && !isAdmin) {
       return false;
     }
+
+    // 🔥 Hide admin-only items from non-admin users
+    if (item.adminOnly && !isAdmin) {
+      return false;
+    }
+
     return true;
   });
 
@@ -122,6 +140,36 @@ const SideNavBarComp = () => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {isAdmin && filteredItems.some((item) => item.adminOnly) && (
+                <>
+                  <div className="px-2 py-2 mt-4">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-t pt-2">
+                      Administration
+                    </div>
+                  </div>
+                  {filteredItems
+                    .filter((item) => item.adminOnly) // Admin items
+                    .map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <a href={item.url} className="relative">
+                            <item.icon />
+                            <span>{item.title}</span>
+                            <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
+                              Admin
+                            </span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
