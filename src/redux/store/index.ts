@@ -12,6 +12,7 @@ import { timelineApi } from "../slices/timelineApi";
 import { contactsApi } from "../slices/contactsApi"; // ADDED: Import contactsApi
 import leadsReducer from "../slices/leadsSlices";
 import authReducer from "../slices/authSlice";
+import { categoriesApi } from "../slices/categoriesApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -31,6 +32,7 @@ const rootReducer = combineReducers({
   [documentsApi.reducerPath]: documentsApi.reducer,
   [timelineApi.reducerPath]: timelineApi.reducer,
   [contactsApi.reducerPath]: contactsApi.reducer, // ADDED: Add contactsApi reducer
+  [categoriesApi.reducerPath]: categoriesApi.reducer, // ADD THIS LINE
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -61,7 +63,8 @@ export const store = configureStore({
       tasksApi.middleware,
       documentsApi.middleware,
       timelineApi.middleware,
-      contactsApi.middleware // ADDED: Add contactsApi middleware
+      contactsApi.middleware, // ADDED: Add contactsApi middleware
+      categoriesApi.middleware // ADD THIS LINE
     ),
 });
 

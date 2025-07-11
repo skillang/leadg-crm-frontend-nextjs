@@ -15,6 +15,7 @@ import {
   UserCircle,
   UserPlus,
   Building2,
+  FolderOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -73,6 +74,12 @@ const items = [
     title: "Manage Departments",
     url: "/admin/departments",
     icon: Building2,
+    adminOnly: true,
+  },
+  {
+    title: "Lead Categories",
+    url: "/admin/lead-categories",
+    icon: FolderOpen,
     adminOnly: true,
   },
 ];

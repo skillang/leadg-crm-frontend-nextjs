@@ -431,6 +431,17 @@ export default function LeadDetailsPage() {
 
                     <TableRow className="border-b">
                       <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Lead Category:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.leadCategory || "Not provided"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
                         Country of interest:
                       </TableCell>
                       <TableCell className="py-3 px-6">

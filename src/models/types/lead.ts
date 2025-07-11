@@ -16,6 +16,24 @@ export interface Lead {
   assignedToName?: string;
 }
 
+export interface BulkLeadData {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    source: string;
+    category: string; // ADDED: category field
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
 // Extended lead details interface
 export interface LeadDetails extends Lead {
   leadId: string; // Formatted ID like LD-1029

@@ -22,6 +22,7 @@ export interface LeadDetailsResponse {
   lastContacted: string | null;
   status: string;
   assignmentHistory: AssignmentHistoryItem[];
+  leadCategory: string;
 }
 
 export interface AssignmentHistoryItem {

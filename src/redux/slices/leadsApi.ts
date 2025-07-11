@@ -17,6 +17,7 @@ interface ApiLead {
   source?: string;
   last_contacted?: string;
   notes?: string;
+  category?: string;
 }
 
 interface AssignmentHistory {
@@ -45,6 +46,7 @@ interface RawLeadDetails {
     country_of_interest?: string;
     course_level?: string;
     source: string;
+    category: string;
   };
   status_and_tags: {
     stage: string;
@@ -84,6 +86,7 @@ interface LeadDetailsResponse {
   lastContacted: string | null;
   status: string;
   assignmentHistory: AssignmentHistory[];
+  leadCategory: string;
 }
 
 interface LeadStatsResponse {
@@ -95,17 +98,18 @@ interface LeadStatsResponse {
   my_leads: number;
 }
 
-interface CreateLeadApiRequest {
+export interface CreateLeadApiRequest {
   basic_info: {
     name: string;
     email: string;
     contact_number: string;
+    source: string;
+    category: string; // ADDED: category field
+  };
+  status_and_tags: {
     stage: string;
     lead_score: number;
     tags: string[];
-  };
-  assignment: {
-    assigned_to: string | null;
   };
   additional_info: {
     notes: string;
@@ -135,13 +139,22 @@ interface UpdateLeadRequest {
   assignment_method?: string;
 }
 
-interface BulkLeadData {
-  name: string;
-  email: string;
-  contact_number: string;
-  source: string;
-  country_of_interest: string;
-  course_level: string;
+export interface BulkLeadData {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    source: string;
+    category: string; // ADDED: category field
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  additional_info: {
+    notes: string;
+  };
 }
 
 interface BulkCreateResult {
@@ -256,6 +269,7 @@ const transformLeadDetailsResponse = (response: {
     lastContacted: lead.system_info.last_contacted,
     status: lead.system_info.status,
     assignmentHistory: lead.assignment.assignment_history || [],
+    leadCategory: lead.basic_info.category || "",
   };
 };
 
@@ -323,12 +337,12 @@ export const leadsApi = createApi({
 
     bulkCreateLeads: builder.mutation<
       BulkCreateLeadsResponse,
-      { leads: BulkLeadData[]; force_create?: boolean }
+      { leads: BulkLeadData[]; force_create?: boolean } // UPDATED: Use existing BulkLeadData
     >({
       query: ({ leads, force_create = false }) => ({
         url: `/leads/bulk-create?force_create=${force_create}`,
         method: "POST",
-        body: leads,
+        body: leads, // UPDATED: Send leads directly in new format
       }),
       invalidatesTags: [
         { type: "Lead", id: "LIST" },
