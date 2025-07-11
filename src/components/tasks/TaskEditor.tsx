@@ -29,6 +29,7 @@ import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
 } from "@/redux/slices/tasksApi";
+import { useNotifications } from "../common/NotificationSystem";
 
 interface TaskEditorProps {
   isOpen: boolean;
@@ -89,6 +90,8 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
     { value: "urgent", label: "Urgent" },
   ] as const;
 
+  const { showError } = useNotifications();
+
   // Reset form when task changes or dialog opens
   useEffect(() => {
     if (isOpen) {
@@ -143,7 +146,10 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
       !formData.due_date ||
       !formData.due_time
     ) {
-      alert("Task title, due date, and due time are required");
+      showError(
+        "Task title, due date, and due time are required",
+        "Missing Fields!"
+      );
       return;
     }
 
@@ -188,8 +194,9 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
       onClose();
     } catch (error) {
       console.error("Failed to save task:", error);
-      alert(
-        `Failed to ${isEditing ? "update" : "create"} task. Please try again.`
+      showError(
+        `Failed to ${isEditing ? "update" : "create"} task. `,
+        `Please try again.`
       );
     }
   };

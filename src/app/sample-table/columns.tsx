@@ -87,8 +87,7 @@ const WhatsAppButton: React.FC<{
 // FINAL StageSelectCell with Notifications (Clean - No Debug Logs)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
-  const { showSuccess, showError, showPrompt, showWarning } =
-    useNotifications();
+  const { showSuccess, showError } = useNotifications();
 
   const stage = row.getValue("stage") as string;
   const currentLead = row.original;
@@ -104,7 +103,10 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
       }).unwrap();
 
       // Show success notification
-      showSuccess(`${currentLead.name}'s stage updated to "${newStage}"`);
+      showSuccess(
+        `${currentLead.name}'s stage updated to "${newStage}"`,
+        "Lead Stage updated successfully!"
+      );
 
       // Cache invalidation will automatically refetch and update the UI
     } catch (err: unknown) {
@@ -162,25 +164,34 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const router = useRouter();
   const lead = row.original;
-  const { showPrompt, showConfirm } = useNotifications();
+  const { showConfirm, showWarning, showError } = useNotifications();
 
-  const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete lead "${lead.name}"?`))
-      return;
-
-    try {
-      await deleteLead(lead.id).unwrap();
-    } catch (err: unknown) {
-      const error = err as {
-        message?: string;
-        data?: {
-          detail?: { msg: string }[] | string;
-        };
-      };
-      const message =
-        error?.data?.detail || error?.message || "Failed to delete lead";
-      alert(`Error: ${message}`);
-    }
+  const handleDelete = () => {
+    showConfirm({
+      title: "Delete Lead",
+      description: `Are you sure you want to delete "${lead.name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteLead(lead.id).unwrap();
+          showWarning(
+            `Lead "${lead.name}" deleted successfully`,
+            "Lead Deleted!"
+          );
+        } catch (err: unknown) {
+          const error = err as {
+            message?: string;
+            data?: {
+              detail?: { msg: string }[] | string;
+            };
+          };
+          const message =
+            error?.data?.detail || error?.message || "Failed to delete lead";
+          showError("Failed to delete lead.", String(message));
+        }
+      },
+    });
   };
 
   const handleCopy = async (value: string) => {

@@ -40,7 +40,7 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
-  const isPublicRoute = publicRoutes.includes(pathname);
+  // const isPublicRoute = publicRoutes.includes(pathname);
 
   // Get auth data from cookies (adjust based on how you store auth data)
   const accessToken = request.cookies.get("access_token")?.value;

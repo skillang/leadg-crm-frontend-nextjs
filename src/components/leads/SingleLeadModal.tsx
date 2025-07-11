@@ -1,16 +1,13 @@
+// src/components/leads/SingleLeadModal.tsx - FIXED VERSION WITH CATEGORY
+
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { X, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -19,23 +16,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2 } from "lucide-react";
+import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   useCreateLeadMutation,
   useGetAssignableUsersQuery,
 } from "@/redux/slices/leadsApi";
-import { useNotifications } from "@/components/common/NotificationSystem";
+import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { LEAD_STAGES } from "@/constants/stageConfig";
 
-// Type definitions for better type safety
+// API Error interface
 interface ValidationError {
   loc: string[];
   msg: string;
   type: string;
 }
 
-interface ApiErrorResponse {
+interface ApiError {
   data?: {
     detail?: string | ValidationError[];
     message?: string;
@@ -44,25 +48,28 @@ interface ApiErrorResponse {
   status?: number;
 }
 
-// ✅ FIXED: Type definition to work with existing AssignableUser interface
-type UserForAssignment = {
-  id?: string;
-  email?: string;
-  name?: string;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-};
+// User type for assignment
+// type UserForAssignment = {
+//   id?: string;
+//   email?: string;
+//   name?: string;
+//   first_name?: string;
+//   last_name?: string;
+//   username?: string;
+// };
 
 interface SingleLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+// ✅ FIXED: Form data interface with category
 interface LeadFormData {
   name: string;
   email: string;
   contact_number: string;
+  source: string;
+  category: string; // ✅ ADDED: Category field
   assigned_to: string;
   stage: string;
   lead_score: number;
@@ -70,18 +77,19 @@ interface LeadFormData {
   tags: string[];
 }
 
-// ✅ NEW: Interface for create lead API payload
+// ✅ FIXED: API payload interface matching backend expectation
 interface CreateLeadPayload {
   basic_info: {
     name: string;
     email: string;
     contact_number: string;
+    source: string;
+    category: string; // ✅ ADDED: Category field
+  };
+  status_and_tags: {
     stage: string;
     lead_score: number;
     tags: string[];
-  };
-  assignment: {
-    assigned_to: string | null;
   };
   additional_info: {
     notes: string;
@@ -99,16 +107,21 @@ const PREDEFINED_TAGS = [
   "High Priority",
   "Follow Up",
   "Hot Lead",
+  "Healthcare",
+  "Experienced",
 ];
 
 const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  // ✅ FIXED: Form state with category
   const [formData, setFormData] = useState<LeadFormData>({
     name: "",
     email: "",
     contact_number: "",
+    source: "website",
+    category: "", // ✅ ADDED: Category field
     assigned_to: "",
     stage: "initial",
     lead_score: 0,
@@ -118,21 +131,30 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // API Hooks
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
-
-  // ✅ FIXED: Use the existing AssignableUser type from the API
-  const { data: assignableUsers = [], isLoading: isLoadingUsers } =
-    useGetAssignableUsersQuery();
-
-  // ✅ UPDATED: Use the new notification method names
+  // const { data: assignableUsers = [], isLoading: isLoadingUsers } =
+  //   useGetAssignableUsersQuery();
+  const { data: categoriesResponse, isLoading: isLoadingCategories } =
+    useGetCategoriesQuery({});
   const { showSuccess, showError } = useNotifications();
 
+  // ✅ FIXED: Memoize categories to prevent infinite loop
+  const categories = React.useMemo(
+    () => categoriesResponse?.categories || [],
+    [categoriesResponse?.categories]
+  );
+
+  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setFormData({
         name: "",
         email: "",
         contact_number: "",
+        source: "website",
+        category: "",
         assigned_to: "",
         stage: "initial",
         lead_score: 0,
@@ -143,6 +165,16 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       setNewTag("");
     }
   }, [isOpen]);
+
+  // ✅ FIXED: Separate effect for auto-selecting category
+  useEffect(() => {
+    if (isOpen && categories.length > 0 && !formData.category) {
+      setFormData((prev) => ({
+        ...prev,
+        category: categories[0]?.name || "",
+      }));
+    }
+  }, [isOpen, categories, formData.category]);
 
   const handleInputChange = (
     field: keyof LeadFormData,
@@ -174,24 +206,39 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     }
   };
 
+  const handleTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    }
 
     if (!formData.contact_number.trim()) {
       newErrors.contact_number = "Contact number is required";
     } else {
-      const phoneRegex = /^[+]?[\d\s\-\(\)]{10,}$/;
+      const phoneRegex = /^[+]?[\d\s\-\(\)]{7,15}$/;
       if (!phoneRegex.test(formData.contact_number)) {
-        newErrors.contact_number = "Please enter a valid contact number";
+        newErrors.contact_number = "Invalid contact number format";
       }
     }
 
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
-        newErrors.email = "Please enter a valid email address";
+        newErrors.email = "Invalid email format";
       }
+    }
+
+    // ✅ ADDED: Category validation
+    if (!formData.category) {
+      newErrors.category = "Category is required";
     }
 
     if (formData.lead_score < 0 || formData.lead_score > 100) {
@@ -202,297 +249,362 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      // ✅ FIXED: Properly typed API payload
-      const apiPayload: CreateLeadPayload = {
+      // ✅ FIXED: Payload structure matching backend expectation
+      const payload: CreateLeadPayload = {
         basic_info: {
           name: formData.name.trim(),
-          email: formData.email.trim() || "",
+          email: formData.email.trim(),
           contact_number: formData.contact_number.trim(),
+          source: formData.source,
+          category: formData.category, // ✅ ADDED: Category field
+        },
+        status_and_tags: {
           stage: formData.stage,
           lead_score: formData.lead_score,
           tags: formData.tags,
-        },
-        assignment: {
-          assigned_to: formData.assigned_to || null,
         },
         additional_info: {
           notes: formData.notes.trim(),
         },
       };
 
-      await createLead(apiPayload).unwrap();
+      console.log(
+        "🚀 Creating lead with payload:",
+        JSON.stringify(payload, null, 2)
+      );
 
-      // ✅ UPDATED: Use showSuccess instead of notifications.success
+      const result = await createLead(payload).unwrap();
+
       showSuccess(
-        `Lead "${formData.name}" created successfully!`,
-        "Lead Created"
+        result.message || "Lead created successfully!",
+        `Lead ID: ${result.lead.lead_id}`
       );
       onClose();
     } catch (error) {
-      // ✅ FIXED: Properly typed error handling
-      const apiError = error as ApiErrorResponse;
-      let errorMessage = "Failed to create lead. Please try again.";
+      console.error("❌ Failed to create lead:", error);
 
-      if (apiError?.data?.detail) {
-        errorMessage = Array.isArray(apiError.data.detail)
-          ? apiError.data.detail
-              .map((err: ValidationError) => err.msg)
-              .join(", ")
-          : apiError.data.detail;
-      } else if (apiError?.message) {
+      const apiError = error as ApiError;
+      let errorMessage = "Failed to create lead";
+
+      if (apiError.data?.detail) {
+        if (typeof apiError.data.detail === "string") {
+          errorMessage = apiError.data.detail;
+        } else if (Array.isArray(apiError.data.detail)) {
+          const validationErrors = apiError.data.detail as ValidationError[];
+          errorMessage = validationErrors
+            .map((err) => `${err.loc.join(".")}: ${err.msg}`)
+            .join(", ");
+        }
+      } else if (apiError.data?.message) {
+        errorMessage = apiError.data.message;
+      } else if (apiError.message) {
         errorMessage = apiError.message;
       }
 
-      // ✅ UPDATED: Use showError instead of notifications.error
-      showError(errorMessage, "Error Creating Lead");
-    }
-  };
-
-  const handleTagKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddTag();
+      showError("Error", errorMessage);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
-            Create new lead
-          </DialogTitle>
+          <DialogTitle>Create New Lead</DialogTitle>
+          <DialogDescription>
+            Add a new lead to the system. Fields marked with * are required.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label>
-              Name <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              placeholder="Krishna Reddy"
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className={errors.name ? "border-red-500" : ""}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name}</p>
-            )}
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Basic Information</h3>
 
-          {/* Assigned To */}
-          <div className="space-y-2">
-            <Label>Assign to</Label>
-            <Select
-              value={formData.assigned_to || "auto"}
-              onValueChange={(value) =>
-                handleInputChange("assigned_to", value === "auto" ? "" : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Person" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Auto-assign (Round Robin)</SelectItem>
-                {isLoadingUsers ? (
-                  <SelectItem value="loading" disabled>
-                    Loading users...
-                  </SelectItem>
-                ) : (
-                  // ✅ FIXED: Clean type assertion with proper fallbacks
-                  assignableUsers.map((user, index) => {
-                    const typedUser = user as UserForAssignment;
-                    const displayName =
-                      typedUser.name ||
-                      (typedUser.first_name && typedUser.last_name
-                        ? `${typedUser.first_name} ${typedUser.last_name}`
-                        : typedUser.email ||
-                          typedUser.username ||
-                          typedUser.id ||
-                          "Unknown User");
-                    const value =
-                      typedUser.email || typedUser.id || `user_${index}`;
-
-                    return (
-                      <SelectItem key={typedUser.id || index} value={value}>
-                        {displayName}
-                      </SelectItem>
-                    );
-                  })
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Contact Number */}
-          <div className="space-y-2">
-            <Label>
-              Contact number <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              placeholder="+91 8765434567"
-              value={formData.contact_number}
-              onChange={(e) =>
-                handleInputChange("contact_number", e.target.value)
-              }
-              className={errors.contact_number ? "border-red-500" : ""}
-            />
-            {errors.contact_number && (
-              <p className="text-sm text-red-500">{errors.contact_number}</p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input
-              type="email"
-              placeholder="kris.redy@gmail.com"
-              value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              className={errors.email ? "border-red-500" : ""}
-            />
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Stage */}
-          <div className="space-y-2">
-            <Label>Stage</Label>
-            <Select
-              value={formData.stage}
-              onValueChange={(value) => handleInputChange("stage", value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_STAGES.map((stage) => (
-                  <SelectItem key={stage.value} value={stage.value}>
-                    {stage.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Lead Score */}
-          <div className="space-y-2">
-            <Label>Lead Score (0-100)</Label>
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              placeholder="50"
-              value={formData.lead_score}
-              onChange={(e) =>
-                handleInputChange("lead_score", parseInt(e.target.value) || 0)
-              }
-              className={errors.lead_score ? "border-red-500" : ""}
-            />
-            {errors.lead_score && (
-              <p className="text-sm text-red-500">{errors.lead_score}</p>
-            )}
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex gap-2">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Name <span className="text-red-500">*</span>
+              </Label>
               <Input
-                placeholder="Add a tag"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={handleTagKeyPress}
-                className="flex-1"
+                id="name"
+                type="text"
+                placeholder="Enter full name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                className={errors.name ? "border-red-500" : ""}
+                disabled={isCreating}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddTag}
-                disabled={!newTag.trim()}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              {errors.name && (
+                <p className="text-sm text-red-500">{errors.name}</p>
+              )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {PREDEFINED_TAGS.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className={`cursor-pointer hover:bg-blue-100 text-xs ${
-                    formData.tags.includes(tag)
-                      ? "bg-blue-100 border-blue-300"
-                      : ""
-                  }`}
-                  onClick={() => handleAddPredefinedTag(tag)}
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter email address"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                className={errors.email ? "border-red-500" : ""}
+                disabled={isCreating}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Contact Number */}
+            <div className="space-y-2">
+              <Label htmlFor="contact_number">
+                Contact Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="contact_number"
+                type="tel"
+                placeholder="Enter contact number"
+                value={formData.contact_number}
+                onChange={(e) =>
+                  handleInputChange("contact_number", e.target.value)
+                }
+                className={errors.contact_number ? "border-red-500" : ""}
+                disabled={isCreating}
+              />
+              {errors.contact_number && (
+                <p className="text-sm text-red-500">{errors.contact_number}</p>
+              )}
+            </div>
+
+            {/* Source and Category Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Source */}
+              <div className="space-y-2">
+                <Label htmlFor="source">Source</Label>
+                <Select
+                  value={formData.source}
+                  onValueChange={(value) => handleInputChange("source", value)}
+                  disabled={isCreating}
                 >
-                  {tag}
-                  {formData.tags.includes(tag) && (
-                    <Plus className="ml-1 h-3 w-3 rotate-45" />
-                  )}
-                </Badge>
-              ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SOURCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* ✅ ADDED: Category Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="category">
+                  Category <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    handleInputChange("category", value)
+                  }
+                  disabled={isCreating || isLoadingCategories}
+                >
+                  <SelectTrigger
+                    className={errors.category ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name} ({category.short_form})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category && (
+                  <p className="text-sm text-red-500">{errors.category}</p>
+                )}
+                {isLoadingCategories && (
+                  <p className="text-xs text-gray-500">Loading categories...</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Status and Tags */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Status & Tags</h3>
+
+            {/* Stage and Lead Score Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Stage */}
+              <div className="space-y-2">
+                <Label htmlFor="stage">Stage</Label>
+                <Select
+                  value={formData.stage}
+                  onValueChange={(value) => handleInputChange("stage", value)}
+                  disabled={isCreating}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEAD_STAGES.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className={`${option.className} mb-1`}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Lead Score */}
+              <div className="space-y-2">
+                <Label htmlFor="lead_score">Lead Score (0-100)</Label>
+                <Input
+                  id="lead_score"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Enter score"
+                  value={formData.lead_score}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "lead_score",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  className={errors.lead_score ? "border-red-500" : ""}
+                  disabled={isCreating}
+                />
+                {errors.lead_score && (
+                  <p className="text-sm text-red-500">{errors.lead_score}</p>
+                )}
+              </div>
             </div>
 
-            {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="bg-blue-100 text-blue-800"
-                  >
-                    {tag}
-                    <X
-                      className="ml-1 h-3 w-3 cursor-pointer"
-                      onClick={() => handleRemoveTag(tag)}
-                    />
-                  </Badge>
-                ))}
+            {/* Tags */}
+            <div className="space-y-3">
+              <Label>Tags</Label>
+
+              {/* Tag Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add custom tag"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={handleTagKeyPress}
+                  disabled={isCreating}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddTag}
+                  disabled={!newTag.trim() || isCreating}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
-            )}
+
+              {/* Predefined Tags */}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Quick add:</p>
+                <div className="flex flex-wrap gap-2">
+                  {PREDEFINED_TAGS.map((tag) => (
+                    <Button
+                      key={tag}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddPredefinedTag(tag)}
+                      disabled={formData.tags.includes(tag) || isCreating}
+                      className="h-7 text-xs"
+                    >
+                      + {tag}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selected Tags */}
+              {formData.tags.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Selected tags:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          disabled={isCreating}
+                          className="ml-1 text-gray-500 hover:text-red-500"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label>Notes (optional)</Label>
-            <Textarea
-              placeholder="Additional notes about the lead..."
-              value={formData.notes}
-              onChange={(e) => handleInputChange("notes", e.target.value)}
-              rows={3}
-            />
-          </div>
-        </div>
+          {/* Additional Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Additional Information</h3>
 
-        <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isCreating}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isCreating}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              "Create new lead"
-            )}
-          </Button>
-        </DialogFooter>
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any additional notes about this lead..."
+                value={formData.notes}
+                onChange={(e) => handleInputChange("notes", e.target.value)}
+                rows={4}
+                disabled={isCreating}
+              />
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end gap-3 pt-6 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isCreating}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isCreating}>
+              {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Lead
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

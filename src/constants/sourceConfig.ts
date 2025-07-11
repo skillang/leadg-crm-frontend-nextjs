@@ -1,0 +1,16 @@
+export const SOURCE_OPTIONS = [
+  { value: "advertisement", label: "Advertisement" },
+  { value: "bulk upload", label: "Bulk Upload" },
+  { value: "cold_call", label: "Cold Call" },
+  { value: "email_campaign", label: "Email Campaign" },
+  //   { value: "facebook", label: "Facebook" },
+  //   { value: "instagram", label: "Instagram" },
+  { value: "naukri", label: "Naukri" },
+  //   { value: "reddit", label: "Reddit" },
+  { value: "referral", label: "Referral" },
+  { value: "social_media", label: "Social Media" },
+  { value: "walk_in", label: "Walk In" },
+  { value: "website", label: "Website" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "youtube", label: "YouTube" },
+];

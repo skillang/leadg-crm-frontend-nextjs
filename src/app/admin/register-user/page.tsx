@@ -62,7 +62,7 @@ const AdminRegisterUserPage = () => {
   const { user } = useAppSelector((state) => state.auth);
 
   // RTK Query mutation and queries
-  const [adminRegisterUser, { isLoading, error, isSuccess }] =
+  const [adminRegisterUser, { isLoading, error }] =
     useAdminRegisterUserMutation();
 
   // 🔥 FETCH DEPARTMENTS FROM API

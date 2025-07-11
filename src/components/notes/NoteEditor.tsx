@@ -26,6 +26,7 @@ import {
   useUpdateNoteMutation,
 } from "@/redux/slices/notesApi";
 import { useNotifications } from "@/components/common/NotificationSystem"; // ✅ New import
+import { PREDEFINED_TAGS } from "@/constants/tagsConfig"; // Import predefined tags
 
 interface NoteEditorProps {
   isOpen: boolean;
@@ -61,29 +62,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   const isEditing = !!note;
   const isLoading = isCreating || isUpdating;
-
-  // Predefined tag options
-  const tagOptions = [
-    "USA",
-    "Germany",
-    "IELTS Ready",
-    "Engineering",
-    "MBA",
-    "Canada",
-    "UK",
-    "Fall 2025",
-    "Budget",
-    "Visa",
-    "Documents",
-    "Australia",
-    "New Zealand",
-    "Masters",
-    "Bachelors",
-    "PhD",
-    "Scholarship",
-    "Interview",
-    "Application",
-  ];
 
   // Reset form when note changes or dialog opens
   useEffect(() => {
@@ -296,7 +274,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Quick tags:</p>
               <div className="flex flex-wrap gap-2">
-                {tagOptions.map((tag) => (
+                {PREDEFINED_TAGS.map((tag) => (
                   <Badge
                     key={tag}
                     variant="outline"

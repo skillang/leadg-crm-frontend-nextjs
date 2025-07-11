@@ -31,7 +31,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   const [deleteNote, { isLoading: isDeleting }] = useDeleteNoteMutation();
 
   // ✅ NEW: Use simplified notification system
-  const { showSuccess, showError, showConfirm } = useNotifications();
+  const { showError, showConfirm, showWarning } = useNotifications();
 
   // ✅ UPDATED: Replaced window.confirm with notification dialog
   const handleDelete = () => {
@@ -43,7 +43,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
       onConfirm: async () => {
         try {
           await deleteNote(note.id).unwrap();
-          showSuccess(`Note "${note.title}" deleted successfully`);
+          showWarning(
+            `Note "${note.title}" deleted successfully`,
+            "Note Delete"
+          );
         } catch (error) {
           console.error("Failed to delete note:", error);
           showError("Failed to delete note. Please try again.");

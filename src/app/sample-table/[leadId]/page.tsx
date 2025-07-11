@@ -102,7 +102,7 @@ export default function LeadDetailsPage() {
   const [activeTab, setActiveTab] = useState("notes");
   const [updateStage, { isLoading: isUpdatingStage }] =
     useUpdateLeadStageMutation();
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError, showWarning } = useNotifications();
   const params = useParams();
   const router = useRouter();
   const leadId = params?.leadId as string;
@@ -119,13 +119,21 @@ export default function LeadDetailsPage() {
 
   const handleCall = () => {
     if (leadDetails?.phoneNumber) {
-      window.open(`tel:${leadDetails.phoneNumber}`, "_self");
+      showWarning(
+        `Phone call feature is not available yet, Tata Tele coming soon`,
+        "Feature Coming soon"
+      );
+    } else {
+      showError("No phone number available for this lead", "No Phone Number");
     }
   };
 
   const handleEmail = () => {
     if (leadDetails?.email) {
-      window.open(`mailto:${leadDetails.email}`, "_self");
+      // window.open(`mailto:${leadDetails.email}`, "_self");
+      showWarning(`Email feature is not available yet`, "Feature Coming soon");
+    } else {
+      showError("No email address available for this lead", "No Email Address");
     }
   };
 
@@ -136,7 +144,7 @@ export default function LeadDetailsPage() {
       return;
     }
     // TODO: Implement WhatsApp modal
-    showSuccess("WhatsApp feature coming soon!");
+    showWarning("WhatsApp chat is not available yet", "Feature Coming soon");
   };
 
   // Loading state
@@ -200,7 +208,10 @@ export default function LeadDetailsPage() {
       }).unwrap();
 
       // Show success notification
-      showSuccess(`${leadDetails.name}'s stage updated to "${newStage}"`);
+      showSuccess(
+        `${leadDetails.name}'s stage updated to "${newStage}"`,
+        "Lead Stage updated successfully!"
+      );
     } catch (err: unknown) {
       const error = err as {
         message?: string;

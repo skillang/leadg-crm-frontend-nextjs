@@ -27,7 +27,7 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
   const [viewingContact, setViewingContact] = useState<Contact | undefined>();
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  const { showSuccess, showError, showConfirm } = useNotifications();
+  const { showError, showConfirm, showWarning } = useNotifications();
 
   // Add delete mutation
   const [deleteContact, { isLoading: isDeleting }] = useDeleteContactMutation();
@@ -273,13 +273,15 @@ const ContactsContainer: React.FC<ContactsContainerProps> = ({ leadId }) => {
                       onConfirm: async () => {
                         try {
                           await deleteContact(contact.id).unwrap();
-                          showSuccess(
-                            `Contact "${contact.full_name}" deleted successfully`
+                          showWarning(
+                            `Contact "${contact.full_name}" deleted successfully`,
+                            "Contact Deleted !"
                           );
                         } catch (error) {
                           console.error("Failed to delete contact:", error);
                           showError(
-                            "Failed to delete contact. Please try again."
+                            "Failed to delete contact.",
+                            "Please try again."
                           );
                         }
                       },

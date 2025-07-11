@@ -8,7 +8,7 @@ import {
   NotebookText,
   Users,
   LayoutDashboard,
-  Bell,
+  // Bell,
   ChevronDown,
   User,
   LogOut,
@@ -85,7 +85,7 @@ const items = [
 ];
 
 const SideNavBarComp = () => {
-  const [notificationCount] = useState(3);
+  // const [notificationCount] = useState(3);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

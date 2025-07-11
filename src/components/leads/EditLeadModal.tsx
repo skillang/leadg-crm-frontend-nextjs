@@ -29,6 +29,8 @@ import {
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
 import { LEAD_STAGES } from "@/constants/stageConfig";
+import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
+import { PREDEFINED_TAGS } from "@/constants/tagsConfig";
 
 interface EditLeadModalProps {
   isOpen: boolean;
@@ -87,31 +89,6 @@ interface ApiError {
   message?: string;
   status?: number;
 }
-
-const SOURCES = [
-  { value: "website", label: "Website" },
-  { value: "referral", label: "Referral" },
-  { value: "social_media", label: "Social Media" },
-  { value: "email_campaign", label: "Email Campaign" },
-  { value: "phone_call", label: "Phone Call" },
-  { value: "walk_in", label: "Walk In" },
-  { value: "other", label: "Other" },
-];
-
-const PREDEFINED_TAGS = [
-  "USA",
-  "Germany",
-  "IELTS Ready",
-  "Engineering",
-  "MBA",
-  "Medical",
-  "Arts",
-  "Business",
-  "Technology",
-  "High Priority",
-  "Follow Up",
-  "Hot Lead",
-];
 
 const EditLeadModal: React.FC<EditLeadModalProps> = ({
   isOpen,
@@ -417,7 +394,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SOURCES.map((source) => (
+                    {SOURCE_OPTIONS.map((source) => (
                       <SelectItem key={source.value} value={source.value}>
                         {source.label}
                       </SelectItem>
