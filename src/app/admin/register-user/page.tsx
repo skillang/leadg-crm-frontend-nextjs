@@ -391,10 +391,10 @@ const AdminRegisterUserPage = () => {
   }
 
   return (
-    <div className="">
-      <div className="container mx-auto">
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container mx-auto py-6 space-y-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2 mb-2">
@@ -421,7 +421,7 @@ const AdminRegisterUserPage = () => {
         </div>
 
         {/* Admin Badge */}
-        <div className="mb-6">
+        <div className="mb-4">
           <Badge variant="secondary" className="gap-1">
             <Shield className="w-3 h-3" />
             Admin Access Required
@@ -430,7 +430,7 @@ const AdminRegisterUserPage = () => {
 
         {/* Success Alert */}
         {successMessage && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
+          <Alert className="mb-4 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
               {successMessage}
@@ -440,7 +440,7 @@ const AdminRegisterUserPage = () => {
 
         {/* Error Alert */}
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {(error as any)?.data?.detail ||
@@ -451,7 +451,7 @@ const AdminRegisterUserPage = () => {
 
         {/* Departments Error */}
         {departmentsError && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               Failed to load departments. Using fallback options.
@@ -460,7 +460,7 @@ const AdminRegisterUserPage = () => {
         )}
 
         {/* Current Admin Info */}
-        <Card className="mb-6 border-blue-200 bg-blue-50/50">
+        <Card className="mb-4 border-blue-200 bg-blue-50/50">
           <CardContent className="">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -756,7 +756,7 @@ const AdminRegisterUserPage = () => {
                   </Select>
                 </div>
 
-                {/* Departments */}
+                {/* Departments - FIXED: Removed max-h-60 overflow-y-auto */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label>Departments * (Select at least one)</Label>
@@ -773,7 +773,7 @@ const AdminRegisterUserPage = () => {
                   </div>
 
                   {availableDepartments.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-md p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-md p-3">
                       {availableDepartments.map((dept) => (
                         <div
                           key={dept.name}
@@ -862,7 +862,7 @@ const AdminRegisterUserPage = () => {
         </Card>
 
         {/* Help Section */}
-        <Card className="mt-8">
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>User Registration Guidelines</CardTitle>
           </CardHeader>

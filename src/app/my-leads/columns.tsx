@@ -239,9 +239,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
             Copy Email
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => router.push(`/sample-table/${lead.id}`)}
-          >
+          <DropdownMenuItem onClick={() => router.push(`/my-leads/${lead.id}`)}>
             View Details
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleEditLead}>

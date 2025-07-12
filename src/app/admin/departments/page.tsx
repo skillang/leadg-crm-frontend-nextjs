@@ -38,7 +38,7 @@ import {
   Users2,
   CheckCircle,
   AlertCircle,
-  Edit,
+  // Edit,
   Trash2,
   UserPlus,
 } from "lucide-react";
@@ -365,7 +365,8 @@ const DepartmentManagementPage = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Users2 className="w-4 h-4" />
-                        <span>{dept.user_count} users</span>
+                        {/* <span>{dept.user_count} users</span> */}
+                        <span>Users Count coming soon</span>
                       </div>
                     </div>
                   </CardContent>
@@ -402,20 +403,21 @@ const DepartmentManagementPage = () => {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <Users2 className="w-4 h-4" />
-                          <span>{dept.user_count} users</span>
+                          {/* <span>{dept.user_count} users</span> */}
+                          <span>Users Count coming soon</span>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
                           <div className="text-xs text-gray-500">
                             Created by {dept.created_by}
                           </div>
                           <div className="flex gap-1">
-                            <Button
+                            {/* <Button
                               size="sm"
                               variant="outline"
                               className="h-8 w-8 p-0"
                             >
                               <Edit className="w-3 h-3" />
-                            </Button>
+                            </Button> */}
                             <Button
                               size="sm"
                               variant="outline"

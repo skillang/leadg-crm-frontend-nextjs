@@ -191,11 +191,11 @@ const DashboardPage = () => {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* <a
-            href="/sample-table"
+            href="/my-leads"
             className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all group"
           > */}
           <Link
-            href="/sample-table"
+            href="/my-leads"
             className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all group"
           >
             <div className="flex items-center gap-3">

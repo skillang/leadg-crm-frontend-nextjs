@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import {
   Plus,
   Search,
-  Settings,
+  Edit,
   Eye,
   EyeOff,
   Users,
@@ -248,7 +248,7 @@ const CategoriesPage = () => {
                     size="sm"
                     onClick={() => setEditingCategory(category)}
                   >
-                    <Settings className="h-4 w-4" />
+                    <Edit className="h-4 w-4" />
                   </Button>
                 )}
               </div>

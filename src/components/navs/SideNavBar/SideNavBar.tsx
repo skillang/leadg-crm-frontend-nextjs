@@ -41,7 +41,7 @@ const items = [
   },
   {
     title: "My Leads",
-    url: "/sample-table",
+    url: "/my-leads",
     icon: Users,
   },
   {
@@ -68,7 +68,7 @@ const items = [
     title: "Register User",
     url: "/admin/register-user",
     icon: UserPlus,
-    adminOnly: true, // Add this flag
+    adminOnly: true,
   },
   {
     title: "Manage Departments",
@@ -85,7 +85,6 @@ const items = [
 ];
 
 const SideNavBarComp = () => {
-  // const [notificationCount] = useState(3);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -105,19 +104,23 @@ const SideNavBarComp = () => {
     }
   };
 
-  const filteredItems = items.filter((item) => {
+  // Filter main menu items (exclude admin-only items from main menu)
+  const mainMenuItems = items.filter((item) => {
     // Only show Reports to Admin users
     if (item.title === "Reports" && !isAdmin) {
       return false;
     }
 
-    // 🔥 Hide admin-only items from non-admin users
-    if (item.adminOnly && !isAdmin) {
+    // Hide all admin-only items from main menu (they'll be in Admin Features section)
+    if (item.adminOnly) {
       return false;
     }
 
     return true;
   });
+
+  // Get admin-only items for Admin Features section
+  const adminMenuItems = items.filter((item) => item.adminOnly);
 
   return (
     <Sidebar>
@@ -134,10 +137,11 @@ const SideNavBarComp = () => {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Main Menu */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredItems.map((item) => (
+              {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -150,52 +154,39 @@ const SideNavBarComp = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {isAdmin && filteredItems.some((item) => item.adminOnly) && (
-                <>
-                  <div className="px-2 py-2 mt-4">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-t pt-2">
-                      Administration
-                    </div>
-                  </div>
-                  {filteredItems
-                    .filter((item) => item.adminOnly) // Admin items
-                    .map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <a href={item.url} className="relative">
-                            <item.icon />
-                            <span>{item.title}</span>
-                            <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
-                              Admin
-                            </span>
-                          </a>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                </>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+
+        {/* Admin Features Section */}
+        {isAdmin && adminMenuItems.length > 0 && (
+          <SidebarGroup>
+            <div className="px-2 py-2">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-t pt-2">
+                Admin Features
+              </div>
+            </div>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <a href={item.url} className="relative">
+                        <item.icon />
+                        <span>{item.title}</span>
+                        <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
+                          Admin
+                        </span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* Footer */}
       <SidebarFooter className="p-2 border-t">
         <div className="space-y-3">
-          {/* Notifications */}
-          {/* <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Notifications</span>
-            </div>
-            <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
-              {notificationCount}
-            </span>
-          </div> */}
-
           {/* User Account */}
           <div className="relative">
             <button
@@ -242,11 +233,6 @@ const SideNavBarComp = () => {
                     <User className="w-4 h-4" />
                     <span className="text-sm">Profile</span>
                   </button>
-                  {/* 
-                  <button className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors">
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
-                  </button> */}
 
                   <hr className="my-1" />
 
@@ -288,7 +274,6 @@ const SideNavBarComp = () => {
                     : "bg-green-100 text-green-700"
                 }`}
               >
-                {/* {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'} */}
                 {user?.role
                   ? user.role.toLowerCase() === "user"
                     ? "Team Member"
