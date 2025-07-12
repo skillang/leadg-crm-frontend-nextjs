@@ -56,9 +56,7 @@ export const categoriesApi = createApi({
         const { include_inactive = false } = params || {};
         const urlParams = new URLSearchParams();
         if (include_inactive) urlParams.append("include_inactive", "true");
-        return `${
-          process.env.NEXT_PUBLIC_API_BASE_URL
-        }/lead-categories?${urlParams.toString()}`;
+        return `/lead-categories/?${urlParams.toString()}`;
       },
       transformResponse: (response: {
         success: boolean;
@@ -88,7 +86,7 @@ export const categoriesApi = createApi({
       CreateCategoryRequest
     >({
       query: (categoryData) => ({
-        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/lead-categories/`,
+        url: `/lead-categories/`,
         method: "POST",
         body: categoryData,
       }),
@@ -108,7 +106,7 @@ export const categoriesApi = createApi({
       { categoryId: string; data: UpdateCategoryRequest }
     >({
       query: ({ categoryId, data }) => ({
-        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/lead-categories/${categoryId}`,
+        url: `/lead-categories/${categoryId}`,
         method: "PUT",
         body: data,
       }),
