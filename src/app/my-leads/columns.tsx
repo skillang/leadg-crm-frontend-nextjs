@@ -84,6 +84,85 @@ const WhatsAppButton: React.FC<{
   );
 };
 
+// ✅ FIXED: Extract contact cell into proper React component
+const ContactCell: React.FC<{ row: Row<Lead> }> = ({ row }) => {
+  const contact = row.getValue("contact") as string;
+  const email = row.original.email || "";
+  const leadName = row.original.name;
+
+  // ✅ Now this hook is properly called in a React component
+  const { showWarning } = useNotifications();
+
+  const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
+    if (!phoneNumber) return showWarning("No phone number available");
+    showWarning(
+      `Phone call to ${leadName || phoneNumber} is not available yet`,
+      "Feature Coming Soon..."
+    );
+  };
+
+  const handleEmail = (email: string) => {
+    if (!email) return showWarning("No email address available");
+    showWarning("Email feature is not available yet", "Feature Coming Soon...");
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+              onClick={() => handlePhoneCall(contact, leadName)}
+              disabled={!contact}
+            >
+              <Phone
+                className={`h-4 w-4 ${
+                  contact
+                    ? "text-gray-600 hover:text-blue-600"
+                    : "text-gray-300"
+                }`}
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {contact ? `Call ${leadName} via Tata Tele` : "No phone number"}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <WhatsAppButton phoneNumber={contact} leadName={leadName} />
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+              onClick={() => handleEmail(email)}
+              disabled={!email}
+            >
+              <Mail
+                className={`h-4 w-4 ${
+                  email ? "text-blue-600 hover:text-blue-700" : "text-gray-300"
+                }`}
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{email ? `Email ${email}` : "No email address"}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+};
+
 // FINAL StageSelectCell with Notifications (Clean - No Debug Logs)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading, error }] = useUpdateLeadStageMutation();
@@ -323,94 +402,11 @@ export const columns: ColumnDef<Lead>[] = [
     header: "Stage",
     cell: StageSelectCell,
   },
-  // Fixed contact cell - move useNotifications inside the cell component
+  // ✅ FIXED: Use proper React component instead of inline function
   {
     accessorKey: "contact",
     header: "Contact",
-    cell: ({ row }) => {
-      const contact = row.getValue("contact") as string;
-      const email = row.original.email || "";
-      const leadName = row.original.name;
-
-      // ✅ Move the hook call inside the component
-      const { showWarning } = useNotifications();
-
-      const handlePhoneCall = (phoneNumber: string, leadName?: string) => {
-        if (!phoneNumber) return showWarning("No phone number available");
-        showWarning(
-          `Phone call to ${leadName || phoneNumber} is not available yet`,
-          "Feature Coming Soon..."
-        );
-      };
-
-      const handleEmail = (email: string) => {
-        if (!email) return showWarning("No email address available");
-        showWarning(
-          "Email feature is not available yet",
-          "Feature Coming Soon..."
-        );
-      };
-
-      return (
-        <div className="flex items-center gap-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handlePhoneCall(contact, leadName)} // ✅ No need to pass notifications
-                  disabled={!contact}
-                >
-                  <Phone
-                    className={`h-4 w-4 ${
-                      contact
-                        ? "text-gray-600 hover:text-blue-600"
-                        : "text-gray-300"
-                    }`}
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {contact
-                    ? `Call ${leadName} via Tata Tele`
-                    : "No phone number"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <WhatsAppButton phoneNumber={contact} leadName={leadName} />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={() => handleEmail(email)} // ✅ No need to pass notifications
-                  disabled={!email}
-                >
-                  <Mail
-                    className={`h-4 w-4 ${
-                      email
-                        ? "text-blue-600 hover:text-blue-700"
-                        : "text-gray-300"
-                    }`}
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{email ? `Email ${email}` : "No email address"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      );
-    },
+    cell: ContactCell,
   },
   {
     accessorKey: "source",

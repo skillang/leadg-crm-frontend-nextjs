@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAppSelector } from "@/redux/hooks";
 import {
   useAdminRegisterUserMutation,
-  useGetDepartmentsQuery, // 🔥 ADD THIS
+  useGetDepartmentsQuery,
 } from "@/redux/slices/authApi";
+import { useNotifications } from "@/components/common/NotificationSystem";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,19 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import {
-  Eye,
-  EyeOff,
-  UserPlus,
-  ArrowLeft,
-  Shield,
-  CheckCircle,
-  AlertCircle,
-  Settings2,
-  Users2,
-} from "lucide-react";
+import { Eye, EyeOff, UserPlus, Shield, Settings2, Users2 } from "lucide-react";
 
 // Form validation types
 interface FormData {
@@ -57,20 +47,34 @@ interface FormErrors {
   [key: string]: string;
 }
 
+// RTK Query error type interface
+interface RTKQueryError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
+
 const AdminRegisterUserPage = () => {
   const router = useRouter();
-  const { user } = useAppSelector((state) => state.auth);
+
+  // 🔥 ALL HOOKS MUST BE CALLED FIRST - before any conditionals
+  const { showSuccess, showError, showWarning } = useNotifications();
+  const { hasAccess, AccessDeniedComponent, user } = useAdminAccess({
+    title: "Admin Access Required",
+    description: "You need admin privileges to register new users.",
+  });
 
   // RTK Query mutation and queries
-  const [adminRegisterUser, { isLoading, error }] =
-    useAdminRegisterUserMutation();
+  const [adminRegisterUser, { isLoading }] = useAdminRegisterUserMutation();
 
-  // 🔥 FETCH DEPARTMENTS FROM API
   const {
     data: departmentsData,
     isLoading: isDepartmentsLoading,
     error: departmentsError,
-    refetch: refetchDepartments, // Add this
+    refetch: refetchDepartments,
   } = useGetDepartmentsQuery({
     include_user_count: true,
   });
@@ -92,9 +96,23 @@ const AdminRegisterUserPage = () => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
-  // 🔥 GET DEPARTMENTS FROM API (with fallback)
+  // Show error notification for departments loading error
+  React.useEffect(() => {
+    if (departmentsError) {
+      showWarning(
+        "Failed to load departments. Using fallback options.",
+        "Departments Error"
+      );
+    }
+  }, [departmentsError, showWarning]);
+
+  // 🔥 CONDITIONAL ACCESS CHECK AFTER ALL HOOKS
+  if (!hasAccess) {
+    return AccessDeniedComponent;
+  }
+
+  // GET DEPARTMENTS FROM API (with fallback)
   const availableDepartments = departmentsData?.departments?.all || [
     // Fallback in case API fails
     {
@@ -122,6 +140,26 @@ const AdminRegisterUserPage = () => {
       user_count: 0,
     },
   ];
+
+  // Helper function to extract error message with proper typing
+  const getErrorMessage = (error: unknown): string => {
+    if (!error) return "An error occurred while creating the user";
+
+    const rtkError = error as RTKQueryError;
+
+    // Try to get error message from various possible locations
+    if (rtkError.data?.detail) {
+      return rtkError.data.detail;
+    }
+    if (rtkError.data?.message) {
+      return rtkError.data.message;
+    }
+    if (rtkError.message) {
+      return rtkError.message;
+    }
+
+    return "An error occurred while creating the user";
+  };
 
   // Validation functions
   const validateField = (
@@ -256,12 +294,12 @@ const AdminRegisterUserPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
+  // Handle form submission - Updated to use notifications
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🔥 Form submission started"); // Debug log
-    console.log("Current form data:", formData); // Debug log
+    console.log("🔥 Form submission started");
+    console.log("Current form data:", formData);
 
     // Mark all fields as touched
     setTouched(
@@ -276,11 +314,15 @@ const AdminRegisterUserPage = () => {
 
     // Validate form
     if (!validateForm()) {
-      console.log("❌ Form validation failed:", errors); // Debug log
+      console.log("❌ Form validation failed:", errors);
+      showError(
+        "Please fix the form errors before submitting.",
+        "Validation Error"
+      );
       return;
     }
 
-    console.log("✅ Form validation passed"); // Debug log
+    console.log("✅ Form validation passed");
 
     try {
       const result = await adminRegisterUser({
@@ -294,14 +336,15 @@ const AdminRegisterUserPage = () => {
         departments: formData.departments,
       }).unwrap();
 
-      console.log("✅ User created successfully:", result); // Debug log
+      console.log("✅ User created successfully:", result);
 
       // Refetch departments to include the new user
       refetchDepartments();
 
-      // Show success message
-      setSuccessMessage(
-        `User "${formData.firstName} ${formData.lastName}" has been successfully created!`
+      // Use notification system instead of local state
+      showSuccess(
+        `User "${formData.firstName} ${formData.lastName}" has been successfully created!`,
+        "User Created"
       );
 
       // Reset form
@@ -320,10 +363,11 @@ const AdminRegisterUserPage = () => {
       setTouched({});
     } catch (err) {
       console.error("❌ Registration failed:", err);
+      showError(getErrorMessage(err), "Registration Failed");
     }
   };
 
-  // 🔥 FIXED: Better form validation check
+  // Better form validation check
   const isFormValid = () => {
     // Check if all required fields have values
     const requiredFieldsComplete = {
@@ -352,43 +396,8 @@ const AdminRegisterUserPage = () => {
       return error !== "";
     });
 
-    console.log("Form validation check:", {
-      allFieldsFilled,
-      touchedFieldErrors: touchedFieldErrors.length,
-      touched: Object.keys(touched),
-      formData,
-    });
-
     return allFieldsFilled && touchedFieldErrors.length === 0;
   };
-
-  // Admin access check
-  if (user?.role !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-destructive" />
-            </div>
-            <CardTitle className="text-destructive">Access Denied</CardTitle>
-            <CardDescription>
-              This page requires admin privileges to access.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => router.push("/dashboard")}
-              className="w-full"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Go to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -427,37 +436,6 @@ const AdminRegisterUserPage = () => {
             Admin Access Required
           </Badge>
         </div>
-
-        {/* Success Alert */}
-        {successMessage && (
-          <Alert className="mb-4 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {successMessage}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {(error as any)?.data?.detail ||
-                "An error occurred while creating the user"}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Departments Error */}
-        {departmentsError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Failed to load departments. Using fallback options.
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Current Admin Info */}
         <Card className="mb-4 border-blue-200 bg-blue-50/50">
@@ -756,7 +734,7 @@ const AdminRegisterUserPage = () => {
                   </Select>
                 </div>
 
-                {/* Departments - FIXED: Removed max-h-60 overflow-y-auto */}
+                {/* Departments */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label>Departments * (Select at least one)</Label>

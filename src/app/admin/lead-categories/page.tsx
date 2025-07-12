@@ -20,7 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/redux/hooks/useAuth";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   useGetCategoriesQuery,
   useCreateCategoryMutation,
@@ -31,7 +32,13 @@ import EditCategoryModal from "@/components/leads/EditCategoryModal";
 import type { Category } from "@/models/types/category";
 
 const CategoriesPage = () => {
-  const { isAdmin } = useAuth();
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
+  const { showSuccess, showError } = useNotifications();
+  const { hasAccess, AccessDeniedComponent } = useAdminAccess({
+    title: "Admin Access Required",
+    description: "You need admin privileges to manage lead categories.",
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -42,13 +49,24 @@ const CategoriesPage = () => {
     data: categoriesData,
     isLoading,
     error,
-    refetch,
   } = useGetCategoriesQuery({ include_inactive: showInactive });
 
   const [createCategory, { isLoading: isCreating }] =
     useCreateCategoryMutation();
   const [updateCategory, { isLoading: isUpdating }] =
     useUpdateCategoryMutation();
+
+  // Show error notification for loading errors
+  React.useEffect(() => {
+    if (error) {
+      showError("Failed to load categories", "Loading Error");
+    }
+  }, [error, showError]);
+
+  // CONDITIONAL ACCESS CHECK AFTER ALL HOOKS
+  if (!hasAccess) {
+    return AccessDeniedComponent;
+  }
 
   // Filter categories based on search term
   const filteredCategories =
@@ -69,8 +87,16 @@ const CategoriesPage = () => {
     try {
       await createCategory(categoryData).unwrap();
       setIsCreateModalOpen(false);
+      showSuccess(
+        `Category "${categoryData.name}" created successfully!`,
+        "Category Created"
+      );
     } catch (error) {
       console.error("Failed to create category:", error);
+      showError(
+        "Failed to create category. Please try again.",
+        "Creation Failed"
+      );
     }
   };
 
@@ -87,8 +113,16 @@ const CategoriesPage = () => {
         data: categoryData,
       }).unwrap();
       setEditingCategory(null);
+      showSuccess(
+        `Category "${categoryData.name}" updated successfully!`,
+        "Category Updated"
+      );
     } catch (error) {
       console.error("Failed to update category:", error);
+      showError(
+        "Failed to update category. Please try again.",
+        "Update Failed"
+      );
     }
   };
 
@@ -108,17 +142,6 @@ const CategoriesPage = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Failed to load categories</p>
-        <Button onClick={() => refetch()} className="mt-4">
-          Try Again
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -130,15 +153,14 @@ const CategoriesPage = () => {
           </p>
         </div>
 
-        {isAdmin && (
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Category
-          </Button>
-        )}
+        {/* Since only admins can access this page, always show the button */}
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Category
+        </Button>
       </div>
 
       {/* Summary Stats */}
@@ -242,15 +264,14 @@ const CategoriesPage = () => {
                   </div>
                 </div>
 
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingCategory(category)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                )}
+                {/* Since only admins can access this page, always show the edit button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingCategory(category)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
               </div>
             </CardHeader>
 

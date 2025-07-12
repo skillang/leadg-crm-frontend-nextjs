@@ -38,6 +38,30 @@ import { useNotifications } from "@/components/common/NotificationSystem";
 import { BulkLeadData } from "@/models/types/lead";
 import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
 
+// ✅ FIXED: Proper type for CSV row data
+interface CsvRowData {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+// ✅ FIXED: Proper type for normalized row data
+interface NormalizedRowData {
+  name?: string | number;
+  email?: string | number;
+  contact_number?: string | number;
+  country_of_interest?: string | number;
+  course_level?: string | number;
+  notes?: string | number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+// ✅ FIXED: Proper error type
+interface ApiError {
+  message?: string;
+  data?: {
+    detail?: string | { msg: string }[];
+  };
+}
+
 // Local interface for component state (flat structure for easier form handling)
 interface LocalBulkLeadData {
   name: string;
@@ -180,7 +204,8 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
     );
   };
 
-  const generateNotesFromRow = (row: Record<string, any>): string => {
+  // ✅ FIXED: Proper typing for generateNotesFromRow
+  const generateNotesFromRow = (row: CsvRowData): string => {
     const notesLines: string[] = [];
 
     // ✅ UPDATED: Fields specific to user's CSV format
@@ -245,24 +270,22 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
       setIsProcessingFile(true);
 
       // ✅ FIXED: Proper typing for Papa Parse
-      Papa.parse<Record<string, any>>(file, {
+      Papa.parse<CsvRowData>(file, {
         header: true,
         skipEmptyLines: true,
         dynamicTyping: true,
         delimitersToGuess: [",", "\t", "|", ";"],
-        complete: (results: ParseResult<Record<string, any>>) => {
+        complete: (results: ParseResult<CsvRowData>) => {
           try {
             console.log("📄 Raw CSV parsing results:", results);
             console.log(
               "📊 Sample row data types:",
               results.data.length > 0
-                ? Object.keys(results.data[0] as Record<string, any>).map(
+                ? Object.keys(results.data[0] as CsvRowData).map(
                     (key) =>
-                      `${key}: ${typeof (
-                        results.data[0] as Record<string, any>
-                      )[key]} = "${
-                        (results.data[0] as Record<string, any>)[key]
-                      }"`
+                      `${key}: ${typeof (results.data[0] as CsvRowData)[
+                        key
+                      ]} = "${(results.data[0] as CsvRowData)[key]}"`
                   )
                 : "No data"
             );
@@ -273,10 +296,10 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
             }
 
             const transformedLeads: LocalBulkLeadData[] = results.data
-              .map((row: any, index: number) => {
+              .map((row: CsvRowData, index: number) => {
                 try {
-                  // Normalize headers and extract values
-                  const normalizedRow: Record<string, any> = {};
+                  // ✅ FIXED: Normalize headers and extract values with proper typing
+                  const normalizedRow: NormalizedRowData = {};
                   Object.keys(row).forEach((key) => {
                     const normalizedKey = normalizeHeader(key);
                     normalizedRow[normalizedKey] = row[key];
@@ -351,12 +374,12 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
                 }
                 if (!hasValidContact) {
                   console.warn(
-                    `❌ Skipping - Invalid contact "${lead.contact_number}"`
+                    `❌ Skipping - Invalid contact "${lead!.contact_number}"`
                   );
                   return false;
                 }
                 if (!hasValidEmail) {
-                  console.warn(`❌ Skipping - Invalid email "${lead.email}"`);
+                  console.warn(`❌ Skipping - Invalid email "${lead!.email}"`);
                   return false;
                 }
 
@@ -370,8 +393,10 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
               `✅ Successfully parsed ${transformedLeads.length} valid leads`
             );
             setParsedLeads(transformedLeads);
-          } catch (error: any) {
-            console.error("❌ Error in CSV processing:", error);
+          } catch (error) {
+            // ✅ FIXED: Proper error typing
+            const typedError = error as Error;
+            console.error("❌ Error in CSV processing:", typedError);
             showError("Parse Error", "Failed to process CSV file");
           } finally {
             setIsProcessingFile(false);
@@ -498,11 +523,15 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
       } else {
         showError("Upload Failed", result.message);
       }
-    } catch (error: any) {
-      console.error("❌ Bulk create failed:", error);
+    } catch (error) {
+      // ✅ FIXED: Proper error typing
+      const typedError = error as ApiError;
+      console.error("❌ Bulk create failed:", typedError);
       const errorMessage =
-        error?.data?.detail || error?.message || "Failed to create leads";
-      showError("Upload Failed", errorMessage);
+        typedError?.data?.detail ||
+        typedError?.message ||
+        "Failed to create leads";
+      showError("Upload Failed", String(errorMessage));
     }
   };
 

@@ -2,25 +2,19 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAppSelector } from "@/redux/hooks";
 import {
   useGetDepartmentsQuery,
   useCreateDepartmentMutation,
-  useUpdateDepartmentMutation,
+  // useUpdateDepartmentMutation,
   useDeleteDepartmentMutation,
 } from "@/redux/slices/authApi";
+import { useNotifications } from "@/components/common/NotificationSystem";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -32,12 +26,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  ArrowLeft,
   Building2,
   Plus,
   Users2,
-  CheckCircle,
-  AlertCircle,
   // Edit,
   Trash2,
   UserPlus,
@@ -45,7 +36,13 @@ import {
 
 const DepartmentManagementPage = () => {
   const router = useRouter();
-  const { user } = useAppSelector((state) => state.auth);
+
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
+  const { showSuccess, showError, showConfirm } = useNotifications();
+  const { hasAccess, AccessDeniedComponent } = useAdminAccess({
+    title: "Admin Access Required",
+    description: "You need admin privileges to manage departments.",
+  });
 
   // API hooks
   const {
@@ -58,14 +55,11 @@ const DepartmentManagementPage = () => {
   });
   const [createDepartment, { isLoading: isCreating }] =
     useCreateDepartmentMutation();
-  const [updateDepartment, { isLoading: isUpdating }] =
-    useUpdateDepartmentMutation();
   const [deleteDepartment, { isLoading: isDeleting }] =
     useDeleteDepartmentMutation();
 
   // Component state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [createFormData, setCreateFormData] = useState({
     name: "",
     description: "",
@@ -73,7 +67,19 @@ const DepartmentManagementPage = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Handle create department
+  // Show error notification for loading errors
+  React.useEffect(() => {
+    if (error) {
+      showError("Failed to load departments", "Loading Error");
+    }
+  }, [error, showError]);
+
+  // CONDITIONAL ACCESS CHECK AFTER ALL HOOKS
+  if (!hasAccess) {
+    return AccessDeniedComponent;
+  }
+
+  // Handle create department - Updated to use notifications
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -96,59 +102,53 @@ const DepartmentManagementPage = () => {
         is_active: createFormData.is_active,
       }).unwrap();
 
-      setSuccessMessage("Department created successfully!");
+      // Use notification system instead of local state
+      showSuccess(
+        `Department "${createFormData.name}" created successfully!`,
+        "Department Created"
+      );
+
       setIsCreateDialogOpen(false);
       setCreateFormData({ name: "", description: "", is_active: true });
       setErrors({});
       refetch();
     } catch (err) {
       console.error("Failed to create department:", err);
+      showError(
+        "Failed to create department. Please try again.",
+        "Creation Failed"
+      );
     }
   };
 
-  // Handle delete department
+  // Handle delete department - Updated to use confirmation dialog
   const handleDeleteDepartment = async (
     departmentId: string,
     departmentName: string
   ) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${departmentName}"? This action cannot be undone.`
-      )
-    ) {
-      try {
-        await deleteDepartment(departmentId).unwrap();
-        setSuccessMessage("Department deleted successfully!");
-        refetch();
-      } catch (err) {
-        console.error("Failed to delete department:", err);
-      }
-    }
+    showConfirm({
+      title: "Delete Department",
+      description: `Are you sure you want to delete "${departmentName}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteDepartment(departmentId).unwrap();
+          showSuccess(
+            `Department "${departmentName}" deleted successfully!`,
+            "Department Deleted"
+          );
+          refetch();
+        } catch (err) {
+          console.error("Failed to delete department:", err);
+          showError(
+            "Failed to delete department. Please try again.",
+            "Deletion Failed"
+          );
+        }
+      },
+    });
   };
-
-  // Admin access check
-  if (user?.role !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <CardTitle className="text-red-600">Access Denied</CardTitle>
-            <CardDescription>Admin privileges required</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => router.push("/dashboard")}
-              className="w-full"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -174,24 +174,6 @@ const DepartmentManagementPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <Alert className="mb-6 border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            {successMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Failed to load departments</AlertDescription>
-        </Alert>
-      )}
 
       {/* Stats Cards */}
       {departmentsData && (
@@ -365,7 +347,6 @@ const DepartmentManagementPage = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Users2 className="w-4 h-4" />
-                        {/* <span>{dept.user_count} users</span> */}
                         <span>Users Count coming soon</span>
                       </div>
                     </div>
@@ -384,9 +365,10 @@ const DepartmentManagementPage = () => {
                 {departmentsData?.custom_count || 0}
               </Badge>
             </h2>
-            {departmentsData?.departments?.custom?.length! > 0 ? (
+            {departmentsData?.departments?.custom &&
+            departmentsData.departments.custom.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {departmentsData!.departments.custom.map((dept) => (
+                {departmentsData.departments.custom.map((dept) => (
                   <Card key={dept.id}>
                     <CardContent className="pt-6">
                       <div className="space-y-3">
@@ -403,7 +385,6 @@ const DepartmentManagementPage = () => {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <Users2 className="w-4 h-4" />
-                          {/* <span>{dept.user_count} users</span> */}
                           <span>Users Count coming soon</span>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
@@ -411,13 +392,6 @@ const DepartmentManagementPage = () => {
                             Created by {dept.created_by}
                           </div>
                           <div className="flex gap-1">
-                            {/* <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button> */}
                             <Button
                               size="sm"
                               variant="outline"

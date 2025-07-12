@@ -52,9 +52,9 @@ export const categoriesApi = createApi({
       { include_inactive?: boolean } | void
     >({
       query: (params = {}) => {
-        // const { include_inactive = false } = params;
+        const { include_inactive = false } = params || {};
         const urlParams = new URLSearchParams();
-        // if (include_inactive) urlParams.append("include_inactive", "true");
+        if (include_inactive) urlParams.append("include_inactive", "true");
         return `/lead-categories?${urlParams.toString()}`;
       },
       transformResponse: (response: {

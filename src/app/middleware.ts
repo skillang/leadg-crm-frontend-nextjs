@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
   ];
 
   // Public routes (allow without authentication)
-  const publicRoutes = ["/login", "/", "/forgot-password"];
+  // const publicRoutes = ["/login", "/", "/forgot-password"];
 
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
   const isProtectedRoute = protectedRoutes.some((route) =>

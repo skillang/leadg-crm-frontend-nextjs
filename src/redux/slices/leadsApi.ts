@@ -352,6 +352,7 @@ export const leadsApi = createApi({
     }),
 
     // CLEAN VERSION - Optimistic updates without debug logs
+
     updateLeadStage: builder.mutation<
       ApiLead,
       {
@@ -374,15 +375,25 @@ export const leadsApi = createApi({
           notes: currentLead.notes,
         },
       }),
-      // SIMPLE: Just use cache invalidation like the detail page
-      invalidatesTags: (_result, _error, { leadId }) => [
-        { type: "Lead", id: leadId },
-        { type: "LeadDetails", id: leadId },
-        { type: "Lead", id: "LIST" },
-        { type: "Lead", id: "MY_LIST" },
-        "LeadStats",
-      ],
-      // REMOVED: All the complex optimistic update logic
+      // 🔧 SIMPLE FIX: Just delay the cache invalidation
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Wait 100ms before invalidating to ensure DB write completes
+          setTimeout(() => {
+            dispatch(
+              leadsApi.util.invalidateTags([
+                { type: "Lead", id: arg.leadId },
+                { type: "Lead", id: "MY_LIST" },
+                { type: "LeadDetails", id: arg.leadId },
+              ])
+            );
+          }, 100);
+        } catch {
+          // Handle error
+        }
+      },
+      // Remove immediate invalidation
     }),
 
     updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
