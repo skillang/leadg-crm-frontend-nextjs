@@ -22,6 +22,7 @@ export const createBaseQueryWithReauth = (
 
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
+        headers.set("accept", "application/json"); // Add this
       }
 
       headers.set("content-type", "application/json");

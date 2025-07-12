@@ -23,6 +23,7 @@ const baseQuery = fetchBaseQuery({
       headers.set("authorization", `Bearer ${token}`);
     }
     headers.set("content-type", "application/json");
+    headers.set("accept", "application/json"); // Add this
     return headers;
   },
 });
@@ -55,7 +56,9 @@ export const categoriesApi = createApi({
         const { include_inactive = false } = params || {};
         const urlParams = new URLSearchParams();
         if (include_inactive) urlParams.append("include_inactive", "true");
-        return `/lead-categories?${urlParams.toString()}`;
+        return `${
+          process.env.NEXT_PUBLIC_API_BASE_URL
+        }/lead-categories?${urlParams.toString()}`;
       },
       transformResponse: (response: {
         success: boolean;
@@ -85,7 +88,7 @@ export const categoriesApi = createApi({
       CreateCategoryRequest
     >({
       query: (categoryData) => ({
-        url: "/lead-categories/",
+        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/lead-categories/`,
         method: "POST",
         body: categoryData,
       }),
@@ -105,7 +108,7 @@ export const categoriesApi = createApi({
       { categoryId: string; data: UpdateCategoryRequest }
     >({
       query: ({ categoryId, data }) => ({
-        url: `/lead-categories/${categoryId}`,
+        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/lead-categories/${categoryId}`,
         method: "PUT",
         body: data,
       }),
