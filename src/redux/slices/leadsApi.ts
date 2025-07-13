@@ -18,6 +18,10 @@ interface ApiLead {
   last_contacted?: string;
   notes?: string;
   category?: string;
+  assigned_to?: string; // Email of assigned user
+  assigned_to_name?: string; // Name of assigned user
+  course_level?: string; // Backend sends "course_level"
+  country_of_interest?: string; // Backend sends "country_of_interest"
 }
 
 interface AssignmentHistory {
@@ -241,6 +245,10 @@ const transformApiLead = (apiLead: ApiLead): Lead => ({
     new Date().toISOString().split("T")[0],
   department: apiLead.category || "Not Given",
   notes: apiLead.notes || "",
+  assignedTo: apiLead.assigned_to || "",
+  assignedToName: apiLead.assigned_to_name || "",
+  courseLevel: apiLead.course_level || "",
+  countryOfInterest: apiLead.country_of_interest || "",
 });
 
 const transformLeadDetailsResponse = (response: {

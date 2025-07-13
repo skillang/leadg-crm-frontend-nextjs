@@ -16,6 +16,8 @@ export interface Lead {
   // ✅ Add these for selector type safety
   assignedTo?: string;
   assignedToId?: string;
+  courseLevel?: string;
+  countryOfInterest?: string;
 }
 
 export interface LeadsState {

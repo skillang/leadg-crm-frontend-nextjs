@@ -1,4 +1,4 @@
-// src/components/leads/EditLeadModal.tsx - FIXED VERSION
+// src/components/leads/EditLeadModal.tsx - UPDATED WITH COUNTRY & COURSE LEVEL
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -31,17 +31,40 @@ import { Lead } from "@/models/types/lead";
 import { LEAD_STAGES } from "@/constants/stageConfig";
 import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
 import { PREDEFINED_TAGS } from "@/constants/tagsConfig";
+import CountryMultiSelect, {
+  formatCountriesForBackend,
+  parseCountriesFromString,
+  STUDY_DESTINATIONS,
+} from "@/components/common/CountryMultiSelect";
+
+// ✅ ADDED: Course level options
+export const COURSE_LEVEL_OPTIONS = [
+  { value: "bachelor's_degree", label: "Bachelor's Degree" },
+  { value: "master's_degree", label: "Master's Degree" },
+  { value: "phd", label: "PhD" },
+  { value: "diploma", label: "Diploma" },
+  { value: "certificate", label: "Certificate" },
+];
+
+// ✅ Extended Lead interface for edit modal (handles both basic Lead and detailed Lead)
+interface ExtendedLead extends Lead {
+  countryOfInterest?: string;
+  courseLevel?: string;
+  phoneNumber?: string;
+}
 
 interface EditLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lead: Lead | null;
+  lead: ExtendedLead | null; // ✅ Use extended interface that handles optional fields
 }
 
 interface EditLeadFormData {
   name: string;
   email: string;
   contact_number: string;
+  country_of_interest: string[]; // ✅ UPDATED: Array for multi-select
+  course_level: string;
   source: string;
   stage: string;
   lead_score: number;
@@ -59,7 +82,6 @@ interface UserStats {
   assigned_leads_count: number;
 }
 
-// ✅ NEW: Proper interface for update data payload
 interface UpdateLeadData {
   lead_id: string;
   name: string;
@@ -67,6 +89,8 @@ interface UpdateLeadData {
   stage: string;
   email?: string;
   contact_number?: string;
+  country_of_interest?: string; // ✅ String for backend (comma-separated)
+  course_level?: string;
   source?: string;
   notes?: string;
   tags?: string[];
@@ -75,7 +99,6 @@ interface UpdateLeadData {
   assignment_method?: string;
 }
 
-// ✅ NEW: Proper error types for RTK Query
 interface ApiErrorDetail {
   msg: string;
   type?: string;
@@ -99,6 +122,8 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     name: "",
     email: "",
     contact_number: "",
+    country_of_interest: [], // ✅ UPDATED: Array for multi-select
+    course_level: "",
     source: "website",
     stage: "open",
     lead_score: 0,
@@ -124,10 +149,18 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
   // Initialize form data when lead changes
   useEffect(() => {
     if (lead && isOpen) {
+      console.log("🔍 Lead object in EditLeadModal:", lead);
+      console.log("🔍 Lead courseLevel:", lead.courseLevel);
+      console.log("🔍 Lead countryOfInterest:", lead.countryOfInterest);
       setFormData({
         name: lead.name || "",
         email: lead.email || "",
-        contact_number: lead.contact || "",
+        contact_number: lead.contact || lead.phoneNumber || "",
+        // ✅ UPDATED: Parse country string to array
+        country_of_interest: lead.countryOfInterest
+          ? parseCountriesFromString(lead.countryOfInterest)
+          : [],
+        course_level: lead.courseLevel || "",
         source: lead.source || "website",
         stage: lead.stage || "open",
         lead_score: lead.leadScore || 0,
@@ -167,7 +200,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     if (selectedUser) {
       setFormData((prev) => ({
         ...prev,
-        assigned_to: selectedUser.email, // Use email instead of user_id
+        assigned_to: selectedUser.email,
         assigned_to_name: selectedUser.name,
       }));
     } else {
@@ -245,9 +278,8 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     if (!validateForm() || !lead) return;
 
     try {
-      // ✅ FIXED: Use proper typed interface instead of 'any'
       const updateData: UpdateLeadData = {
-        lead_id: lead.id,
+        lead_id: lead.id, // ✅ Use Lead.id (basic interface)
         name: formData.name,
         lead_score: formData.lead_score,
         stage: formData.stage,
@@ -259,6 +291,16 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
       }
       if (formData.contact_number.trim()) {
         updateData.contact_number = formData.contact_number;
+      }
+      if (formData.country_of_interest.length > 0) {
+        // ✅ UPDATED: Convert array to string
+        updateData.country_of_interest = formatCountriesForBackend(
+          formData.country_of_interest
+        );
+      }
+      if (formData.course_level.trim()) {
+        // ✅ UPDATED: Check for non-empty string
+        updateData.course_level = formData.course_level;
       }
       if (formData.source) {
         updateData.source = formData.source;
@@ -272,24 +314,22 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
       // Assignment fields - send email, name, and method
       if (formData.assigned_to && formData.assigned_to_name) {
-        updateData.assigned_to = formData.assigned_to; // This is the email
+        updateData.assigned_to = formData.assigned_to;
         updateData.assigned_to_name = formData.assigned_to_name;
         updateData.assignment_method = "manual by admin";
       }
 
-      console.log("Sending update data:", updateData); // For debugging
+      console.log("Sending update data:", updateData);
 
       await updateLead(updateData).unwrap();
       onClose();
     } catch (error) {
-      // ✅ FIXED: Use proper typed error instead of 'any'
       const apiError = error as ApiError;
       console.error("Failed to update lead:", apiError);
       let errorMessage = "Failed to update lead";
 
       if (apiError?.data?.detail) {
         if (Array.isArray(apiError.data.detail)) {
-          // ✅ FIXED: Properly typed error detail items
           errorMessage = apiError.data.detail
             .map((e: ApiErrorDetail) => e.msg)
             .join(", ");
@@ -304,12 +344,33 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     }
   };
 
-  if (!lead) return null;
+  const handleAssignmentChangeByName = (userName: string) => {
+    console.log("Assignment change by name:", userName);
 
-  // Get current assigned user for display
-  const currentAssignedUser = assignableUsers.find(
-    (user: UserStats) => user.email === formData.assigned_to
-  );
+    const selectedUser = assignableUsers.find(
+      (user: UserStats) => user.name === userName
+    );
+
+    if (selectedUser) {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: selectedUser.email,
+        assigned_to_name: selectedUser.name,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: "",
+        assigned_to_name: "",
+      }));
+    }
+
+    if (errors.assigned_to) {
+      setErrors((prev) => ({ ...prev, assigned_to: "" }));
+    }
+  };
+
+  if (!lead) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -370,7 +431,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
               {/* Email */}
               <div className="space-y-2">
-                <Label>Email*</Label>
+                <Label>Email</Label>
                 <Input
                   type="email"
                   placeholder="kris.redy@gmail.com"
@@ -402,6 +463,104 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* ✅ UPDATED: Country of Interest - Multi Select with Clear Preview */}
+              <div className="space-y-2 col-span-2">
+                <Label>Countries of Interest</Label>
+                <CountryMultiSelect
+                  value={formData.country_of_interest}
+                  onChange={(countries) =>
+                    handleInputChange("country_of_interest", countries)
+                  }
+                  disabled={isUpdating}
+                  placeholder={
+                    formData.country_of_interest.length > 0
+                      ? `Current: ${formData.country_of_interest
+                          .map((c) => {
+                            const country = STUDY_DESTINATIONS.find(
+                              (dest) => dest.value === c
+                            );
+                            return country?.label || c;
+                          })
+                          .join(", ")}`
+                      : "Select countries..."
+                  }
+                />
+                {/* Show current selection clearly */}
+                {formData.country_of_interest.length > 0 && (
+                  <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
+                    <span className="font-medium">Currently selected:</span>{" "}
+                    {formData.country_of_interest
+                      .map((countryValue) => {
+                        const country = STUDY_DESTINATIONS.find(
+                          (c) => c.value === countryValue
+                        );
+                        return country?.label || countryValue;
+                      })
+                      .join(", ")}
+                  </div>
+                )}
+              </div>
+
+              {/* ✅ UPDATED: Course Level with Clear Current Value Display */}
+              <div className="space-y-2 col-span-2">
+                <p>course level: {formData.course_level}</p>
+                <Label>Course Level</Label>
+                <Select
+                  value={formData.course_level}
+                  onValueChange={(value) =>
+                    handleInputChange("course_level", value)
+                  }
+                >
+                  <SelectTrigger
+                    className={
+                      formData.course_level
+                        ? "text-gray-900 font-medium"
+                        : "text-gray-500"
+                    }
+                  >
+                    <SelectValue placeholder="Select course level">
+                      {formData.course_level && (
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          {COURSE_LEVEL_OPTIONS.find(
+                            (level) => level.value === formData.course_level
+                          )?.label || formData.course_level}
+                        </span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_LEVEL_OPTIONS.map((level) => (
+                      <SelectItem
+                        key={level.value}
+                        value={level.value}
+                        className={
+                          formData.course_level === level.value
+                            ? "bg-green-50 font-medium"
+                            : ""
+                        }
+                      >
+                        <div className="flex items-center gap-2">
+                          {formData.course_level === level.value && (
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          )}
+                          {level.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Show current selection clearly */}
+                {formData.course_level && (
+                  <div className="text-sm text-gray-600 bg-green-50 p-2 rounded">
+                    <span className="font-medium">Currently selected:</span>{" "}
+                    {COURSE_LEVEL_OPTIONS.find(
+                      (level) => level.value === formData.course_level
+                    )?.label || formData.course_level}
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
@@ -429,7 +588,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
               </div>
 
               {/* Lead Score */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Lead score*</Label>
                 <Input
                   type="number"
@@ -448,7 +607,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                 {errors.lead_score && (
                   <p className="text-sm text-red-500">{errors.lead_score}</p>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* Tags */}
@@ -517,30 +676,55 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
           {/* Assignment Tab */}
           <TabsContent value="assignment" className="space-y-4">
+            {/* Current Assignment Display */}
             <div className="space-y-2">
-              <Label>Assigned to*</Label>
+              <Label className="text-sm font-medium text-gray-700">
+                Current Assignment
+              </Label>
+              <div className="p-3 bg-gray-50 rounded-md border">
+                <p className="text-sm">
+                  <span className="font-medium">Assigned counsellor is:</span>{" "}
+                  <span className="text-blue-600 font-semibold">
+                    {formData.assigned_to_name || "Unassigned"}
+                  </span>
+                </p>
+                {formData.assigned_to_name && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Email: {formData.assigned_to || "Not available"}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Change Assignment */}
+            <div className="space-y-2">
+              <Label>Change Assignment To</Label>
               <Select
-                value={currentAssignedUser?.user_id || ""}
-                onValueChange={handleAssignmentChange}
+                value={formData.assigned_to_name}
+                onValueChange={handleAssignmentChangeByName}
                 disabled={isLoadingUsers}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select user to assign">
-                    {currentAssignedUser ? (
+                  <SelectValue placeholder="Select new counsellor">
+                    {formData.assigned_to_name ? (
                       <div className="flex items-center gap-2">
-                        <span>{currentAssignedUser.name}</span>
+                        <span>{formData.assigned_to_name}</span>
                         <span className="text-xs text-gray-500">
-                          ({currentAssignedUser.assigned_leads_count} leads)
+                          (
+                          {assignableUsers.find(
+                            (u) => u.name === formData.assigned_to_name
+                          )?.assigned_leads_count || 0}{" "}
+                          leads )
                         </span>
                       </div>
                     ) : (
-                      "Select user to assign"
+                      "Select counsellor to assign"
                     )}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {assignableUsers.map((user: UserStats) => (
-                    <SelectItem key={user.user_id} value={user.user_id}>
+                    <SelectItem key={user.user_id} value={user.name}>
                       <div className="flex items-center gap-2">
                         <span>{user.name}</span>
                         <span className="text-xs text-gray-500">
@@ -552,21 +736,13 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                 </SelectContent>
               </Select>
               {isLoadingUsers && (
-                <p className="text-sm text-gray-500">Loading users...</p>
+                <p className="text-sm text-gray-500">Loading counsellors...</p>
               )}
 
-              {/* Show current assignment info */}
-              {formData.assigned_to && formData.assigned_to_name && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    <strong>Will assign to:</strong> {formData.assigned_to_name}{" "}
-                    ({formData.assigned_to})
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    Assignment method: Manual by admin
-                  </p>
-                </div>
-              )}
+              {/* Helper text */}
+              <p className="text-xs text-gray-500">
+                Select a different counsellor to reassign this lead
+              </p>
             </div>
           </TabsContent>
 

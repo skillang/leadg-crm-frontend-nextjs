@@ -1,4 +1,4 @@
-// src/components/leads/SingleLeadModal.tsx - FIXED VERSION WITH CATEGORY
+// src/components/leads/SingleLeadModal.tsx - UPDATED WITH COUNTRY & COURSE LEVEL
 
 "use client";
 
@@ -24,13 +24,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { useNotifications } from "@/components/common/NotificationSystem";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  useCreateLeadMutation,
-  // useGetAssignableUsersQuery,
-} from "@/redux/slices/leadsApi";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { useNotifications } from "@/components/common/NotificationSystem";
+import { useCreateLeadMutation } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { LEAD_STAGES } from "@/constants/stageConfig";
+import CountryMultiSelect, {
+  formatCountriesForBackend,
+  parseCountriesFromString,
+} from "@/components/common/CountryMultiSelect";
+
+// ✅ ADDED: Import course level constants
+export const COURSE_LEVEL_OPTIONS = [
+  { value: "bachelor's_degree", label: "Bachelor's Degree" },
+  { value: "master's_degree", label: "Master's Degree" },
+  { value: "phd", label: "PhD" },
+  { value: "diploma", label: "Diploma" },
+  { value: "certificate", label: "Certificate" },
+];
 
 // API Error interface
 interface ValidationError {
@@ -48,28 +71,20 @@ interface ApiError {
   status?: number;
 }
 
-// User type for assignment
-// type UserForAssignment = {
-//   id?: string;
-//   email?: string;
-//   name?: string;
-//   first_name?: string;
-//   last_name?: string;
-//   username?: string;
-// };
-
 interface SingleLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// ✅ FIXED: Form data interface with category
+// ✅ UPDATED: Form data interface with country and course level
 interface LeadFormData {
   name: string;
   email: string;
   contact_number: string;
+  country_of_interest: string[]; // ✅ ADDED: Multi-select array
+  course_level: string; // ✅ ADDED: Course level field
   source: string;
-  category: string; // ✅ ADDED: Category field
+  category: string;
   assigned_to: string;
   stage: string;
   lead_score: number;
@@ -77,14 +92,16 @@ interface LeadFormData {
   tags: string[];
 }
 
-// ✅ FIXED: API payload interface matching backend expectation
+// ✅ UPDATED: API payload interface
 interface CreateLeadPayload {
   basic_info: {
     name: string;
     email: string;
     contact_number: string;
+    country_of_interest?: string; // ✅ ADDED: Single string for backend
+    course_level?: string; // ✅ ADDED: Course level field
     source: string;
-    category: string; // ✅ ADDED: Category field
+    category: string;
   };
   status_and_tags: {
     stage: string;
@@ -115,13 +132,15 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // ✅ FIXED: Form state with category
+  // ✅ UPDATED: Form state with country and course level
   const [formData, setFormData] = useState<LeadFormData>({
     name: "",
     email: "",
     contact_number: "",
+    country_of_interest: [], // ✅ ADDED: Empty array for multi-select
+    course_level: "", // ✅ ADDED: Course level field
     source: "website",
-    category: "", // ✅ ADDED: Category field
+    category: "",
     assigned_to: "",
     stage: "initial",
     lead_score: 0,
@@ -134,13 +153,11 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
   // API Hooks
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
-  // const { data: assignableUsers = [], isLoading: isLoadingUsers } =
-  //   useGetAssignableUsersQuery();
   const { data: categoriesResponse, isLoading: isLoadingCategories } =
     useGetCategoriesQuery({});
   const { showSuccess, showError } = useNotifications();
 
-  // ✅ FIXED: Memoize categories to prevent infinite loop
+  // Memoize categories to prevent infinite loop
   const categories = React.useMemo(
     () => categoriesResponse?.categories || [],
     [categoriesResponse?.categories]
@@ -153,6 +170,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         name: "",
         email: "",
         contact_number: "",
+        country_of_interest: [], // ✅ ADDED
+        course_level: "", // ✅ ADDED
         source: "website",
         category: "",
         assigned_to: "",
@@ -166,7 +185,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     }
   }, [isOpen]);
 
-  // ✅ FIXED: Separate effect for auto-selecting category
+  // Auto-select first category
   useEffect(() => {
     if (isOpen && categories.length > 0 && !formData.category) {
       setFormData((prev) => ({
@@ -236,7 +255,6 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       }
     }
 
-    // ✅ ADDED: Category validation
     if (!formData.category) {
       newErrors.category = "Category is required";
     }
@@ -257,14 +275,14 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     }
 
     try {
-      // ✅ FIXED: Payload structure matching backend expectation
+      // ✅ UPDATED: Payload structure with country and course level
       const payload: CreateLeadPayload = {
         basic_info: {
           name: formData.name.trim(),
           email: formData.email.trim(),
           contact_number: formData.contact_number.trim(),
           source: formData.source,
-          category: formData.category, // ✅ ADDED: Category field
+          category: formData.category,
         },
         status_and_tags: {
           stage: formData.stage,
@@ -275,6 +293,18 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
           notes: formData.notes.trim(),
         },
       };
+
+      // ✅ UPDATED: Include country and course level if provided
+      if (formData.country_of_interest.length > 0) {
+        // ✅ Convert array to comma-separated string for backend
+        payload.basic_info.country_of_interest = formatCountriesForBackend(
+          formData.country_of_interest
+        );
+      }
+
+      if (formData.course_level) {
+        payload.basic_info.course_level = formData.course_level;
+      }
 
       console.log(
         "🚀 Creating lead with payload:",
@@ -315,7 +345,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
           <DialogDescription>
@@ -385,6 +415,55 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
               )}
             </div>
 
+            {/* ✅ ADDED: Country of Interest & Course Level Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Country of Interest - Multi Select */}
+              <div className="space-y-2">
+                <Label>Countries of Interest</Label>
+                <CountryMultiSelect
+                  value={formData.country_of_interest}
+                  onChange={(value) =>
+                    handleInputChange("country_of_interest", value)
+                  }
+                  disabled={isCreating}
+                  error={errors.country_of_interest}
+                />
+                {errors.country_of_interest && (
+                  <p className="text-sm text-red-500">
+                    {errors.country_of_interest}
+                  </p>
+                )}
+              </div>
+
+              {/* Course Level */}
+              <div className="space-y-2">
+                <Label htmlFor="course_level">Course Level</Label>
+                <Select
+                  value={formData.course_level}
+                  onValueChange={(value) =>
+                    handleInputChange("course_level", value)
+                  }
+                  disabled={isCreating}
+                >
+                  <SelectTrigger
+                    className={errors.course_level ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select course level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_LEVEL_OPTIONS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.course_level && (
+                  <p className="text-sm text-red-500">{errors.course_level}</p>
+                )}
+              </div>
+            </div>
+
             {/* Source and Category Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Source */}
@@ -408,7 +487,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                 </Select>
               </div>
 
-              {/* ✅ ADDED: Category Selection */}
+              {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="category">
                   Category <span className="text-red-500">*</span>

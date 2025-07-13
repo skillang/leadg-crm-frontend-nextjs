@@ -1,3 +1,5 @@
+// src/models/types/lead.ts;
+
 export interface Lead {
   id: string;
   stage: string;
@@ -14,6 +16,8 @@ export interface Lead {
   tags?: string[];
   assignedTo?: string;
   assignedToName?: string;
+  courseLevel?: string;
+  countryOfInterest?: string;
 }
 
 export interface BulkLeadData {
@@ -38,7 +42,7 @@ export interface BulkLeadData {
 export interface LeadDetails extends Lead {
   leadId: string; // Formatted ID like LD-1029
   phoneNumber: string;
-  countryOfInterest: string[];
+  countryOfInterest: string;
   courseLevel: string;
   tags: string[];
   address?: {
