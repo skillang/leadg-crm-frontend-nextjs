@@ -131,7 +131,7 @@ const SideNavBarComp = () => {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">L</span>
             </div>
-            <span className="font-semibold text-lg">leadG</span>
+            <span className="font-semibold text-lg">LeadG CRM</span>
           </div>
         </div>
       </SidebarHeader>

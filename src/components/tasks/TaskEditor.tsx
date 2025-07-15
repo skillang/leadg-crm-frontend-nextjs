@@ -306,15 +306,15 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
 
           {/* Assign to */}
           <div className="space-y-2">
-            <Label htmlFor="assigned_to" className="text-sm font-medium">
+            {/* <Label htmlFor="assigned_to" className="text-sm font-medium">
               Assign to *
-            </Label>
-            <Select
+            </Label> */}
+            {/* <Select
               value={formData.assigned_to}
               onValueChange={(value) => handleInputChange("assigned_to", value)}
               disabled={isLoading}
-            >
-              <SelectTrigger>
+            > */}
+            {/* <SelectTrigger>
                 <SelectValue placeholder="Select Person" />
               </SelectTrigger>
               <SelectContent>
@@ -323,10 +323,9 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
                     <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
                     Aman Rawat
                   </div>
-                </SelectItem>
-                {/* Add more users here */}
-              </SelectContent>
-            </Select>
+                </SelectItem> */}
+            {/* </SelectContent> */}
+            {/* </Select> */}
           </div>
 
           {/* Due Date and Time Row */}

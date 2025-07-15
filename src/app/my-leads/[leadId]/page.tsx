@@ -8,7 +8,7 @@ import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Star, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Phone, Mail } from "lucide-react";
 import { StageSelect } from "@/components/StageSelectComponent";
 import { useUpdateLeadStageMutation } from "@/redux/slices/leadsApi";
 import NotesContainer from "@/components/notes/NotesContainer";
@@ -313,7 +313,6 @@ export default function LeadDetailsPage() {
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Star className="h-5 w-5 text-gray-400" />
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
 

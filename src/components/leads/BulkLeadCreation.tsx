@@ -1,19 +1,11 @@
-// src/components/leads/BulkLeadCreation.tsx - COMPLETE FIXED VERSION
+// src/components/leads/BulkLeadCreation.tsx - UPDATED WITH STAGE EXTRACTION
 
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
 import Papa from "papaparse";
 import type { ParseResult } from "papaparse";
-import {
-  Upload,
-  Download,
-  Users,
-  AlertCircle,
-  X,
-  FileText,
-  Loader2,
-} from "lucide-react";
+import { Upload, Users, AlertCircle, X, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,6 +42,7 @@ interface NormalizedRowData {
   contact_number?: string | number;
   country_of_interest?: string | number;
   course_level?: string | number;
+  stage?: string | number; // ✅ NEW: Added stage field
   notes?: string | number;
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -73,7 +66,7 @@ interface LocalBulkLeadData {
   course_level?: string;
   notes?: string;
   lead_score?: number;
-  stage?: string;
+  stage?: string; // ✅ NEW: Added stage field
   tags?: string[];
 }
 
@@ -81,6 +74,71 @@ interface BulkLeadCreationProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// ✅ NEW: Valid stage values from the API
+const VALID_STAGES = [
+  "Initial",
+  "Followup",
+  "Warm",
+  "Prospect",
+  "Junk",
+  "Enrolled",
+  "Yet to call",
+  "Counseled",
+  "DNP",
+  "INVALID",
+  "Call Back",
+  "Busy",
+  "NI",
+  "Ringing",
+  "Wrong Number",
+];
+
+// ✅ NEW: Stage mapping for common variations
+const STAGE_MAPPING: Record<string, string> = {
+  // Direct mappings (case-insensitive)
+  initial: "Initial",
+  followup: "Followup",
+  "follow up": "Followup",
+  "follow-up": "Followup",
+  warm: "Warm",
+  prospect: "Prospect",
+  junk: "Junk",
+  enrolled: "Enrolled",
+  "yet to call": "Yet to call",
+  yettocall: "Yet to call",
+  counseled: "Counseled",
+  counselled: "Counseled",
+  dnp: "DNP",
+  invalid: "INVALID",
+  "call back": "Call Back",
+  callback: "Call Back",
+  "call-back": "Call Back",
+  busy: "Busy",
+  ni: "NI",
+  "no interest": "NI",
+  "not interested": "NI",
+  ringing: "Ringing",
+  "wrong number": "Wrong Number",
+  wrongnumber: "Wrong Number",
+  wrong_number: "Wrong Number",
+
+  // Common alternative names
+  new: "Initial",
+  fresh: "Initial",
+  lead: "Initial",
+  open: "Initial",
+  contacted: "Followup",
+  interested: "Warm",
+  hot: "Prospect",
+  qualified: "Prospect",
+  converted: "Enrolled",
+  closed: "Enrolled",
+  spam: "Junk",
+  duplicate: "Junk",
+  dead: "INVALID",
+  lost: "INVALID",
+};
 
 // Enhanced header mapping
 const HEADER_MAPPING: Record<string, string> = {
@@ -131,6 +189,23 @@ const HEADER_MAPPING: Record<string, string> = {
   "education level": "course_level",
   "degree level": "course_level",
   "study level": "course_level",
+
+  // ✅ NEW: Stage mappings
+  stage: "stage",
+  "lead stage": "stage",
+  "lead status": "stage",
+  status: "stage",
+  "current stage": "stage",
+  "current status": "stage",
+  lead_stage: "stage",
+  lead_status: "stage",
+  "opportunity stage": "stage",
+  "sales stage": "stage",
+  "pipeline stage": "stage",
+  Stage: "stage",
+  Status: "stage",
+  STAGE: "stage",
+  STATUS: "stage",
 
   // Notes mappings
   notes: "notes",
@@ -202,6 +277,123 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
       HEADER_MAPPING[trimmed.toLowerCase()] ||
       trimmed.toLowerCase().replace(/\s+/g, "_")
     );
+  };
+
+  // ✅ FIXED: Helper function to validate and sanitize email
+  const sanitizeEmail = (
+    rawEmail: string | number | null | undefined
+  ): string => {
+    // Convert to string and handle various invalid values
+    const emailStr = String(rawEmail || "").trim();
+
+    // List of invalid values that should be converted to fallback email
+    const invalidValues = [
+      "",
+      "not clearly visible",
+      "nan",
+      "null",
+      "undefined",
+      "n/a",
+      "na",
+      "not available",
+      "no email",
+      "-",
+      ".",
+    ];
+
+    const lowerEmail = emailStr.toLowerCase();
+
+    // Check if email is invalid or matches invalid patterns
+    if (
+      invalidValues.includes(lowerEmail) ||
+      emailStr.length === 0 ||
+      emailStr === "0" ||
+      !emailStr.includes("@") ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)
+    ) {
+      console.log(
+        `📧 Converting invalid email "${emailStr}" to "not-available@example.com"`
+      );
+      return "not-available@example.com";
+    }
+
+    console.log(`📧 Valid email found: "${emailStr}"`);
+    return emailStr;
+  };
+
+  // ✅ NEW: Helper function to validate and sanitize phone number
+  const sanitizePhone = (
+    rawPhone: string | number | null | undefined
+  ): string => {
+    // Convert to string and handle various invalid values
+    const phoneStr = String(rawPhone || "")
+      .replace(/\.0$/, "") // Remove .0 from float numbers
+      .replace(/[^\d\+\-\(\)\s]/g, "") // Keep only valid phone characters
+      .trim();
+
+    // List of invalid values that should be converted to fallback phone
+    const invalidValues = [
+      "",
+      "not clearly visible",
+      "nan",
+      "null",
+      "undefined",
+      "n/a",
+      "na",
+      "not available",
+      "no phone",
+      "-",
+      ".",
+    ];
+
+    const lowerPhone = phoneStr.toLowerCase();
+
+    // Check if phone is invalid or matches invalid patterns
+    if (
+      invalidValues.includes(lowerPhone) ||
+      phoneStr.length === 0 ||
+      phoneStr === "0" ||
+      !/[\d]/.test(phoneStr) // Must contain at least one digit
+    ) {
+      console.log(`📞 Converting invalid phone "${phoneStr}" to "1000000000"`);
+      return "1000000000";
+    }
+
+    console.log(`📞 Valid phone found: "${phoneStr}"`);
+    return phoneStr;
+  };
+
+  // ✅ NEW: Helper function to validate and normalize stage
+  const normalizeStage = (
+    rawStage: string | number | null | undefined
+  ): string => {
+    // Convert to string and handle various invalid values
+    const stageStr = String(rawStage || "").trim();
+
+    // If empty or invalid, return default
+    if (!stageStr || stageStr.length === 0) {
+      console.log(`🎯 Empty stage, defaulting to "Initial"`);
+      return "Initial";
+    }
+
+    // Check if already a valid stage (case-sensitive)
+    if (VALID_STAGES.includes(stageStr)) {
+      console.log(`🎯 Valid stage found: "${stageStr}"`);
+      return stageStr;
+    }
+
+    // Try to map using case-insensitive mapping
+    const lowerStage = stageStr.toLowerCase();
+    const mappedStage = STAGE_MAPPING[lowerStage];
+
+    if (mappedStage) {
+      console.log(`🎯 Mapped stage "${stageStr}" → "${mappedStage}"`);
+      return mappedStage;
+    }
+
+    // If no mapping found, default to Initial
+    console.log(`🎯 Unknown stage "${stageStr}", defaulting to "Initial"`);
+    return "Initial";
   };
 
   // ✅ FIXED: Proper typing for generateNotesFromRow
@@ -308,14 +500,11 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
                   // Generate comprehensive notes from all unmapped fields
                   const notes = generateNotesFromRow(row);
 
-                  // ✅ FIXED: Create lead with category from dropdown and proper type handling
+                  // ✅ UPDATED: Create lead with category, stage extraction, and proper email/phone handling
                   const lead: LocalBulkLeadData = {
                     name: String(normalizedRow.name || "").trim(),
-                    email: String(normalizedRow.email || "").trim(),
-                    contact_number: String(normalizedRow.contact_number || "")
-                      .replace(/\.0$/, "") // Remove .0 from float numbers
-                      .replace(/[^\d\+\-\(\)\s]/g, "") // Keep only valid phone characters
-                      .trim(),
+                    email: sanitizeEmail(normalizedRow.email), // ✅ NEW: Use sanitizeEmail function
+                    contact_number: sanitizePhone(normalizedRow.contact_number), // ✅ NEW: Use sanitizePhone function
                     source: selectedSource || "bulk upload",
                     category: selectedCategory || "General", // ✅ ADDED: Use selected category with fallback
                     country_of_interest: String(
@@ -326,25 +515,16 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
                     ).trim(),
                     notes: notes || String(normalizedRow.notes || "").trim(),
                     lead_score: 50, // Default score
-                    stage: "initial", // Default stage
+                    stage: normalizeStage(normalizedRow.stage), // ✅ NEW: Extract and normalize stage
                     tags: [], // Default empty tags
                   };
-
-                  // ✅ CLEAN UP: Handle "Not clearly visible" and invalid data
-                  if (
-                    lead.email === "Not clearly visible" ||
-                    lead.email === "nan" ||
-                    lead.email === "NaN" ||
-                    lead.email === "null"
-                  ) {
-                    lead.email = ""; // Clear invalid emails
-                  }
 
                   console.log(`📝 Processed lead ${index}:`, {
                     name: lead.name,
                     contact: lead.contact_number,
                     email: lead.email,
                     category: lead.category,
+                    stage: lead.stage, // ✅ NEW: Log stage
                   });
 
                   return lead;
@@ -354,37 +534,17 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
                 }
               })
               .filter((lead): lead is LocalBulkLeadData => {
-                // ✅ IMPROVED: Better data validation
+                // ✅ IMPROVED: Simplified validation - email and phone are now always valid with fallbacks
                 const hasValidName = lead !== null && lead.name.length > 0;
-                const hasValidContact =
-                  lead!.contact_number.length > 0 &&
-                  lead!.contact_number !== "Not clearly visible" &&
-                  lead!.contact_number !== "nan" &&
-                  /[\d]/.test(lead!.contact_number); // ✅ RELAXED: Just needs some digits
-                const hasValidEmail =
-                  !lead!.email ||
-                  lead!.email === "" ||
-                  lead!.email === "Not clearly visible" ||
-                  lead!.email === "nan" ||
-                  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead!.email); // ✅ RELAXED: Allow empty or valid emails
+                // ✅ NOTE: No need to validate email/phone since sanitization ensures they're always valid
 
                 if (!hasValidName) {
                   console.warn(`❌ Skipping - Invalid name "${lead!.name}"`);
                   return false;
                 }
-                if (!hasValidContact) {
-                  console.warn(
-                    `❌ Skipping - Invalid contact "${lead!.contact_number}"`
-                  );
-                  return false;
-                }
-                if (!hasValidEmail) {
-                  console.warn(`❌ Skipping - Invalid email "${lead!.email}"`);
-                  return false;
-                }
 
                 console.log(
-                  `✅ Valid lead - ${lead.name} (${lead.contact_number})`
+                  `✅ Valid lead - ${lead.name} (${lead.contact_number}) - Email: ${lead.email} - Stage: ${lead.stage}`
                 );
                 return true;
               });
@@ -402,11 +562,6 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
             setIsProcessingFile(false);
           }
         },
-        // error: (error: ParseError) => {
-        //   console.error("❌ Papa Parse error:", error);
-        //   showError("Parse Error", `Failed to parse CSV: ${error.message}`);
-        //   setIsProcessingFile(false);
-        // },
       });
     },
     [selectedSource, selectedCategory, showError]
@@ -471,17 +626,17 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
       console.log(`📂 Selected category: ${selectedCategory}`);
       console.log(`📋 Selected source: ${selectedSource}`);
 
-      // ✅ FIXED: Transform to API format with category
+      // ✅ UPDATED: Transform to API format with category and stage
       const bulkLeadData: BulkLeadData[] = parsedLeads.map((lead) => ({
         basic_info: {
           name: lead.name,
-          email: lead.email,
+          email: lead.email, // ✅ Now guaranteed to be valid email or "not-available@example.com"
           contact_number: lead.contact_number,
           source: lead.source,
           category: lead.category, // ✅ IMPORTANT: Include category
         },
         status_and_tags: {
-          stage: lead.stage || "initial",
+          stage: lead.stage || "Initial", // ✅ NEW: Include extracted stage with fallback
           lead_score: lead.lead_score || 50,
           tags: lead.tags || [],
         },
@@ -536,9 +691,10 @@ const BulkLeadCreation: React.FC<BulkLeadCreationProps> = ({
   };
 
   const downloadTemplate = () => {
-    const csvContent = `name,email,contact_number,country_of_interest,course_level,notes
-John Doe,john@example.com,+1234567890,Canada,Masters,Interested in engineering programs
-Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business programs`;
+    const csvContent = `name,email,contact_number,country_of_interest,course_level,stage,notes
+John Doe,john@example.com,+1234567890,Canada,Masters,Initial,Interested in engineering programs
+Jane Smith,,9876543210,UK,Bachelors,Warm,Looking for business programs
+Mike Johnson,mike@email.com,,Australia,PhD,Prospect,Research focused student`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -590,13 +746,15 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
             Bulk Lead Upload
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple leads. Category and source will be
-            applied to all leads.
+            Upload a CSV file to add multiple leads. The system automatically
+            detects standard columns (name, email, phone, etc.) and stores
+            unmapped columns as "Extra Info" in lead notes. Missing data gets
+            intelligent fallbacks.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Configuration */}
+          {/* Left Panel - Configuration & Upload */}
           <div className="space-y-4">
             {/* Category and Source Selection */}
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
@@ -604,11 +762,13 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                 <h3 className="font-semibold text-blue-900">
                   Lead Configuration
                 </h3>
-                <p>Applied to all leads in this batch</p>
+                <p className="text-sm text-blue-700">
+                  Applied to all leads in this batch
+                </p>
               </div>
-              <div className="flex justify-between gap-4">
-                {/* ✅ FIXED: Category Selection */}
-                <div className="space-y-2 w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Category Selection */}
+                <div className="space-y-2">
                   <Label className="text-sm font-medium text-blue-900">
                     Lead Category
                   </Label>
@@ -618,7 +778,7 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                     disabled={isCategoriesLoading}
                   >
                     <SelectTrigger
-                      className={!selectedCategory ? "border-red-300" : "w-3/4"}
+                      className={!selectedCategory ? "border-red-300" : ""}
                     >
                       <SelectValue
                         placeholder={
@@ -647,7 +807,7 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                 </div>
 
                 {/* Source Selection */}
-                <div className="space-y-2 w-full">
+                <div className="space-y-2">
                   <Label className="text-sm font-medium text-blue-900">
                     Source
                   </Label>
@@ -655,7 +815,7 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                     value={selectedSource}
                     onValueChange={setSelectedSource}
                   >
-                    <SelectTrigger className="w-3/4">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
@@ -672,7 +832,7 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
 
             {/* File Upload Area */}
             <div
-              className={`border-2 border-dashed p-6 rounded-lg text-center transition-colors ${
+              className={`border-2 border-dashed p-8 rounded-lg text-center transition-colors ${
                 dragActive
                   ? "border-blue-400 bg-blue-50"
                   : "border-gray-300 hover:border-gray-400"
@@ -691,7 +851,7 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <Upload className="w-12 h-12 mx-auto text-gray-400" />
+                  <Upload className="w-16 h-16 mx-auto text-gray-400" />
                   <div>
                     <p className="text-lg font-medium">Upload CSV File</p>
                     <p className="text-sm text-gray-500">
@@ -702,6 +862,7 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!selectedCategory}
+                    className="px-6"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Choose File
@@ -716,25 +877,16 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                 </div>
               )}
             </div>
-
-            {/* Template Download */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={downloadTemplate}
-                className="flex-1"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download Template
-              </Button>
-            </div>
           </div>
 
-          {/* Right Panel - Preview */}
+          {/* Right Panel - Preview & Guidelines */}
           <div className="space-y-4">
+            {/* Tab-like Header */}
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">
-                Preview ({parsedLeads.length} leads)
+                {parsedLeads.length > 0
+                  ? `Preview (${parsedLeads.length} leads)`
+                  : "CSV Guidelines & Preview"}
               </h3>
               {parsedLeads.length > 0 && (
                 <Button
@@ -750,17 +902,101 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
               )}
             </div>
 
-            {/* Leads Preview */}
+            {/* Content Area */}
             <div className="border rounded-lg max-h-96 overflow-y-auto">
               {parsedLeads.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No leads uploaded yet</p>
-                  <p className="text-sm">
-                    Upload a CSV file to see the preview
-                  </p>
+                // Show CSV Guidelines when no leads
+                <div className="p-4 space-y-4">
+                  <div className="flex flex-row text-gray-500 mb-4">
+                    <FileText className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <div>
+                      <p className="font-medium">CSV Column Guidelines</p>
+                      <p className="text-sm">
+                        Upload a CSV file to see the preview
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-sm">
+                    {/* Required Columns */}
+                    <div className="bg-red-50 p-3 rounded border-l-4 border-red-200">
+                      <p className="font-medium text-red-800 mb-1">
+                        📋 Required Columns:
+                      </p>
+                      <p className="text-red-700">
+                        • <strong>Name:</strong> name, full name, student name,
+                        candidate name
+                      </p>
+                      <p>
+                        • <strong>Email:</strong> email, email address, e-mail,
+                        mail id
+                      </p>
+                      <p>
+                        • <strong>Phone:</strong> phone, contact number, mobile,
+                        telephone
+                      </p>
+                    </div>
+
+                    {/* Optional Columns */}
+                    <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-200">
+                      <p className="font-medium text-blue-800 mb-1">
+                        🔧 Auto-Detected Columns:
+                      </p>
+                      <div className="text-blue-700 space-y-1">
+                        <p>
+                          • <strong>Country:</strong> country of interest,
+                          preferred country
+                        </p>
+                        <p>
+                          • <strong>Course Level:</strong> course level,
+                          education level
+                        </p>
+                        <p>
+                          • <strong>Stage:</strong> stage, status, lead stage,
+                          current status
+                        </p>
+                        <p>
+                          • <strong>Notes:</strong> notes, comments, remarks,
+                          description
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Stage Mapping */}
+                    <div className="bg-green-50 p-3 rounded border-l-4 border-green-200">
+                      <p className="font-medium text-green-800 mb-1">
+                        🎯 Stage Auto-Mapping:
+                      </p>
+                      <div className="text-green-700 text-xs space-y-1">
+                        <p>
+                          • "new", "fresh" → Initial • "interested" → Warm •
+                          "hot" → Prospect
+                        </p>
+                        <p>
+                          • "follow up" → Followup • "converted" → Enrolled •
+                          "no interest" → NI
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Extra Info */}
+                    <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-200">
+                      <p className="font-medium text-purple-800 mb-1">
+                        📝 Extra Information:
+                      </p>
+                      <div className="text-purple-700 space-y-1">
+                        <p>• All unmapped columns → stored in lead notes</p>
+                        <p>
+                          • Examples: Age, Experience, Qualification,
+                          Nationality
+                        </p>
+                        <p>• Format: "Field Name: Value" in notes section</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
+                // Show Lead Preview when leads are loaded
                 <div className="space-y-2 p-4">
                   {parsedLeads.slice(0, 10).map((lead, index) => (
                     <div
@@ -772,13 +1008,31 @@ Jane Smith,jane@example.com,+0987654321,UK,Bachelors,Looking for business progra
                         <div className="text-sm text-gray-600">
                           {lead.email} • {lead.contact_number}
                         </div>
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex gap-2 mt-1 flex-wrap">
                           <Badge variant="outline" className="text-xs">
                             {lead.category}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
                             {lead.source}
                           </Badge>
+                          <Badge
+                            variant={
+                              lead.stage === "Initial" ? "default" : "outline"
+                            }
+                            className="text-xs"
+                          >
+                            {lead.stage}
+                          </Badge>
+                          {lead.email === "not-available@example.com" && (
+                            <Badge variant="destructive" className="text-xs">
+                              No Email
+                            </Badge>
+                          )}
+                          {lead.contact_number === "1000000000" && (
+                            <Badge variant="destructive" className="text-xs">
+                              No Phone
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <Button
