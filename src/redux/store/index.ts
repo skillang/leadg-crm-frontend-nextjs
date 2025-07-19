@@ -1,4 +1,4 @@
-// src/redux/store/index.ts (UPDATED with Stages API)
+// src/redux/store/index.ts (UPDATED with StatusesApi)
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
@@ -11,7 +11,8 @@ import { documentsApi } from "../slices/documentsApi";
 import { timelineApi } from "../slices/timelineApi";
 import { contactsApi } from "../slices/contactsApi";
 import { categoriesApi } from "../slices/categoriesApi";
-import { stagesApi } from "../slices/stagesApi"; // ADDED: Import stagesApi
+import { stagesApi } from "../slices/stagesApi";
+import { statusesApi } from "../slices/statusesApi"; // ADDED: Import statusesApi
 import leadsReducer from "../slices/leadsSlices";
 import authReducer from "../slices/authSlice";
 
@@ -34,7 +35,8 @@ const rootReducer = combineReducers({
   [timelineApi.reducerPath]: timelineApi.reducer,
   [contactsApi.reducerPath]: contactsApi.reducer,
   [categoriesApi.reducerPath]: categoriesApi.reducer,
-  [stagesApi.reducerPath]: stagesApi.reducer, // ADDED: Add stagesApi reducer
+  [stagesApi.reducerPath]: stagesApi.reducer,
+  [statusesApi.reducerPath]: statusesApi.reducer, // ADDED: Add statusesApi reducer
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -67,7 +69,8 @@ export const store = configureStore({
       timelineApi.middleware,
       contactsApi.middleware,
       categoriesApi.middleware,
-      stagesApi.middleware // ADDED: Add stagesApi middleware
+      stagesApi.middleware,
+      statusesApi.middleware // ADDED: Add statusesApi middleware - THIS IS CRITICAL!
     ),
 });
 

@@ -96,6 +96,12 @@ const items = [
     icon: Target,
     adminOnly: true,
   },
+  {
+    title: "Manage Status",
+    url: "/admin/status-management",
+    icon: Target,
+    adminOnly: true,
+  },
 ];
 
 const SideNavBarComp = () => {
