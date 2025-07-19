@@ -1,7 +1,7 @@
 export const SOURCE_OPTIONS = [
   { value: "advertisement", label: "Advertisement" },
   { value: "bulk upload", label: "Bulk Upload" },
-  { value: "cold_call", label: "Cold Call" },
+  { value: "cold calling", label: "Cold Call" },
   { value: "email_campaign", label: "Email Campaign" },
   //   { value: "facebook", label: "Facebook" },
   //   { value: "instagram", label: "Instagram" },

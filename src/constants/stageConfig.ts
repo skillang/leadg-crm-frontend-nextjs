@@ -4,7 +4,7 @@ import { StageOption } from "@/components/StageSelectComponent";
 
 export const LEAD_STAGES: StageOption[] = [
   {
-    value: "initial",
+    value: "Initial",
     label: "Initial",
     variant: "secondary",
     className: "bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200",

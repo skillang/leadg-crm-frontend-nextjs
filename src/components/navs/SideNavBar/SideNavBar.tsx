@@ -16,6 +16,8 @@ import {
   UserPlus,
   Building2,
   FolderOpen,
+  UsersRound,
+  Target,
 } from "lucide-react";
 import {
   Sidebar,
@@ -65,6 +67,12 @@ const items = [
     icon: Settings,
   },
   {
+    title: "Users", // NEW: Users management page
+    url: "/admin/users",
+    icon: UsersRound,
+    adminOnly: true,
+  },
+  {
     title: "Register User",
     url: "/admin/register-user",
     icon: UserPlus,
@@ -80,6 +88,12 @@ const items = [
     title: "Lead Categories",
     url: "/admin/lead-categories",
     icon: FolderOpen,
+    adminOnly: true,
+  },
+  {
+    title: "Manage Stages",
+    url: "/admin/stages",
+    icon: Target,
     adminOnly: true,
   },
 ];

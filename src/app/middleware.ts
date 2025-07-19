@@ -1,4 +1,4 @@
-// middleware.ts (in your root directory, same level as app/ folder)
+// src/app/middleware.ts (UPDATED with stages route)
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -15,18 +15,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Admin routes that require admin privileges
+  // Admin routes that require admin privileges - UPDATED to include stages
   const adminRoutes = [
     "/admin/register-user",
     "/admin/users",
     "/admin/settings",
     "/admin/reports",
+    "/admin/departments",
+    "/admin/lead-categories",
+    "/admin/stages", // ADDED: New stages admin route
   ];
 
   // Protected routes that require authentication
   const protectedRoutes = [
     "/dashboard",
     "/leads",
+    "/my-leads",
     "/tasks",
     "/reports",
     "/profile",
