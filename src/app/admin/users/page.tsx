@@ -3,7 +3,7 @@
 import React from "react";
 import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { useNotifications } from "@/components/common/NotificationSystem";
+// import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   Card,
   CardContent,
@@ -49,7 +49,7 @@ const AdminUsersPage = () => {
     description: "You need admin privileges to view user statistics.",
   });
 
-  const { showError } = useNotifications();
+  // const { showError } = useNotifications();
 
   // Fetch user lead statistics
   const {

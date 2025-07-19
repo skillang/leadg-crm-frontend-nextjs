@@ -1,19 +1,11 @@
-// src/components/leads/EditLeadModal.tsx - UPDATED WITH COUNTRY & COURSE LEVEL
-"use client";
-
+// src/components/leads/EditLeadModal.tsx
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -21,49 +13,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Plus, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import {
+  User,
+  Users,
+  X,
+  Plus,
+  Info,
+  UserPlus,
+  UserMinus,
+  Crown,
+} from "lucide-react";
 import {
   useUpdateLeadMutation,
-  useGetUserLeadStatsQuery,
+  useGetAssignableUsersWithDetailsQuery,
+  useAssignLeadToMultipleUsersMutation,
+  useRemoveUserFromAssignmentMutation,
 } from "@/redux/slices/leadsApi";
 import { Lead } from "@/models/types/lead";
-import { LEAD_STAGES } from "@/constants/stageConfig";
-import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
-import { PREDEFINED_TAGS } from "@/constants/tagsConfig";
-import CountryMultiSelect, {
-  formatCountriesForBackend,
-  parseCountriesFromString,
-  STUDY_DESTINATIONS,
-} from "@/components/common/CountryMultiSelect";
-
-// ✅ ADDED: Course level options
-export const COURSE_LEVEL_OPTIONS = [
-  { value: "bachelor's_degree", label: "Bachelor's Degree" },
-  { value: "master's_degree", label: "Master's Degree" },
-  { value: "phd", label: "PhD" },
-  { value: "diploma", label: "Diploma" },
-  { value: "certificate", label: "Certificate" },
-];
-
-// ✅ Extended Lead interface for edit modal (handles both basic Lead and detailed Lead)
-interface ExtendedLead extends Lead {
-  countryOfInterest?: string;
-  courseLevel?: string;
-  phoneNumber?: string;
-}
 
 interface EditLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lead: ExtendedLead | null; // ✅ Use extended interface that handles optional fields
+  lead: Lead | null;
 }
 
 interface EditLeadFormData {
   name: string;
   email: string;
   contact_number: string;
-  country_of_interest: string[]; // ✅ UPDATED: Array for multi-select
+  country_of_interest: string[];
   course_level: string;
   source: string;
   stage: string;
@@ -72,31 +58,9 @@ interface EditLeadFormData {
   assigned_to: string;
   assigned_to_name: string;
   notes: string;
-}
-
-interface UserStats {
-  user_id: string;
-  name: string;
-  email: string;
-  role: string;
-  assigned_leads_count: number;
-}
-
-interface UpdateLeadData {
-  lead_id: string;
-  name: string;
-  lead_score: number;
-  stage: string;
-  email?: string;
-  contact_number?: string;
-  country_of_interest?: string; // ✅ String for backend (comma-separated)
-  course_level?: string;
-  source?: string;
-  notes?: string;
-  tags?: string[];
-  assigned_to?: string;
-  assigned_to_name?: string;
-  assignment_method?: string;
+  age?: number;
+  experience?: string;
+  nationality?: string;
 }
 
 interface ApiErrorDetail {
@@ -113,6 +77,88 @@ interface ApiError {
   status?: number;
 }
 
+const COUNTRIES = [
+  "USA",
+  "Canada",
+  "UK",
+  "Australia",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Netherlands",
+  "Sweden",
+  "Norway",
+  "Denmark",
+  "Switzerland",
+  "Austria",
+  "Belgium",
+  "Ireland",
+  "New Zealand",
+  "Singapore",
+  "Japan",
+  "South Korea",
+];
+
+const SOURCES = [
+  "website",
+  "referral",
+  "social_media",
+  "email_campaign",
+  "cold_call",
+  "trade_show",
+  "webinar",
+  "content_marketing",
+  "paid_ads",
+  "organic_search",
+];
+
+const STAGES = [
+  "open",
+  "contacted",
+  "qualified",
+  "proposal",
+  "negotiation",
+  "closed_won",
+  "closed_lost",
+];
+
+const COURSE_LEVELS = [
+  "certificate",
+  "diploma",
+  "bachelor",
+  "master",
+  "phd",
+  "professional",
+];
+
+const EXPERIENCE_LEVELS = [
+  "fresher",
+  "1-2_years",
+  "3-5_years",
+  "5-10_years",
+  "10+_years",
+];
+
+const PREDEFINED_TAGS = [
+  "High Priority",
+  "Follow Up",
+  "Interested",
+  "Budget Confirmed",
+  "Decision Maker",
+  "Hot Lead",
+  "Warm Lead",
+  "Cold Lead",
+];
+
+const parseCountriesFromString = (countryString: string): string[] => {
+  if (!countryString || typeof countryString !== "string") return [];
+  return countryString
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+};
+
 const EditLeadModal: React.FC<EditLeadModalProps> = ({
   isOpen,
   onClose,
@@ -122,7 +168,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     name: "",
     email: "",
     contact_number: "",
-    country_of_interest: [], // ✅ UPDATED: Array for multi-select
+    country_of_interest: [],
     course_level: "",
     source: "website",
     stage: "open",
@@ -135,28 +181,29 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showMultiAssignment, setShowMultiAssignment] = useState(false);
+  const [selectedCoAssignees, setSelectedCoAssignees] = useState<string[]>([]);
+  const [multiAssignReason, setMultiAssignReason] = useState("");
 
+  // API hooks
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
-  const { data: userStatsResponse, isLoading: isLoadingUsers } =
-    useGetUserLeadStatsQuery();
+  const [assignToMultiple, { isLoading: isAssigningMultiple }] =
+    useAssignLeadToMultipleUsersMutation();
+  const [removeFromAssignment, { isLoading: isRemoving }] =
+    useRemoveUserFromAssignmentMutation();
 
-  // Filter users to exclude admin role
-  const assignableUsers =
-    userStatsResponse?.user_stats?.filter(
-      (user: UserStats) => user.role !== "admin"
-    ) || [];
+  const { data: assignableUsersResponse, isLoading: isLoadingUsers } =
+    useGetAssignableUsersWithDetailsQuery();
+
+  const assignableUsers = assignableUsersResponse?.users || [];
 
   // Initialize form data when lead changes
   useEffect(() => {
     if (lead && isOpen) {
-      console.log("🔍 Lead object in EditLeadModal:", lead);
-      console.log("🔍 Lead courseLevel:", lead.courseLevel);
-      console.log("🔍 Lead countryOfInterest:", lead.countryOfInterest);
-      setFormData({
+      const newFormData = {
         name: lead.name || "",
         email: lead.email || "",
         contact_number: lead.contact || lead.phoneNumber || "",
-        // ✅ UPDATED: Parse country string to array
         country_of_interest: lead.countryOfInterest
           ? parseCountriesFromString(lead.countryOfInterest)
           : [],
@@ -168,9 +215,17 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         assigned_to: lead.assignedTo || "",
         assigned_to_name: lead.assignedToName || "",
         notes: lead.notes || "",
-      });
+        age: lead.age,
+        experience: lead.experience,
+        nationality: lead.nationality,
+      };
+
+      setFormData(newFormData);
       setErrors({});
       setNewTag("");
+      setShowMultiAssignment(false);
+      setSelectedCoAssignees(lead.coAssignees || []);
+      setMultiAssignReason("");
     }
   }, [lead, isOpen]);
 
@@ -179,6 +234,9 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     if (!isOpen) {
       setErrors({});
       setNewTag("");
+      setShowMultiAssignment(false);
+      setSelectedCoAssignees([]);
+      setMultiAssignReason("");
     }
   }, [isOpen]);
 
@@ -192,23 +250,24 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     }
   };
 
-  // Handle assignment change - automatically populate email and name
-  const handleAssignmentChange = (userId: string) => {
-    const selectedUser = assignableUsers.find(
-      (user: UserStats) => user.user_id === userId
-    );
-    if (selectedUser) {
-      setFormData((prev) => ({
-        ...prev,
-        assigned_to: selectedUser.email,
-        assigned_to_name: selectedUser.name,
-      }));
-    } else {
+  const handleAssignmentChange = (userEmail: string) => {
+    if (userEmail === "unassigned") {
       setFormData((prev) => ({
         ...prev,
         assigned_to: "",
         assigned_to_name: "",
       }));
+    } else {
+      const selectedUser = assignableUsers.find(
+        (user) => user.email === userEmail
+      );
+      if (selectedUser) {
+        setFormData((prev) => ({
+          ...prev,
+          assigned_to: selectedUser.email,
+          assigned_to_name: selectedUser.name,
+        }));
+      }
     }
 
     if (errors.assigned_to) {
@@ -236,13 +295,6 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     }
   };
 
-  const handleTagKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddTag();
-    }
-  };
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -266,51 +318,31 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
       }
     }
 
-    if (formData.lead_score < 0 || formData.lead_score > 100) {
-      newErrors.lead_score = "Lead score must be between 0 and 100";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!validateForm() || !lead) return;
 
     try {
-      const updateData: UpdateLeadData = {
-        lead_id: lead.id, // ✅ Use Lead.id (basic interface)
+      const updateData: Record<string, any> = {
+        lead_id: lead.leadId || lead.id,
         name: formData.name,
-        lead_score: formData.lead_score,
+        email: formData.email,
+        contact_number: formData.contact_number,
+        country_of_interest: formData.country_of_interest.join(", "),
+        course_level: formData.course_level,
+        source: formData.source,
         stage: formData.stage,
+        lead_score: formData.lead_score,
+        tags: formData.tags,
+        notes: formData.notes,
+        age: formData.age,
+        experience: formData.experience,
+        nationality: formData.nationality,
       };
-
-      // Only include fields that have values
-      if (formData.email.trim()) {
-        updateData.email = formData.email;
-      }
-      if (formData.contact_number.trim()) {
-        updateData.contact_number = formData.contact_number;
-      }
-      if (formData.country_of_interest.length > 0) {
-        // ✅ UPDATED: Convert array to string
-        updateData.country_of_interest = formatCountriesForBackend(
-          formData.country_of_interest
-        );
-      }
-      if (formData.course_level.trim()) {
-        // ✅ UPDATED: Check for non-empty string
-        updateData.course_level = formData.course_level;
-      }
-      if (formData.source) {
-        updateData.source = formData.source;
-      }
-      if (formData.notes.trim()) {
-        updateData.notes = formData.notes;
-      }
-      if (formData.tags.length > 0) {
-        updateData.tags = formData.tags;
-      }
 
       // Assignment fields - send email, name, and method
       if (formData.assigned_to && formData.assigned_to_name) {
@@ -321,7 +353,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
       console.log("Sending update data:", updateData);
 
-      await updateLead(updateData).unwrap();
+      await updateLead(updateData as any).unwrap(); // Type assertion to bypass strict typing
       onClose();
     } catch (error) {
       const apiError = error as ApiError;
@@ -344,442 +376,570 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     }
   };
 
-  const handleAssignmentChangeByName = (userName: string) => {
-    console.log("Assignment change by name:", userName);
+  const handleMultiAssign = async () => {
+    if (
+      !lead ||
+      selectedCoAssignees.length === 0 ||
+      !multiAssignReason.trim()
+    ) {
+      setErrors({ multiAssign: "Please select users and provide a reason" });
+      return;
+    }
 
-    const selectedUser = assignableUsers.find(
-      (user: UserStats) => user.name === userName
+    try {
+      // Include primary assignee if one exists
+      const allAssignees = formData.assigned_to
+        ? [formData.assigned_to, ...selectedCoAssignees]
+        : selectedCoAssignees;
+
+      await assignToMultiple({
+        leadId: lead.leadId || lead.id,
+        userEmails: allAssignees,
+        reason: multiAssignReason,
+      }).unwrap();
+
+      setShowMultiAssignment(false);
+      setSelectedCoAssignees([]);
+      setMultiAssignReason("");
+      onClose();
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("Failed to assign to multiple users:", apiError);
+      setErrors({ multiAssign: "Failed to assign to multiple users" });
+    }
+  };
+
+  const handleRemoveCoAssignee = async (userEmail: string) => {
+    if (!lead) return;
+
+    try {
+      await removeFromAssignment({
+        leadId: lead.leadId || lead.id,
+        userEmail,
+        reason: "Removed via edit modal",
+      }).unwrap();
+
+      setSelectedCoAssignees((prev) =>
+        prev.filter((email) => email !== userEmail)
+      );
+    } catch (error) {
+      console.error("Failed to remove user from assignment:", error);
+      setErrors({ multiAssign: "Failed to remove user from assignment" });
+    }
+  };
+
+  const getAvailableUsers = () => {
+    return assignableUsers.filter(
+      (user) =>
+        user.email !== formData.assigned_to &&
+        !selectedCoAssignees.includes(user.email)
     );
+  };
 
-    if (selectedUser) {
-      setFormData((prev) => ({
-        ...prev,
-        assigned_to: selectedUser.email,
-        assigned_to_name: selectedUser.name,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        assigned_to: "",
-        assigned_to_name: "",
-      }));
+  const getCurrentAssignees = () => {
+    if (!lead) return [];
+
+    const assignees = [];
+    if (lead.assignedTo && lead.assignedToName) {
+      assignees.push({
+        email: lead.assignedTo,
+        name: lead.assignedToName,
+        isPrimary: true,
+      });
     }
 
-    if (errors.assigned_to) {
-      setErrors((prev) => ({ ...prev, assigned_to: "" }));
+    if (lead.coAssignees && lead.coAssigneesNames) {
+      lead.coAssignees.forEach((email, index) => {
+        assignees.push({
+          email,
+          name: lead.coAssigneesNames?.[index] || email,
+          isPrimary: false,
+        });
+      });
     }
+
+    return assignees;
   };
 
   if (!lead) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Lead</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Edit Lead: {lead.name}
+            {lead.isMultiAssigned && (
+              <Badge variant="secondary" className="ml-2">
+                <Users className="h-3 w-3 mr-1" />
+                {getCurrentAssignees().length} Assignees
+              </Badge>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="status">Status & Tags</TabsTrigger>
-            <TabsTrigger value="assignment">Assignment</TabsTrigger>
-            <TabsTrigger value="additional">Additional Info</TabsTrigger>
-          </TabsList>
-
-          {/* General Error */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           {errors.general && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {errors.general}
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{errors.general}</AlertDescription>
+            </Alert>
           )}
 
-          {/* Details Tab */}
-          <TabsContent value="details" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label>Name*</Label>
-                <Input
-                  placeholder="Krishna Reddy"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  className={errors.name ? "border-red-500" : ""}
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-500">{errors.name}</p>
-                )}
-              </div>
-
-              {/* Contact Number */}
-              <div className="space-y-2">
-                <Label>Contact number*</Label>
-                <Input
-                  placeholder="+91 8765434567"
-                  value={formData.contact_number}
-                  onChange={(e) =>
-                    handleInputChange("contact_number", e.target.value)
-                  }
-                  className={errors.contact_number ? "border-red-500" : ""}
-                />
-                {errors.contact_number && (
-                  <p className="text-sm text-red-500">
-                    {errors.contact_number}
-                  </p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  placeholder="kris.redy@gmail.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={errors.email ? "border-red-500" : ""}
-                />
-                {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Source */}
-              <div className="space-y-2">
-                <Label>Source*</Label>
-                <Select
-                  value={formData.source}
-                  onValueChange={(value) => handleInputChange("source", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SOURCE_OPTIONS.map((source) => (
-                      <SelectItem key={source.value} value={source.value}>
-                        {source.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* ✅ UPDATED: Country of Interest - Multi Select with Clear Preview */}
-              <div className="space-y-2 col-span-2">
-                <Label>Countries of Interest</Label>
-                <CountryMultiSelect
-                  value={formData.country_of_interest}
-                  onChange={(countries) =>
-                    handleInputChange("country_of_interest", countries)
-                  }
-                  disabled={isUpdating}
-                  placeholder={
-                    formData.country_of_interest.length > 0
-                      ? `Current: ${formData.country_of_interest
-                          .map((c) => {
-                            const country = STUDY_DESTINATIONS.find(
-                              (dest) => dest.value === c
-                            );
-                            return country?.label || c;
-                          })
-                          .join(", ")}`
-                      : "Select countries..."
-                  }
-                />
-                {/* Show current selection clearly */}
-                {formData.country_of_interest.length > 0 && (
-                  <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-                    <span className="font-medium">Currently selected:</span>{" "}
-                    {formData.country_of_interest
-                      .map((countryValue) => {
-                        const country = STUDY_DESTINATIONS.find(
-                          (c) => c.value === countryValue
-                        );
-                        return country?.label || countryValue;
-                      })
-                      .join(", ")}
-                  </div>
-                )}
-              </div>
-
-              {/* ✅ UPDATED: Course Level with Clear Current Value Display */}
-              <div className="space-y-2 col-span-2">
-                <p>course level: {formData.course_level}</p>
-                <Label>Course Level</Label>
-                <Select
-                  value={formData.course_level}
-                  onValueChange={(value) =>
-                    handleInputChange("course_level", value)
-                  }
-                >
-                  <SelectTrigger
-                    className={
-                      formData.course_level
-                        ? "text-gray-900 font-medium"
-                        : "text-gray-500"
-                    }
-                  >
-                    <SelectValue placeholder="Select course level">
-                      {formData.course_level && (
-                        <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          {COURSE_LEVEL_OPTIONS.find(
-                            (level) => level.value === formData.course_level
-                          )?.label || formData.course_level}
-                        </span>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COURSE_LEVEL_OPTIONS.map((level) => (
-                      <SelectItem
-                        key={level.value}
-                        value={level.value}
-                        className={
-                          formData.course_level === level.value
-                            ? "bg-green-50 font-medium"
-                            : ""
-                        }
-                      >
-                        <div className="flex items-center gap-2">
-                          {formData.course_level === level.value && (
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          )}
-                          {level.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Show current selection clearly */}
-                {formData.course_level && (
-                  <div className="text-sm text-gray-600 bg-green-50 p-2 rounded">
-                    <span className="font-medium">Currently selected:</span>{" "}
-                    {COURSE_LEVEL_OPTIONS.find(
-                      (level) => level.value === formData.course_level
-                    )?.label || formData.course_level}
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Status & Tags Tab */}
-          <TabsContent value="status" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Stage */}
-              <div className="space-y-2">
-                <Label>Stage*</Label>
-                <Select
-                  value={formData.stage}
-                  onValueChange={(value) => handleInputChange("stage", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEAD_STAGES.map((stage) => (
-                      <SelectItem key={stage.value} value={stage.value}>
-                        {stage.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Lead Score */}
-              {/* <div className="space-y-2">
-                <Label>Lead score*</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="8.5"
-                  value={formData.lead_score}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "lead_score",
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                  className={errors.lead_score ? "border-red-500" : ""}
-                />
-                {errors.lead_score && (
-                  <p className="text-sm text-red-500">{errors.lead_score}</p>
-                )}
-              </div> */}
-            </div>
-
-            {/* Tags */}
+          {/* Basic Information */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Tags*</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add a tag"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={handleTagKeyPress}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddTag}
-                  disabled={!newTag.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Predefined Tags */}
-              <div className="flex flex-wrap gap-2">
-                {PREDEFINED_TAGS.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className={`cursor-pointer hover:bg-blue-100 text-xs ${
-                      formData.tags.includes(tag)
-                        ? "bg-blue-100 border-blue-300"
-                        : ""
-                    }`}
-                    onClick={() => handleAddPredefinedTag(tag)}
-                  >
-                    {tag}
-                    {formData.tags.includes(tag) && (
-                      <Plus className="ml-1 h-3 w-3 rotate-45" />
-                    )}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Current Tags */}
-              {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="bg-blue-100 text-blue-800"
-                    >
-                      {tag}
-                      <X
-                        className="ml-1 h-3 w-3 cursor-pointer"
-                        onClick={() => handleRemoveTag(tag)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Enter lead name"
+                className={errors.name ? "border-red-500" : ""}
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500">{errors.name}</p>
               )}
             </div>
-          </TabsContent>
-
-          {/* Assignment Tab */}
-          <TabsContent value="assignment" className="space-y-4">
-            {/* Current Assignment Display */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">
-                Current Assignment
-              </Label>
-              <div className="p-3 bg-gray-50 rounded-md border">
-                <p className="text-sm">
-                  <span className="font-medium">Assigned counsellor is:</span>{" "}
-                  <span className="text-blue-600 font-semibold">
-                    {formData.assigned_to_name || "Unassigned"}
-                  </span>
-                </p>
-                {formData.assigned_to_name && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Email: {formData.assigned_to || "Not available"}
-                  </p>
-                )}
-              </div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="Enter email address"
+                className={errors.email ? "border-red-500" : ""}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email}</p>
+              )}
             </div>
+          </div>
 
-            {/* Change Assignment */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Change Assignment To</Label>
+              <Label htmlFor="contact">Contact Number *</Label>
+              <Input
+                id="contact"
+                value={formData.contact_number}
+                onChange={(e) =>
+                  handleInputChange("contact_number", e.target.value)
+                }
+                placeholder="Enter contact number"
+                className={errors.contact_number ? "border-red-500" : ""}
+              />
+              {errors.contact_number && (
+                <p className="text-sm text-red-500">{errors.contact_number}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
+              <Input
+                id="age"
+                type="number"
+                value={formData.age || ""}
+                onChange={(e) =>
+                  handleInputChange("age", parseInt(e.target.value) || 0)
+                }
+                placeholder="Age"
+                min="16"
+                max="100"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="experience">Experience</Label>
               <Select
-                value={formData.assigned_to_name}
-                onValueChange={handleAssignmentChangeByName}
-                disabled={isLoadingUsers}
+                value={formData.experience}
+                onValueChange={(value) =>
+                  handleInputChange("experience", value)
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select new counsellor">
-                    {formData.assigned_to_name ? (
-                      <div className="flex items-center gap-2">
-                        <span>{formData.assigned_to_name}</span>
-                        <span className="text-xs text-gray-500">
-                          (
-                          {assignableUsers.find(
-                            (u) => u.name === formData.assigned_to_name
-                          )?.assigned_leads_count || 0}{" "}
-                          leads )
-                        </span>
-                      </div>
-                    ) : (
-                      "Select counsellor to assign"
-                    )}
-                  </SelectValue>
+                  <SelectValue placeholder="Select experience" />
                 </SelectTrigger>
                 <SelectContent>
-                  {assignableUsers.map((user: UserStats) => (
-                    <SelectItem key={user.user_id} value={user.name}>
-                      <div className="flex items-center gap-2">
-                        <span>{user.name}</span>
-                        <span className="text-xs text-gray-500">
-                          ({user.assigned_leads_count} leads)
-                        </span>
-                      </div>
+                  {EXPERIENCE_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level.replace("_", "-")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {isLoadingUsers && (
-                <p className="text-sm text-gray-500">Loading counsellors...</p>
-              )}
-
-              {/* Helper text */}
-              <p className="text-xs text-gray-500">
-                Select a different counsellor to reassign this lead
-              </p>
             </div>
-          </TabsContent>
+          </div>
 
-          {/* Additional Info Tab */}
-          <TabsContent value="additional" className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Additional Notes</Label>
-              <Textarea
-                placeholder="these are the custom notes added by the user"
-                value={formData.notes}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
-                rows={6}
-                className="resize-none"
+              <Label htmlFor="nationality">Nationality</Label>
+              <Select
+                value={formData.nationality}
+                onValueChange={(value) =>
+                  handleInputChange("nationality", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select nationality" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRIES.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="course_level">Course Level</Label>
+              <Select
+                value={formData.course_level}
+                onValueChange={(value) =>
+                  handleInputChange("course_level", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select course level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COURSE_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead_score">Lead Score</Label>
+              <Input
+                id="lead_score"
+                type="number"
+                value={formData.lead_score}
+                onChange={(e) =>
+                  handleInputChange("lead_score", parseInt(e.target.value) || 0)
+                }
+                placeholder="Lead score"
+                min="0"
+                max="100"
               />
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
 
-        <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isUpdating}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isUpdating}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isUpdating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              "Update lead"
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Select
+                value={formData.source}
+                onValueChange={(value) => handleInputChange("source", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOURCES.map((source) => (
+                    <SelectItem key={source} value={source}>
+                      {source.replace("_", " ").toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="stage">Stage</Label>
+              <Select
+                value={formData.stage}
+                onValueChange={(value) => handleInputChange("stage", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAGES.map((stage) => (
+                    <SelectItem key={stage} value={stage}>
+                      {stage.replace("_", " ").toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Assignment Management */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Assignment Management
+            </h3>
+
+            {/* Current Assignments Display */}
+            {lead.isMultiAssigned && getCurrentAssignees().length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Current Assignments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {getCurrentAssignees().map((assignee) => (
+                      <Badge
+                        key={assignee.email}
+                        variant={assignee.isPrimary ? "default" : "secondary"}
+                        className="flex items-center gap-1"
+                      >
+                        {assignee.isPrimary ? (
+                          <Crown className="h-3 w-3" />
+                        ) : (
+                          <User className="h-3 w-3" />
+                        )}
+                        {assignee.name}
+                        {assignee.isPrimary && " (Primary)"}
+                        {!assignee.isPrimary && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveCoAssignee(assignee.email)
+                            }
+                            className="ml-1 hover:bg-red-500 hover:text-white rounded-full p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </Button>
-        </DialogFooter>
+
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3 space-y-2">
+                <Label htmlFor="assigned_to">Primary Assigned Counselor</Label>
+                <Select
+                  value={formData.assigned_to}
+                  onValueChange={handleAssignmentChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select assigned counselor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {assignableUsers.map((user) => (
+                      <SelectItem key={user.email} value={user.email}>
+                        {user.name} ({user.current_lead_count} leads)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>&nbsp;</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowMultiAssignment(!showMultiAssignment)}
+                  className="w-full"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {showMultiAssignment ? "Hide" : "Add"} Co-Assignees
+                </Button>
+              </div>
+            </div>
+
+            {/* Multi-Assignment Section */}
+            {showMultiAssignment && (
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Multi-Assignment Setup
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Co-Assignees</Label>
+                      <Select
+                        value=""
+                        onValueChange={(value) => {
+                          if (value && !selectedCoAssignees.includes(value)) {
+                            setSelectedCoAssignees([
+                              ...selectedCoAssignees,
+                              value,
+                            ]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select additional counselors" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableUsers().map((user) => (
+                            <SelectItem key={user.email} value={user.email}>
+                              {user.name} ({user.current_lead_count} leads)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedCoAssignees.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {selectedCoAssignees.map((email) => {
+                            const user = assignableUsers.find(
+                              (u) => u.email === email
+                            );
+                            return (
+                              <Badge
+                                key={email}
+                                variant="secondary"
+                                className="flex items-center gap-1"
+                              >
+                                {user?.name || email}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedCoAssignees((prev) =>
+                                      prev.filter((e) => e !== email)
+                                    )
+                                  }
+                                  className="hover:bg-red-500 hover:text-white rounded-full p-0.5"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="multiAssignReason">Reason</Label>
+                      <Input
+                        id="multiAssignReason"
+                        value={multiAssignReason}
+                        onChange={(e) => setMultiAssignReason(e.target.value)}
+                        placeholder="Assignment reason"
+                      />
+                    </div>
+                  </div>
+
+                  {errors.multiAssign && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.multiAssign}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleMultiAssign}
+                      disabled={
+                        selectedCoAssignees.length === 0 ||
+                        !multiAssignReason.trim() ||
+                        isAssigningMultiple
+                      }
+                      size="sm"
+                    >
+                      {isAssigningMultiple
+                        ? "Applying..."
+                        : "Apply Multi-Assignment"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowMultiAssignment(false)}
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Tags Section */}
+          <div className="space-y-4">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.tags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:bg-red-500 hover:text-white rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), handleAddTag())
+                }
+                placeholder="Add a custom tag"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleAddTag}
+                disabled={!newTag.trim()}
+                size="sm"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Quick tags:</p>
+              <div className="flex flex-wrap gap-2">
+                {PREDEFINED_TAGS.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant={
+                      formData.tags.includes(tag) ? "default" : "outline"
+                    }
+                    className="cursor-pointer"
+                    onClick={() => handleAddPredefinedTag(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => handleInputChange("notes", e.target.value)}
+              placeholder="Add notes about this lead..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button type="submit" disabled={isUpdating}>
+              {isUpdating ? "Updating..." : "Update Lead"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

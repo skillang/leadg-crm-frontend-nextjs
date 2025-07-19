@@ -6,6 +6,9 @@ import { LeadFilters } from "@/models/types/lead";
 interface LeadsState {
   filters: LeadFilters;
   selectedLeads: string[];
+  bulkUpdateModalOpen: boolean;
+  editModalOpen: boolean;
+  currentEditLeadId: string | null;
 }
 
 const initialState: LeadsState = {
@@ -14,11 +17,16 @@ const initialState: LeadsState = {
     stage: "",
     department: "",
     source: "",
+    assignedTo: "",
+    includeMultiAssigned: false,
+    assignedToMe: false,
   },
   selectedLeads: [],
+  bulkUpdateModalOpen: false,
+  editModalOpen: false,
+  currentEditLeadId: null,
 };
 
-// Much simpler slice - only for UI state
 const leadsSlice = createSlice({
   name: "leads",
   initialState,
@@ -40,12 +48,27 @@ const leadsSlice = createSlice({
       state.filters.source = action.payload;
     },
 
+    setAssignedToFilter: (state, action: PayloadAction<string>) => {
+      state.filters.assignedTo = action.payload;
+    },
+
+    setIncludeMultiAssignedFilter: (state, action: PayloadAction<boolean>) => {
+      state.filters.includeMultiAssigned = action.payload;
+    },
+
+    setAssignedToMeFilter: (state, action: PayloadAction<boolean>) => {
+      state.filters.assignedToMe = action.payload;
+    },
+
     clearFilters: (state) => {
       state.filters = {
         name: "",
         stage: "",
         department: "",
         source: "",
+        assignedTo: "",
+        includeMultiAssigned: false,
+        assignedToMe: false,
       };
     },
 
@@ -67,6 +90,26 @@ const leadsSlice = createSlice({
     clearSelection: (state) => {
       state.selectedLeads = [];
     },
+
+    // Modals
+    openBulkUpdateModal: (state) => {
+      state.bulkUpdateModalOpen = true;
+    },
+
+    closeBulkUpdateModal: (state) => {
+      state.bulkUpdateModalOpen = false;
+      state.selectedLeads = [];
+    },
+
+    openEditModal: (state, action: PayloadAction<string>) => {
+      state.editModalOpen = true;
+      state.currentEditLeadId = action.payload;
+    },
+
+    closeEditModal: (state) => {
+      state.editModalOpen = false;
+      state.currentEditLeadId = null;
+    },
   },
 });
 
@@ -75,10 +118,17 @@ export const {
   setStageFilter,
   setDepartmentFilter,
   setSourceFilter,
+  setAssignedToFilter,
+  setIncludeMultiAssignedFilter,
+  setAssignedToMeFilter,
   clearFilters,
   toggleLeadSelection,
   selectAllLeads,
   clearSelection,
+  openBulkUpdateModal,
+  closeBulkUpdateModal,
+  openEditModal,
+  closeEditModal,
 } = leadsSlice.actions;
 
 export default leadsSlice.reducer;

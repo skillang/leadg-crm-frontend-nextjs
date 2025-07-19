@@ -1,4 +1,4 @@
-// src/components/leads/SingleLeadModal.tsx - UPDATED WITH COUNTRY & COURSE LEVEL
+// src/components/leads/SingleLeadModal.tsx - UPDATED WITH GENERIC MULTISELECT
 
 "use client";
 
@@ -24,27 +24,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useCreateLeadMutation } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { LEAD_STAGES } from "@/constants/stageConfig";
-import CountryMultiSelect, {
+import MultiSelect, {
+  STUDY_DESTINATIONS,
   formatCountriesForBackend,
   parseCountriesFromString,
-} from "@/components/common/CountryMultiSelect";
+} from "@/components/common/MultiSelect";
 
 // ✅ ADDED: Import course level constants
 export const COURSE_LEVEL_OPTIONS = [
@@ -415,24 +403,26 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
               )}
             </div>
 
-            {/* ✅ ADDED: Country of Interest & Course Level Row */}
+            {/* ✅ UPDATED: Country of Interest & Course Level Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Country of Interest - Multi Select */}
+              {/* ✅ UPDATED: Country of Interest - Using Generic MultiSelect */}
               <div className="space-y-2">
                 <Label>Countries of Interest</Label>
-                <CountryMultiSelect
+                <MultiSelect
+                  options={STUDY_DESTINATIONS}
                   value={formData.country_of_interest}
                   onChange={(value) =>
                     handleInputChange("country_of_interest", value)
                   }
                   disabled={isCreating}
                   error={errors.country_of_interest}
+                  placeholder="Select countries..."
+                  searchPlaceholder="Search countries..."
+                  emptyMessage="No countries found."
+                  maxDisplayItems={2}
+                  showCheckbox={true}
+                  allowSingleSelect={false}
                 />
-                {errors.country_of_interest && (
-                  <p className="text-sm text-red-500">
-                    {errors.country_of_interest}
-                  </p>
-                )}
               </div>
 
               {/* Course Level */}

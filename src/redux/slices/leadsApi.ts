@@ -1,7 +1,9 @@
+// src/redux/slices/leadsApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
 import { Lead } from "@/models/types/lead";
 
+// Updated interfaces to match new backend structure
 interface ApiLead {
   lead_id?: string;
   id?: string;
@@ -18,10 +20,22 @@ interface ApiLead {
   last_contacted?: string;
   notes?: string;
   category?: string;
-  assigned_to?: string; // Email of assigned user
-  assigned_to_name?: string; // Name of assigned user
-  course_level?: string; // Backend sends "course_level"
-  country_of_interest?: string; // Backend sends "country_of_interest"
+
+  // Enhanced assignment fields
+  assigned_to?: string; // Primary assignee email
+  assigned_to_name?: string; // Primary assignee name
+  co_assignees?: string[]; // Co-assignee emails
+  co_assignees_names?: string[]; // Co-assignee names
+  is_multi_assigned?: boolean; // Multi-assignment flag
+  assignment_method?: string; // Assignment method
+
+  // New fields
+  age?: number;
+  experience?: string;
+  nationality?: string;
+
+  course_level?: string;
+  country_of_interest?: string;
 }
 
 interface AssignmentHistory {
@@ -51,6 +65,9 @@ interface RawLeadDetails {
     course_level?: string;
     source: string;
     category: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
   };
   status_and_tags: {
     stage: string;
@@ -61,6 +78,10 @@ interface RawLeadDetails {
   assignment: {
     assigned_to: string;
     assigned_to_name: string;
+    co_assignees: string[];
+    co_assignees_names: string[];
+    is_multi_assigned: boolean;
+    assignment_method: string;
     assignment_history: AssignmentHistory[];
   };
   additional_info: {
@@ -82,8 +103,20 @@ interface LeadDetailsResponse {
   leadScore: number;
   priority: string;
   tags: string[];
+
+  // Enhanced assignment fields
   assignedTo: string;
   assignedToName: string;
+  coAssignees: string[];
+  coAssigneesNames: string[];
+  isMultiAssigned: boolean;
+  assignmentMethod: string;
+
+  // New fields
+  age?: number;
+  experience?: string;
+  nationality?: string;
+
   notes: string;
   createdAt: string;
   updatedAt: string;
@@ -93,98 +126,18 @@ interface LeadDetailsResponse {
   leadCategory: string;
 }
 
-interface LeadStatsResponse {
-  total_leads: number;
-  open_leads: number;
-  in_progress_leads: number;
-  closed_won_leads: number;
-  closed_lost_leads: number;
-  my_leads: number;
-}
-
-export interface CreateLeadApiRequest {
-  basic_info: {
-    name: string;
-    email: string;
-    contact_number: string;
-    source: string;
-    category: string; // ADDED: category field
-  };
-  status_and_tags: {
-    stage: string;
-    lead_score: number;
-    tags: string[];
-  };
-  additional_info: {
-    notes: string;
-  };
-}
-
-interface CreateLeadResponse {
-  success: boolean;
-  message: string;
-  lead: ApiLead;
-  assignment_info?: Record<string, unknown>;
-  duplicate_check?: Record<string, unknown>;
-}
-
-interface UpdateLeadRequest {
-  lead_id: string;
+// Updated user interfaces for multi-assignment
+interface UserWithDetails {
+  email: string;
   name: string;
-  lead_score: number;
-  stage: string;
-  email?: string;
-  contact_number?: string;
-  source?: string;
-  notes?: string;
-  tags?: string[];
-  assigned_to?: string;
-  assigned_to_name?: string;
-  assignment_method?: string;
+  is_active: boolean;
+  current_lead_count: number;
+  departments: string[];
 }
 
-export interface BulkLeadData {
-  basic_info: {
-    name: string;
-    email: string;
-    contact_number: string;
-    source: string;
-    category: string; // ADDED: category field
-  };
-  status_and_tags: {
-    stage: string;
-    lead_score: number;
-    tags: string[];
-  };
-  additional_info: {
-    notes: string;
-  };
-}
-
-interface BulkCreateResult {
-  index: number;
-  status: "created" | "failed" | "skipped";
-  lead_id?: string;
-  assigned_to?: string;
-  assigned_to_name?: string;
-  error?: string;
-}
-
-interface BulkCreateLeadsResponse {
-  success: boolean;
-  message: string;
-  summary: {
-    total_attempted: number;
-    successful_creates: number;
-    failed_creates: number;
-    duplicates_skipped: number;
-  };
-  results: BulkCreateResult[];
-}
-
-interface AssignableUser {
-  id: string;
-  name: string;
+interface AssignableUsersResponse {
+  total_users: number;
+  users: UserWithDetails[];
 }
 
 interface UserStats {
@@ -207,6 +160,107 @@ interface UserLeadStatsResponse {
   performance: string;
 }
 
+// Enhanced create lead request
+export interface CreateLeadApiRequest {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    source: string;
+    category: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
+// Enhanced update lead request with multi-assignment
+interface UpdateLeadRequest {
+  lead_id: string;
+  name: string;
+  lead_score: number;
+  stage: string;
+  email?: string;
+  contact_number?: string;
+  source?: string;
+  notes?: string;
+  tags?: string[];
+
+  // Assignment fields
+  assigned_to?: string;
+  assigned_to_name?: string;
+  assignment_method?: string;
+
+  // New demographic fields
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  country_of_interest?: string;
+  course_level?: string;
+
+  // Add index signature to allow dynamic assignment
+  [key: string]: any;
+}
+
+// Multi-assignment specific requests
+interface MultiAssignRequest {
+  reason: string;
+  user_emails: string[];
+}
+
+interface RemoveUserFromAssignmentRequest {
+  reason: string;
+  user_email: string;
+}
+
+interface BulkAssignSelectiveRequest {
+  assignment_method: "selected_users" | "all_users";
+  lead_ids: string[];
+  selected_user_emails?: string[];
+}
+
+interface SelectiveRoundRobinTestRequest {
+  selected_user_emails: string[];
+}
+
+interface LeadStatsResponse {
+  total_leads: number;
+  open_leads: number;
+  in_progress_leads: number;
+  closed_won_leads: number;
+  closed_lost_leads: number;
+  my_leads: number;
+}
+
+export interface BulkLeadData {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    source: string;
+    category: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
   prepareHeaders: (headers, { getState }) => {
@@ -218,94 +272,167 @@ const baseQuery = fetchBaseQuery({
     headers.set("content-type", "application/json");
     return headers;
   },
-  fetchFn: async (input, init) => {
-    try {
-      return await fetch(input, init);
-    } catch (error) {
-      console.error("Network error:", error);
-      throw error;
-    }
-  },
 });
 
+// Enhanced transformation functions
 const transformApiLead = (apiLead: ApiLead): Lead => ({
-  id: apiLead.lead_id || apiLead.id || "unknown",
-  name: apiLead.name || "Unknown",
-  stage: apiLead.stage || apiLead.status || "initial",
-  createdOn:
-    apiLead.created_at?.split("T")[0] || new Date().toISOString().split("T")[0],
-  leadScore: Number(apiLead.lead_score) || 0,
-  contact: apiLead.contact_number || apiLead.phone_number || "",
+  id: apiLead.lead_id || apiLead.id || "",
+  leadId: apiLead.lead_id || apiLead.id || "", // Fixed: ensure leadId is always present
+  name: apiLead.name || "",
   email: apiLead.email || "",
-  source: apiLead.source || "website",
-  media: "Email",
-  lastActivity:
-    apiLead.last_contacted?.split("T")[0] ||
-    apiLead.updated_at?.split("T")[0] ||
-    new Date().toISOString().split("T")[0],
-  department: apiLead.category || "Not Given",
-  notes: apiLead.notes || "",
+  contact: apiLead.contact_number || apiLead.phone_number || "",
+  phoneNumber: apiLead.contact_number || apiLead.phone_number || "", // Fixed: added phoneNumber
+  source: apiLead.source || "",
+  stage: apiLead.stage || "",
+  leadScore: apiLead.lead_score || 0,
+  status: apiLead.status || "",
+
+  // Enhanced assignment fields
   assignedTo: apiLead.assigned_to || "",
   assignedToName: apiLead.assigned_to_name || "",
+  coAssignees: apiLead.co_assignees || [],
+  coAssigneesNames: apiLead.co_assignees_names || [],
+  isMultiAssigned: apiLead.is_multi_assigned || false,
+  assignmentMethod: apiLead.assignment_method || "",
+
+  // New fields
+  age: apiLead.age,
+  experience: apiLead.experience,
+  nationality: apiLead.nationality,
+
   courseLevel: apiLead.course_level || "",
   countryOfInterest: apiLead.country_of_interest || "",
+  notes: apiLead.notes || "",
+  createdAt: apiLead.created_at || "",
+  updatedAt: apiLead.updated_at || "",
+  lastContacted: apiLead.last_contacted || null,
+  leadCategory: apiLead.category || "",
+  tags: [], // Fixed: provide default empty array instead of never[]
+  priority: "medium", // Fixed: provide default priority
 });
 
-const transformLeadDetailsResponse = (response: {
-  lead: RawLeadDetails;
-}): LeadDetailsResponse => {
-  const lead = response.lead;
-  return {
-    id: lead.system_info.id,
-    leadId: lead.system_info.lead_id,
-    name: lead.basic_info.name,
-    email: lead.basic_info.email,
-    phoneNumber: lead.basic_info.contact_number,
-    contact: lead.basic_info.contact_number,
-    countryOfInterest: lead.basic_info.country_of_interest || "",
-    courseLevel: lead.basic_info.course_level || "",
-    source: lead.basic_info.source,
-    stage: lead.status_and_tags.stage,
-    leadScore: lead.status_and_tags.lead_score,
-    priority: lead.status_and_tags.priority,
-    tags: lead.status_and_tags.tags || [],
-    assignedTo: lead.assignment.assigned_to,
-    assignedToName: lead.assignment.assigned_to_name,
-    notes: lead.additional_info.notes || "",
-    createdAt: lead.system_info.created_at,
-    updatedAt: lead.system_info.updated_at,
-    lastContacted: lead.system_info.last_contacted,
-    status: lead.system_info.status,
-    assignmentHistory: lead.assignment.assignment_history || [],
-    leadCategory: lead.basic_info.category || "",
-  };
-};
+const transformLeadDetailsResponse = (
+  data: RawLeadDetails
+): LeadDetailsResponse => ({
+  id: data.system_info.id,
+  leadId: data.system_info.lead_id,
+  name: data.basic_info.name,
+  email: data.basic_info.email,
+  phoneNumber: data.basic_info.contact_number,
+  contact: data.basic_info.contact_number,
+  countryOfInterest: data.basic_info.country_of_interest || "",
+  courseLevel: data.basic_info.course_level || "",
+  source: data.basic_info.source,
+  stage: data.status_and_tags.stage,
+  leadScore: data.status_and_tags.lead_score,
+  priority: data.status_and_tags.priority,
+  tags: data.status_and_tags.tags,
+
+  // Enhanced assignment fields
+  assignedTo: data.assignment.assigned_to,
+  assignedToName: data.assignment.assigned_to_name,
+  coAssignees: data.assignment.co_assignees,
+  coAssigneesNames: data.assignment.co_assignees_names,
+  isMultiAssigned: data.assignment.is_multi_assigned,
+  assignmentMethod: data.assignment.assignment_method,
+
+  // New fields
+  age: data.basic_info.age,
+  experience: data.basic_info.experience,
+  nationality: data.basic_info.nationality,
+
+  notes: data.additional_info.notes,
+  createdAt: data.system_info.created_at,
+  updatedAt: data.system_info.updated_at,
+  lastContacted: data.system_info.last_contacted,
+  status: data.system_info.status,
+  assignmentHistory: data.assignment.assignment_history,
+  leadCategory: data.basic_info.category,
+});
 
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
   baseQuery,
-  tagTypes: ["Lead", "LeadStats", "LeadDetails"],
+  tagTypes: ["Lead", "LeadDetails", "LeadStats", "AssignableUsers"],
   endpoints: (builder) => ({
-    getLeads: builder.query<Lead[], void>({
-      query: () => "/leads/",
+    // Enhanced leads query with multi-assignment support
+    getLeads: builder.query<
+      Lead[],
+      {
+        page?: number;
+        limit?: number;
+        lead_status?: string;
+        assigned_to?: string;
+        search?: string;
+        include_multi_assigned?: boolean;
+        assigned_to_me?: boolean;
+      }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== "") {
+            searchParams.append(key, value.toString());
+          }
+        });
+        return `/leads/?${searchParams.toString()}`;
+      },
       transformResponse: (response: { leads: ApiLead[] }) =>
-        response.leads.map(transformApiLead),
+        response?.leads ? response.leads.map(transformApiLead) : [],
       providesTags: (result) => [
         { type: "Lead", id: "LIST" },
         ...(result || []).map(({ id }) => ({ type: "Lead" as const, id })),
       ],
     }),
 
-    getMyLeads: builder.query<Lead[], void>({
-      query: () => "/leads/my-leads-fast",
+    // Enhanced my leads query
+    getMyLeads: builder.query<
+      Lead[],
+      {
+        page?: number;
+        limit?: number;
+        lead_status?: string;
+        search?: string;
+        include_co_assignments?: boolean;
+      }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== "") {
+            searchParams.append(key, value.toString());
+          }
+        });
+        return `/leads/my-leads?${searchParams.toString()}`;
+      },
       transformResponse: (response: { leads: ApiLead[] }) =>
-        Array.isArray(response.leads)
-          ? response.leads.map(transformApiLead)
-          : [],
+        response?.leads ? response.leads.map(transformApiLead) : [],
       providesTags: (result) => [
         { type: "Lead", id: "MY_LIST" },
         ...(result || []).map(({ id }) => ({ type: "Lead" as const, id })),
       ],
+    }),
+
+    // Enhanced leads with extended assignment info
+    getLeadsExtended: builder.query<
+      ApiLead[],
+      {
+        page?: number;
+        limit?: number;
+        include_multi_assigned?: boolean;
+        assigned_to_user?: string;
+      }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== "") {
+            searchParams.append(key, value.toString());
+          }
+        });
+        return `/leads/leads-extended/?${searchParams.toString()}`;
+      },
+      providesTags: ["Lead"],
     }),
 
     getLead: builder.query<Lead, string>({
@@ -324,42 +451,118 @@ export const leadsApi = createApi({
       ],
     }),
 
-    getLeadStats: builder.query<LeadStatsResponse, void>({
-      query: () => "/leads/stats",
+    getLeadStats: builder.query<
+      LeadStatsResponse,
+      { include_multi_assignment_stats?: boolean }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.include_multi_assignment_stats !== undefined) {
+          searchParams.append(
+            "include_multi_assignment_stats",
+            params.include_multi_assignment_stats.toString()
+          );
+        }
+        return `/leads/stats?${searchParams.toString()}`;
+      },
       transformResponse: (response: LeadStatsResponse) => response,
       providesTags: ["LeadStats"],
     }),
 
-    createLead: builder.mutation<CreateLeadResponse, CreateLeadApiRequest>({
+    // Enhanced assignable users with details
+    getAssignableUsersWithDetails: builder.query<AssignableUsersResponse, void>(
+      {
+        query: () => "/leads/users/assignable-with-details",
+        providesTags: ["AssignableUsers"],
+      }
+    ),
+
+    getUserLeadStats: builder.query<UserLeadStatsResponse, void>({
+      query: () => "/leads/admin/user-lead-stats",
+      transformResponse: (response: UserLeadStatsResponse) => response,
+      providesTags: ["AssignableUsers"],
+    }),
+
+    // Create lead with selective round robin support
+    createLead: builder.mutation<
+      any,
+      CreateLeadApiRequest & {
+        force_create?: boolean;
+        selected_user_emails?: string;
+      }
+    >({
+      query: ({ force_create = false, selected_user_emails, ...body }) => {
+        const searchParams = new URLSearchParams();
+        if (force_create) searchParams.append("force_create", "true");
+        if (selected_user_emails)
+          searchParams.append("selected_user_emails", selected_user_emails);
+
+        return {
+          url: `/leads/?${searchParams.toString()}`,
+          method: "POST",
+          body,
+        };
+      },
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+        "AssignableUsers",
+      ],
+    }),
+
+    // Enhanced bulk create with assignment options
+    bulkCreateLeads: builder.mutation<
+      any,
+      {
+        leads: BulkLeadData[];
+        force_create?: boolean;
+        assignment_method?: string;
+        selected_user_emails?: string;
+      }
+    >({
+      query: ({
+        leads,
+        force_create = false,
+        assignment_method = "all_users",
+        selected_user_emails,
+      }) => {
+        const searchParams = new URLSearchParams();
+        if (force_create) searchParams.append("force_create", "true");
+        if (assignment_method)
+          searchParams.append("assignment_method", assignment_method);
+        if (selected_user_emails)
+          searchParams.append("selected_user_emails", selected_user_emails);
+
+        return {
+          url: `/leads/bulk-create?${searchParams.toString()}`,
+          method: "POST",
+          body: leads,
+        };
+      },
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+        "AssignableUsers",
+      ],
+    }),
+
+    updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
       query: (body) => ({
-        url: "/leads/",
-        method: "POST",
+        url: "/leads/update",
+        method: "PUT",
         body,
       }),
-      invalidatesTags: [
+      invalidatesTags: (result, error, { lead_id }) => [
+        { type: "Lead", id: lead_id },
+        { type: "LeadDetails", id: lead_id },
         { type: "Lead", id: "LIST" },
         { type: "Lead", id: "MY_LIST" },
         "LeadStats",
+        "AssignableUsers",
       ],
     }),
-
-    bulkCreateLeads: builder.mutation<
-      BulkCreateLeadsResponse,
-      { leads: BulkLeadData[]; force_create?: boolean } // UPDATED: Use existing BulkLeadData
-    >({
-      query: ({ leads, force_create = false }) => ({
-        url: `/leads/bulk-create?force_create=${force_create}`,
-        method: "POST",
-        body: leads, // UPDATED: Send leads directly in new format
-      }),
-      invalidatesTags: [
-        { type: "Lead", id: "LIST" },
-        { type: "Lead", id: "MY_LIST" },
-        "LeadStats",
-      ],
-    }),
-
-    // CLEAN VERSION - Optimistic updates without debug logs
 
     updateLeadStage: builder.mutation<
       ApiLead,
@@ -383,11 +586,9 @@ export const leadsApi = createApi({
           notes: currentLead.notes,
         },
       }),
-      // 🔧 SIMPLE FIX: Just delay the cache invalidation
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          // Wait 100ms before invalidating to ensure DB write completes
           setTimeout(() => {
             dispatch(
               leadsApi.util.invalidateTags([
@@ -401,21 +602,100 @@ export const leadsApi = createApi({
           // Handle error
         }
       },
-      // Remove immediate invalidation
     }),
 
-    updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
-      query: (body) => ({
-        url: "/leads/update",
-        method: "PUT",
-        body,
+    // Multi-assignment endpoints
+    assignLeadToMultipleUsers: builder.mutation<
+      any,
+      {
+        leadId: string;
+        userEmails: string[];
+        reason: string;
+      }
+    >({
+      query: ({ leadId, userEmails, reason }) => ({
+        url: `/leads/leads/${leadId}/assign-multiple`,
+        method: "POST",
+        body: {
+          user_emails: userEmails,
+          reason,
+        },
       }),
-      invalidatesTags: (result, error, { lead_id }) => [
-        { type: "Lead", id: lead_id },
-        { type: "LeadDetails", id: lead_id },
+      invalidatesTags: (result, error, { leadId }) => [
+        { type: "Lead", id: leadId },
+        { type: "LeadDetails", id: leadId },
         { type: "Lead", id: "LIST" },
         { type: "Lead", id: "MY_LIST" },
         "LeadStats",
+      ],
+    }),
+
+    removeUserFromAssignment: builder.mutation<
+      any,
+      {
+        leadId: string;
+        userEmail: string;
+        reason: string;
+      }
+    >({
+      query: ({ leadId, userEmail, reason }) => ({
+        url: `/leads/leads/${leadId}/remove-user`,
+        method: "DELETE",
+        body: {
+          user_email: userEmail,
+          reason,
+        },
+      }),
+      invalidatesTags: (result, error, { leadId }) => [
+        { type: "Lead", id: leadId },
+        { type: "LeadDetails", id: leadId },
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
+    }),
+
+    bulkAssignSelective: builder.mutation<any, BulkAssignSelectiveRequest>({
+      query: (body) => ({
+        url: "/leads/assignment/bulk-assign-selective",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [
+        { type: "Lead", id: "LIST" },
+        { type: "Lead", id: "MY_LIST" },
+        "LeadStats",
+      ],
+    }),
+
+    testSelectiveRoundRobin: builder.mutation<
+      any,
+      SelectiveRoundRobinTestRequest
+    >({
+      query: (body) => ({
+        url: "/leads/assignment/selective-round-robin/test",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    previewRoundRobinAssignment: builder.query<
+      any,
+      { selected_users?: string }
+    >({
+      query: (params = {}) => {
+        const searchParams = new URLSearchParams();
+        if (params.selected_users) {
+          searchParams.append("selected_users", params.selected_users);
+        }
+        return `/leads/assignment/round-robin-preview?${searchParams.toString()}`;
+      },
+    }),
+
+    getLeadAssignmentDetails: builder.query<any, string>({
+      query: (leadId) => `/leads/leads/${leadId}/assignments`,
+      providesTags: (result, error, leadId) => [
+        { type: "LeadDetails", id: leadId },
       ],
     }),
 
@@ -430,44 +710,27 @@ export const leadsApi = createApi({
         "LeadStats",
       ],
     }),
-
-    fixMissingFields: builder.mutation<{ success: boolean }, void>({
-      query: () => ({
-        url: "/leads/fix-missing-fields",
-        method: "POST",
-      }),
-      invalidatesTags: [
-        { type: "Lead", id: "LIST" },
-        { type: "Lead", id: "MY_LIST" },
-        "LeadStats",
-      ],
-    }),
-
-    getAssignableUsers: builder.query<AssignableUser[], void>({
-      query: () => "/leads/admin/user-lead-stats",
-      transformResponse: (response: { users: AssignableUser[] }) =>
-        response.users || [],
-    }),
-
-    getUserLeadStats: builder.query<UserLeadStatsResponse, void>({
-      query: () => "/leads/admin/user-lead-stats",
-      transformResponse: (response: UserLeadStatsResponse) => response,
-    }),
   }),
 });
 
 export const {
   useGetLeadsQuery,
   useGetMyLeadsQuery,
+  useGetLeadsExtendedQuery,
   useGetLeadQuery,
   useGetLeadDetailsQuery,
   useGetLeadStatsQuery,
-  useUpdateLeadStageMutation,
-  useUpdateLeadMutation,
-  useCreateLeadMutation,
-  useDeleteLeadMutation,
-  useGetAssignableUsersQuery,
-  useBulkCreateLeadsMutation,
-  useFixMissingFieldsMutation,
+  useGetAssignableUsersWithDetailsQuery,
   useGetUserLeadStatsQuery,
+  useCreateLeadMutation,
+  useBulkCreateLeadsMutation,
+  useUpdateLeadMutation,
+  useUpdateLeadStageMutation,
+  useAssignLeadToMultipleUsersMutation,
+  useRemoveUserFromAssignmentMutation,
+  useBulkAssignSelectiveMutation,
+  useTestSelectiveRoundRobinMutation,
+  usePreviewRoundRobinAssignmentQuery,
+  useGetLeadAssignmentDetailsQuery,
+  useDeleteLeadMutation,
 } = leadsApi;
