@@ -1,7 +1,7 @@
 // src/redux/selectors/index.ts (Fixed role comparisons)
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "../store";
-import { Lead } from "@/redux/types/Leads";
+import { Lead } from "@/models/types/lead";
 
 // Basic selectors with proper typing
 export const selectLeadsState = (state: RootState) => state.leads;
@@ -43,7 +43,7 @@ export const createFilteredLeadsSelector = (leads: Lead[] = []) =>
       const matchesStage = !filters.stage || lead.stage === filters.stage;
 
       const matchesDepartment =
-        !filters.department || lead.department === filters.department;
+        !filters.department || lead.leadCategory === filters.department;
 
       const matchesSource = !filters.source || lead.source === filters.source;
 
@@ -66,7 +66,7 @@ export const createUserFilteredLeadsSelector = (leads: Lead[] = []) =>
         userLeads = leads.filter(
           (lead) =>
             lead.assignedTo === user.id ||
-            lead.assignedToId === user.id ||
+            lead.assignedTo === user.id ||
             lead.contact === user.email // fallback logic
         );
       }
@@ -80,7 +80,7 @@ export const createUserFilteredLeadsSelector = (leads: Lead[] = []) =>
         const matchesStage = !filters.stage || lead.stage === filters.stage;
 
         const matchesDepartment =
-          !filters.department || lead.department === filters.department;
+          !filters.department || lead.leadCategory === filters.department;
 
         const matchesSource = !filters.source || lead.source === filters.source;
 
@@ -101,7 +101,7 @@ export const calculateLeadStats = (leads: Lead[] = []) => {
   }, {} as Record<string, number>);
 
   const byDepartment = leads.reduce((acc, lead) => {
-    acc[lead.department] = (acc[lead.department] || 0) + 1;
+    acc[lead.leadCategory] = (acc[lead.leadCategory] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 

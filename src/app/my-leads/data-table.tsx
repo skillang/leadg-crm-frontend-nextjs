@@ -1,4 +1,4 @@
-// src/app/sample-table/data-table.tsx
+// src/app/my-leads/data-table.tsx - UPDATED TO USE API STAGES FOR FILTERING
 
 "use client";
 import * as React from "react";
@@ -68,10 +68,12 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Loader2,
 } from "lucide-react";
 
-// Import the LEAD_STAGES configuration
-import { LEAD_STAGES } from "@/constants/stageConfig";
+// 🔥 NEW: Import stages API instead of constants
+import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
+import { StageDisplay, useStageUtils } from "@/components/common/StageDisplay";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -108,6 +110,11 @@ export function DataTable<TData, TValue>({
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [dateRange, setDateRange] = React.useState("last-7-days");
+
+  // 🔥 NEW: Get stages from API
+  const { data: stagesData, isLoading: stagesLoading } =
+    useGetActiveStagesQuery({});
+  const { getStageDisplayName } = useStageUtils();
 
   const table = useReactTable({
     data,
@@ -162,89 +169,109 @@ export function DataTable<TData, TValue>({
     statusFilter.length > 0 ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
-  // Handler functions
-  const handleExportCsv = () => {
-    if (onExportCsv) {
-      onExportCsv();
-    } else {
-      if (data.length === 0) {
-        console.warn("No data to export");
-        return;
-      }
-
-      const firstItem = data[0] as Record<string, unknown>;
-      const headers = Object.keys(firstItem);
-
-      const csvContent =
-        "data:text/csv;charset=utf-8," +
-        [
-          headers,
-          ...data.map((row) => {
-            const typedRow = row as Record<string, unknown>;
-            return headers.map((header) => {
-              const value = typedRow[header];
-              if (value === null || value === undefined) {
-                return "";
-              }
-              if (typeof value === "string" && value.includes(",")) {
-                return `"${value}"`;
-              }
-              return String(value);
-            });
-          }),
-        ]
-          .map((row) => (Array.isArray(row) ? row.join(",") : row))
-          .join("\n");
-
-      const link = document.createElement("a");
-      link.setAttribute("href", encodeURI(csvContent));
-      link.setAttribute("download", `${title.toLowerCase()}_export.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const handleClearAllFilters = () => {
+  const clearAllFilters = () => {
     setStageFilter("all");
     setDepartmentFilter("all");
     setStatusFilter([]);
     setGlobalFilter("");
   };
 
-  const handleStatusToggle = (status: string) => {
-    setStatusFilter((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status]
-    );
-  };
-
-  const handleSort = (columnId: string) => {
-    const existingSort = sorting.find((s) => s.id === columnId);
-    if (!existingSort) {
-      setSorting([{ id: columnId, desc: false }]);
-    } else if (!existingSort.desc) {
-      setSorting([{ id: columnId, desc: true }]);
-    } else {
-      setSorting([]);
-    }
-  };
-
-  const getSortIcon = (columnId: string) => {
-    const existingSort = sorting.find((s) => s.id === columnId);
-    if (!existingSort) return <ArrowUpDown className="ml-2 h-4 w-4" />;
-    return existingSort.desc ? (
+  const getSortIcon = (isSorted: false | "asc" | "desc") => {
+    if (!isSorted) return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    return isSorted === "desc" ? (
       <ArrowDown className="ml-2 h-4 w-4" />
     ) : (
       <ArrowUp className="ml-2 h-4 w-4" />
     );
   };
 
-  // Helper function to get stage label by value
-  const getStageLabel = (value: string) => {
-    const stage = LEAD_STAGES.find((stage) => stage.value === value);
-    return stage?.label || value;
+  // 🔥 NEW: Stage statistics component using API data
+  const StageStatsOverview = () => {
+    const stageCounts = React.useMemo(() => {
+      if (!stagesData?.stages || !data) return {};
+
+      const counts: Record<string, number> = {};
+      stagesData.stages.forEach((stage) => {
+        counts[stage.name] = (data as any[]).filter(
+          (lead: any) => lead.stage === stage.name
+        ).length;
+      });
+      return counts;
+    }, [stagesData, data]);
+
+    if (stagesLoading) {
+      return (
+        <div className="flex gap-2 mb-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="h-6 w-16 bg-gray-200 rounded animate-pulse"
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap gap-2 mb-4">
+        {stagesData?.stages.map((stage) => (
+          <button
+            key={stage.id}
+            onClick={() => setStageFilter(stage.name)}
+            className={`
+              transition-all duration-200 hover:scale-105
+              ${
+                stageFilter === stage.name
+                  ? "ring-2 ring-blue-500 ring-offset-1"
+                  : ""
+              }
+            `}
+          >
+            <Badge
+              className="cursor-pointer border-2"
+              style={{
+                backgroundColor: `${stage.color}20`,
+                borderColor: stage.color,
+                color: stage.color,
+              }}
+            >
+              {stage.display_name}: {stageCounts[stage.name] || 0}
+            </Badge>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // 🔥 UPDATED: Stage filter component using API data
+  const StageFilterSelect = () => {
+    if (stagesLoading) {
+      return (
+        <div className="w-[180px] h-10 bg-gray-200 rounded animate-pulse" />
+      );
+    }
+
+    return (
+      <Select value={stageFilter} onValueChange={setStageFilter}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Filter by stage" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Stages</SelectItem>
+          {stagesData?.stages.map((stage) => (
+            <SelectItem key={stage.id} value={stage.name}>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: stage.color }}
+                />
+                <span>{stage.display_name}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
   };
 
   // Improved pagination component
@@ -317,67 +344,64 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
 
-        {/* Right side - Navigation */}
+        {/* Right side - Pagination controls */}
         <div className="flex items-center space-x-2">
-          {/* Page info */}
-          <div className="text-sm text-muted-foreground">
-            Page {pageIndex + 1} of {getPageCount()}
-          </div>
-
-          {/* Navigation buttons */}
           <div className="flex items-center space-x-1">
             <Button
               variant="outline"
-              size="sm"
+              className="h-8 w-8 p-0"
               onClick={() => setPageIndex(0)}
               disabled={!getCanPreviousPage()}
-              className="h-8 w-8 p-0"
             >
+              <span className="sr-only">Go to first page</span>
               <ChevronsLeft className="h-4 w-4" />
             </Button>
-
             <Button
               variant="outline"
-              size="sm"
-              onClick={() => previousPage()}
-              disabled={!getCanPreviousPage()}
               className="h-8 w-8 p-0"
+              onClick={previousPage}
+              disabled={!getCanPreviousPage()}
             >
+              <span className="sr-only">Go to previous page</span>
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
             {/* Page numbers */}
-            {getPageNumbers().map((page) => (
-              <Button
-                key={page}
-                variant={pageIndex + 1 === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPageIndex(page - 1)}
-                className="h-8 w-8 p-0"
-              >
-                {page}
-              </Button>
-            ))}
+            <div className="flex items-center space-x-1">
+              {getPageNumbers().map((page) => (
+                <Button
+                  key={page}
+                  variant={page === pageIndex + 1 ? "default" : "outline"}
+                  className="h-8 w-8 p-0"
+                  onClick={() => setPageIndex(page - 1)}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
 
             <Button
               variant="outline"
-              size="sm"
-              onClick={() => nextPage()}
-              disabled={!getCanNextPage()}
               className="h-8 w-8 p-0"
+              onClick={nextPage}
+              disabled={!getCanNextPage()}
             >
+              <span className="sr-only">Go to next page</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
-
             <Button
               variant="outline"
-              size="sm"
+              className="h-8 w-8 p-0"
               onClick={() => setPageIndex(getPageCount() - 1)}
               disabled={!getCanNextPage()}
-              className="h-8 w-8 p-0"
             >
+              <span className="sr-only">Go to last page</span>
               <ChevronsRight className="h-4 w-4" />
             </Button>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            Page {pageIndex + 1} of {getPageCount()}
           </div>
         </div>
       </div>
@@ -386,19 +410,21 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      {/* Top Row - Integrated Header */}
+      {/* Header Section */}
       <div className="flex items-center justify-between">
-        {/* Left side */}
-        <div className="flex items-center gap-4">
-          <div className="font-semibold text-2xl">{title}</div>
+        <div className="flex items-center justify-between gap-4">
+          {" "}
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>{" "}
+          {/* Column Visibility */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                <Grid2X2PlusIcon className="h-4 w-4" />
+              <Button variant="outline" size="sm">
+                <Grid2X2PlusIcon className="mr-2 h-4 w-4" />
                 Customize
+                <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
               {table
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
@@ -420,297 +446,144 @@ export function DataTable<TData, TValue>({
           </DropdownMenu>
         </div>
 
-        {/* Right side */}
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search leads..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="pl-8 w-64"
-            />
-          </div>
-
-          {/* Sort by Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <SlidersHorizontalIcon className="h-4 w-4" />
-                Sort by
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={() => handleSort("name")}
-                className="cursor-pointer"
-              >
-                <span className="flex items-center justify-between w-full">
-                  Lead name
-                  {getSortIcon("name")}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleSort("createdDate")}
-                className="cursor-pointer"
-              >
-                <span className="flex items-center justify-between w-full">
-                  Created date
-                  {getSortIcon("createdDate")}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleSort("lastActivity")}
-                className="cursor-pointer"
-              >
-                <span className="flex items-center justify-between w-full">
-                  Last activity
-                  {getSortIcon("lastActivity")}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setSorting([])}
-                className="cursor-pointer"
-              >
-                Clear sorting
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Optimized Filters for CRM */}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <ListFilterIcon className="h-4 w-4" />
-                Filters
-                {hasActiveFilters && (
-                  <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs">
-                    {activeFiltersCount}
-                  </Badge>
-                )}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Filter Leads</DialogTitle>
-              </DialogHeader>
-
-              <div className="space-y-6 py-4">
-                {/* Lead Stage Filter - Updated to use LEAD_STAGES */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Lead Stage</label>
-                  <Select value={stageFilter} onValueChange={setStageFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stages</SelectItem>
-                      {LEAD_STAGES.map((stage) => (
-                        <SelectItem key={stage.value} value={stage.value}>
-                          {stage.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Department Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Department</label>
-                  <Select
-                    value={departmentFilter}
-                    onValueChange={setDepartmentFilter}
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between">
+            {/* Filters and Search */}
+            <div className="flex items-center space-x-2">
+              {/* Global Search */}
+              <div className="relative w-54">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search leads..."
+                  value={globalFilter ?? ""}
+                  onChange={(event) =>
+                    setGlobalFilter(String(event.target.value))
+                  }
+                  className="pl-8"
+                />
+                {globalFilter && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-6 w-6 p-0"
+                    onClick={() => setGlobalFilter("")}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="support">Support</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Lead Source Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Lead Source</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      "Website",
-                      "Email",
-                      "Phone",
-                      "Social Media",
-                      "Referral",
-                      "Advertisement",
-                    ].map((source) => (
-                      <div key={source} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={source}
-                          checked={statusFilter.includes(source.toLowerCase())}
-                          onCheckedChange={() =>
-                            handleStatusToggle(source.toLowerCase())
-                          }
-                        />
-                        <label htmlFor={source} className="text-sm">
-                          {source}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Active Filters Display */}
-                {hasActiveFilters && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Active Filters
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {stageFilter !== "all" && (
-                        <Badge variant="secondary" className="text-xs">
-                          Stage: {getStageLabel(stageFilter)}
-                          <X
-                            className="ml-1 h-3 w-3 cursor-pointer"
-                            onClick={() => setStageFilter("all")}
-                          />
-                        </Badge>
-                      )}
-                      {departmentFilter !== "all" && (
-                        <Badge variant="secondary" className="text-xs">
-                          Dept: {departmentFilter}
-                          <X
-                            className="ml-1 h-3 w-3 cursor-pointer"
-                            onClick={() => setDepartmentFilter("all")}
-                          />
-                        </Badge>
-                      )}
-                      {statusFilter.map((status) => (
-                        <Badge
-                          key={status}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {status}
-                          <X
-                            className="ml-1 h-3 w-3 cursor-pointer"
-                            onClick={() => handleStatusToggle(status)}
-                          />
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                    <X className="h-3 w-3" />
+                  </Button>
                 )}
               </div>
 
-              <DialogFooter className="flex justify-between">
-                <Button variant="outline" onClick={handleClearAllFilters}>
-                  Clear All
-                </Button>
-                <DialogTrigger asChild>
-                  <Button>Apply Filters</Button>
-                </DialogTrigger>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Date Range Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <CalendarDaysIcon className="h-4 w-4" />
-                Last 7 days
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuRadioGroup
-                value={dateRange}
-                onValueChange={setDateRange}
+              {/* Department Filter */}
+              <Select
+                value={departmentFilter}
+                onValueChange={setDepartmentFilter}
               >
-                <DropdownMenuRadioItem value="last-7-days">
-                  Last 7 days
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="last-30-days">
-                  Last 30 days
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="this-month">
-                  This month
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="last-month">
-                  Last month
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="this-quarter">
-                  This quarter
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="this-year">
-                  This year
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="support">Support</SelectItem>
+                </SelectContent>
+              </Select>
 
-          <Button
-            variant="outline"
-            onClick={handleExportCsv}
-            className="flex items-center gap-2 bg-blue-200 border-blue-500 border-2 text-blue-800 hover:bg-blue-100 hover:text-blue-800"
-          >
-            <DownloadIcon className="h-4 w-4" />
-            .csv
-          </Button>
+              {/* Advanced Filters */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
+                    Filters
+                    {hasActiveFilters && (
+                      <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
+                        {activeFiltersCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={clearAllFilters}>
+                    Clear all filters
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup
+                    value={dateRange}
+                    onValueChange={setDateRange}
+                  >
+                    <DropdownMenuRadioItem value="today">
+                      Today
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="last-7-days">
+                      Last 7 days
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="last-30-days">
+                      Last 30 days
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="all">
+                      All time
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <StageFilterSelect />
+          {onExportCsv && (
+            <Button variant="outline" size="sm" onClick={onExportCsv}>
+              <DownloadIcon className="mr-2 h-4 w-4" />. csv
+            </Button>
+          )}
           <NewLeadDropdown />
         </div>
       </div>
+      {description && <p className="text-muted-foreground">{description}</p>}
 
-      {/* Description */}
-      {description && <p className="text-gray-600 text-sm">{description}</p>}
+      {/* Stage Statistics Overview */}
+      <StageStatsOverview />
 
-      {/* Active Filters Bar */}
+      {/* Active Filters Display */}
       {hasActiveFilters && (
-        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
-          <span className="text-sm text-gray-600">Active filters:</span>
+        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+          <span className="text-sm font-medium">Active filters:</span>
           {stageFilter !== "all" && (
-            <Badge variant="secondary" className="text-xs">
-              Stage: {getStageLabel(stageFilter)}
-              <X
-                className="ml-1 h-3 w-3 cursor-pointer"
+            <Badge variant="secondary" className="gap-1">
+              Stage: {getStageDisplayName(stageFilter)}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
                 onClick={() => setStageFilter("all")}
-              />
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </Badge>
           )}
           {departmentFilter !== "all" && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="gap-1">
               Department: {departmentFilter}
-              <X
-                className="ml-1 h-3 w-3 cursor-pointer"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
                 onClick={() => setDepartmentFilter("all")}
-              />
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </Badge>
           )}
-          {statusFilter.map((status) => (
-            <Badge key={status} variant="secondary" className="text-xs">
-              Source: {status}
-              <X
-                className="ml-1 h-3 w-3 cursor-pointer"
-                onClick={() => handleStatusToggle(status)}
-              />
-            </Badge>
-          ))}
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleClearAllFilters}
-            className="text-xs h-6"
+            onClick={clearAllFilters}
+            className="h-6 text-xs"
           >
             Clear all
           </Button>
         </div>
       )}
 
-      {/* Table */}
+      {/* Data Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -737,6 +610,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="hover:bg-muted/50"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
