@@ -45,6 +45,7 @@ import {
 import MultiSelect, {
   transformUsersToOptions,
 } from "@/components/common/MultiSelect";
+import { useNotifications } from "../common/NotificationSystem";
 
 interface BulkUploadModalProps {
   isOpen: boolean;
@@ -76,10 +77,6 @@ const LEAD_CATEGORIES = [
   "Nursing (NS)",
   "Sales Associate (SA)",
   "Web Analysis (WA)",
-  "Technology (TG)",
-  "Education (ED)",
-  "Healthcare (HC)",
-  "Business (BS)",
 ];
 
 const LEAD_SOURCES = [
@@ -133,8 +130,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     assignableUsers.filter((user) => user.is_active)
   );
 
-  // ... [Keep all the existing file handling methods - handleFileSelect, parseCSV, etc.] ...
-
   const handleFileSelect = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -148,13 +143,242 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     []
   );
 
+  // Replace this comment: // ... [Keep existing parseCSV implementation] ...
   const parseCSV = (file: File) => {
-    // ... [Keep existing parseCSV implementation] ...
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const csvData = e.target?.result as string;
+        const lines = csvData.split("\n").filter((line) => line.trim() !== "");
+
+        if (lines.length < 2) {
+          setErrors({
+            file: "CSV file must contain at least a header row and one data row",
+          });
+          return;
+        }
+
+        // Parse header row
+        const headers = lines[0]
+          .split(",")
+          .map((h) => h.trim().toLowerCase().replace(/"/g, ""));
+
+        // Check for required columns
+        const missingColumns = REQUIRED_COLUMNS.filter(
+          (col) => !headers.includes(col)
+        );
+        if (missingColumns.length > 0) {
+          setErrors({
+            file: `Missing required columns: ${missingColumns.join(
+              ", "
+            )}. Required: ${REQUIRED_COLUMNS.join(", ")}`,
+          });
+          return;
+        }
+
+        // Parse data rows
+        const leads: ParsedLead[] = [];
+        const valid: ParsedLead[] = [];
+        const invalid: ParsedLead[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i]
+            .split(",")
+            .map((v) => v.trim().replace(/"/g, ""));
+          const errors: string[] = [];
+
+          // Create lead object
+          const lead: ParsedLead = {
+            index: i,
+            name: "",
+            email: "",
+            contact_number: "",
+            source: selectedSource,
+            category: selectedCategory,
+            stage: "New",
+            lead_score: 0,
+            tags: [],
+            notes: "",
+            errors: [],
+            isValid: false,
+          };
+
+          // Map CSV values to lead properties
+          headers.forEach((header, index) => {
+            const value = values[index] || "";
+
+            switch (header) {
+              case "name":
+                lead.name = value;
+                if (!value) errors.push("Name is required");
+                break;
+              case "email":
+                lead.email = value;
+                if (!value) {
+                  errors.push("Email is required");
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                  errors.push("Invalid email format");
+                }
+                break;
+              case "contact_number":
+                lead.contact_number = value;
+                if (!value) errors.push("Contact number is required");
+                break;
+              case "age":
+                if (value) {
+                  const age = parseInt(value);
+                  if (isNaN(age) || age < 0 || age > 120) {
+                    errors.push("Invalid age");
+                  } else {
+                    lead.age = age;
+                  }
+                }
+                break;
+              case "experience":
+                lead.experience = value;
+                break;
+              case "nationality":
+                lead.nationality = value;
+                break;
+              case "country_of_interest":
+                lead.country_of_interest = value;
+                break;
+              case "course_level":
+                lead.course_level = value;
+                break;
+              case "notes":
+                lead.notes = value;
+                break;
+              case "tags":
+                if (value) {
+                  lead.tags = value
+                    .split(";")
+                    .map((tag) => tag.trim())
+                    .filter((tag) => tag);
+                }
+                break;
+              case "lead_score":
+                if (value) {
+                  const score = parseInt(value);
+                  if (isNaN(score) || score < 0 || score > 100) {
+                    errors.push("Invalid lead score (must be 0-100)");
+                  } else {
+                    lead.lead_score = score;
+                  }
+                }
+                break;
+              case "stage":
+                if (value) {
+                  const validStages = [
+                    "New",
+                    "Contacted",
+                    "Qualified",
+                    "Proposal",
+                    "Negotiation",
+                    "Closed Won",
+                    "Closed Lost",
+                  ];
+                  if (validStages.includes(value)) {
+                    lead.stage = value;
+                  } else {
+                    errors.push(
+                      `Invalid stage. Valid options: ${validStages.join(", ")}`
+                    );
+                  }
+                }
+                break;
+              default:
+                // Ignore unknown columns
+                break;
+            }
+          });
+
+          // Set validation status
+          lead.errors = errors;
+          lead.isValid = errors.length === 0;
+
+          leads.push(lead);
+
+          if (lead.isValid) {
+            valid.push(lead);
+          } else {
+            invalid.push(lead);
+          }
+        }
+
+        // Update state
+        setParsedLeads(leads);
+        setValidLeads(valid);
+        setInvalidLeads(invalid);
+        setErrors({}); // Clear any previous errors
+      } catch (error) {
+        console.error("Error parsing CSV:", error);
+        setErrors({ file: "Error parsing CSV file. Please check the format." });
+      }
+    };
+
+    reader.onerror = () => {
+      setErrors({ file: "Error reading file" });
+    };
+
+    reader.readAsText(file);
   };
 
+  // Replace this comment: // ... [Keep existing downloadTemplate implementation] ...
   const downloadTemplate = () => {
-    // ... [Keep existing downloadTemplate implementation] ...
+    const headers = [
+      "name",
+      "email",
+      "contact_number",
+      "age",
+      "experience",
+      "nationality",
+      "country_of_interest",
+      "course_level",
+      "notes",
+      "tags",
+      "lead_score",
+      "stage",
+    ];
+
+    const sampleData = [
+      "John Doe",
+      "john.doe@example.com",
+      "+1234567890",
+      "25",
+      "2 years",
+      "US",
+      "Canada",
+      "Bachelor",
+      "Interested in nursing program",
+      "urgent;qualified",
+      "85",
+      "New",
+    ];
+
+    const csvContent = [headers.join(","), sampleData.join(",")].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lead_upload_template.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
+
+  const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
 
   const handleUpload = async () => {
     if (validLeads.length === 0) {
@@ -620,3 +844,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 };
 
 export default BulkUploadModal;
+function setDragActive(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+
+function showError(arg0: string, arg1: string) {
+  throw new Error("Function not implemented.");
+}
