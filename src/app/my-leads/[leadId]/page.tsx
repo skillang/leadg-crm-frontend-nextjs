@@ -24,6 +24,10 @@ import { useNotifications } from "@/components/common/NotificationSystem";
 import { StageDisplay, useStageUtils } from "@/components/common/StageDisplay";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Lead } from "@/models/types/lead";
+import WhatsAppButton from "@/components/whatsapp/WhatsAppButton";
+import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store";
 
 // Import tab components
 import NotesContainer from "@/components/notes/NotesContainer";
@@ -129,6 +133,7 @@ export default function LeadDetailsPage() {
     useGetActiveStagesQuery({});
   const [updateStage] = useUpdateLeadStageMutation();
   const { getStageDisplayName } = useStageUtils();
+  const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const { showSuccess, showError, showWarning } = useNotifications();
 
@@ -156,14 +161,33 @@ export default function LeadDetailsPage() {
   };
 
   // WhatsApp handler with notification instead of alert
-  const handleWhatsApp = () => {
-    if (!leadDetails?.phoneNumber) {
-      showError("No phone number available for this lead");
-      return;
-    }
-    // TODO: Implement WhatsApp modal
-    showWarning("WhatsApp chat is not available yet", "Feature Coming soon");
-  };
+  // const handleWhatsApp = () => {
+  //   if (!leadDetails?.phoneNumber) {
+  //     showError("No phone number available for this lead");
+  //     return;
+  //   }
+  //   showWarning("WhatsApp chat is not available yet", "Feature Coming soon");
+  // };
+
+  // Create data for WhatsApp components
+  const whatsappLeadData = leadDetails
+    ? {
+        id: leadDetails.leadId,
+        leadId: leadDetails.leadId,
+        name: leadDetails.name,
+        phoneNumber: leadDetails.phoneNumber,
+        email: leadDetails.email,
+      }
+    : null;
+
+  const whatsappUserData = currentUser
+    ? {
+        id: currentUser.id,
+        firstName: currentUser.first_name,
+        lastName: currentUser.last_name,
+        email: currentUser.email,
+      }
+    : null;
 
   // Stage change handler using Select with StageDisplay
   const handleStageChange = async (newStage: string) => {
@@ -435,14 +459,13 @@ export default function LeadDetailsPage() {
                 Mail
               </Button>
               {/* WhatsApp Button */}
-              <Button
-                onClick={handleWhatsApp}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={!leadDetails.phoneNumber}
-              >
-                <Phone className="mr-2 h-4 w-4" />
-                WhatsApp
-              </Button>
+              {whatsappLeadData && whatsappUserData && (
+                <WhatsAppButton
+                  lead={whatsappLeadData}
+                  user={whatsappUserData}
+                  disabled={!leadDetails.phoneNumber}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -736,6 +759,7 @@ export default function LeadDetailsPage() {
           </div>
         </div>
       </div>
+      <WhatsAppModal />
     </div>
   );
 }
