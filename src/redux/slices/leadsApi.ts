@@ -444,7 +444,13 @@ export const leadsApi = createApi({
 
     getLeadDetails: builder.query<LeadDetailsResponse, string>({
       query: (leadId) => `/leads/${leadId}`,
-      transformResponse: transformLeadDetailsResponse,
+      transformResponse: (response: {
+        success: boolean;
+        lead: RawLeadDetails;
+      }) => {
+        // ✅ FIX: Extract the lead object from the response wrapper
+        return transformLeadDetailsResponse(response.lead);
+      },
       providesTags: (result, error, id) => [
         { type: "LeadDetails", id },
         { type: "Lead", id: result?.leadId },

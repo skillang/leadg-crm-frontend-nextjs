@@ -175,6 +175,7 @@ export const LEAD_SOURCES = [
   { value: "email_campaign", label: "Email Campaign" },
   { value: "cold_call", label: "Cold Call" },
   { value: "trade_show", label: "Trade Show" },
+  { value: "naukri", label: "Naukri" },
   { value: "webinar", label: "Webinar" },
   { value: "content_marketing", label: "Content Marketing" },
   { value: "paid_ads", label: "Paid Ads" },
@@ -202,10 +203,11 @@ export const COURSE_LEVELS = [
 
 export const EXPERIENCE_LEVELS = [
   { value: "fresher", label: "Fresher" },
-  { value: "1-2_years", label: "1-2 Years" },
-  { value: "3-5_years", label: "3-5 Years" },
-  { value: "5-10_years", label: "5-10 Years" },
-  { value: "10+_years", label: "10+ Years" },
+  { value: "less_than_1_year", label: "Less than 1 year" },
+  { value: "1_to_3_years", label: "1-3 Years" },
+  { value: "3_to_5_years", label: "3-5 Years" },
+  { value: "5_to_10_years", label: "5-10 Years" },
+  { value: "more_than_10_years", label: "10+ Years" },
 ];
 
 export const COUNTRIES = [

@@ -1,4 +1,4 @@
-// src/components/leads/SingleLeadModal.tsx - UPDATED WITH GENERIC MULTISELECT
+// src/components/leads/SingleLeadModal.tsx - TABBED INTERFACE
 
 "use client";
 
@@ -19,28 +19,62 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotifications } from "@/components/common/NotificationSystem";
-import { useCreateLeadMutation } from "@/redux/slices/leadsApi";
+import {
+  useCreateLeadMutation,
+  useGetAssignableUsersWithDetailsQuery,
+} from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
-import { LEAD_STAGES } from "@/constants/stageConfig";
+import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
+import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import MultiSelect, {
   STUDY_DESTINATIONS,
   formatCountriesForBackend,
-  parseCountriesFromString,
 } from "@/components/common/MultiSelect";
 
-// ✅ ADDED: Import course level constants
+// Course level constants
 export const COURSE_LEVEL_OPTIONS = [
   { value: "bachelor's_degree", label: "Bachelor's Degree" },
   { value: "master's_degree", label: "Master's Degree" },
   { value: "phd", label: "PhD" },
   { value: "diploma", label: "Diploma" },
   { value: "certificate", label: "Certificate" },
+];
+
+// Experience levels
+export const EXPERIENCE_LEVELS = [
+  { value: "fresher", label: "Fresher" },
+  { value: "less_than_1_year", label: "Less than 1 year" },
+  { value: "1_to_3_years", label: "1-3 Years" },
+  { value: "3_to_5_years", label: "3-5 Years" },
+  { value: "5_to_10_years", label: "5-10 Years" },
+  { value: "more_than_10_years", label: "10+ Years" },
+];
+
+// Nationalities
+export const NATIONALITIES = [
+  "Indian",
+  "American",
+  "British",
+  "Canadian",
+  "Australian",
+  "German",
+  "French",
+  "Chinese",
+  "Japanese",
+  "Korean",
+  "Pakistani",
+  "Bangladeshi",
+  "Sri Lankan",
+  "Nepalese",
+  "African",
+  "European",
+  "Other",
 ];
 
 // API Error interface
@@ -64,35 +98,46 @@ interface SingleLeadModalProps {
   onClose: () => void;
 }
 
-// ✅ UPDATED: Form data interface with country and course level
+// Form data interface
 interface LeadFormData {
   name: string;
   email: string;
   contact_number: string;
-  country_of_interest: string[]; // ✅ ADDED: Multi-select array
-  course_level: string; // ✅ ADDED: Course level field
+  country_of_interest: string[];
+  course_level: string;
   source: string;
   category: string;
   assigned_to: string;
+  assigned_to_name: string;
   stage: string;
+  status: string;
   lead_score: number;
   notes: string;
   tags: string[];
+  age?: number;
+  experience?: string;
+  nationality?: string;
 }
 
-// ✅ UPDATED: API payload interface
+// API payload interface
 interface CreateLeadPayload {
   basic_info: {
     name: string;
     email: string;
     contact_number: string;
-    country_of_interest?: string; // ✅ ADDED: Single string for backend
-    course_level?: string; // ✅ ADDED: Course level field
+    country_of_interest?: string;
+    course_level?: string;
     source: string;
     category: string;
+    assigned_to?: string;
+    assigned_to_name?: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
   };
   status_and_tags: {
     stage: string;
+    status: string;
     lead_score: number;
     tags: string[];
   };
@@ -114,26 +159,47 @@ const PREDEFINED_TAGS = [
   "Hot Lead",
   "Healthcare",
   "Experienced",
+  "USA",
+  "UK",
+  "Germany",
+  "Canada",
+  "Australia",
+  "New Zealand",
+  "Masters",
+  "Bachelors",
+  "PhD",
+  "Scholarship",
+  "Interview",
+  "Application",
+  "Budget",
+  "Visa",
+  "Documents",
+  "Next Fall",
 ];
 
 const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // ✅ UPDATED: Form state with country and course level
+  const [activeTab, setActiveTab] = useState("details");
   const [formData, setFormData] = useState<LeadFormData>({
     name: "",
     email: "",
     contact_number: "",
-    country_of_interest: [], // ✅ ADDED: Empty array for multi-select
-    course_level: "", // ✅ ADDED: Course level field
+    country_of_interest: [],
+    course_level: "",
     source: "website",
     category: "",
     assigned_to: "",
-    stage: "Initial",
+    assigned_to_name: "",
+    stage: "",
+    status: "",
     lead_score: 0,
     notes: "",
     tags: [],
+    age: undefined,
+    experience: "",
+    nationality: "",
   });
 
   const [newTag, setNewTag] = useState("");
@@ -143,12 +209,44 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
   const { data: categoriesResponse, isLoading: isLoadingCategories } =
     useGetCategoriesQuery({});
+  const { data: stagesResponse, isLoading: isLoadingStages } =
+    useGetActiveStagesQuery({});
+  const { data: statusesResponse, isLoading: isLoadingStatuses } =
+    useGetActiveStatusesQuery({});
+  const { data: assignableUsersResponse, isLoading: isLoadingUsers } =
+    useGetAssignableUsersWithDetailsQuery();
+
   const { showSuccess, showError } = useNotifications();
 
-  // Memoize categories to prevent infinite loop
+  // Memoized data
   const categories = React.useMemo(
     () => categoriesResponse?.categories || [],
     [categoriesResponse?.categories]
+  );
+
+  const stages = React.useMemo(
+    () => stagesResponse?.stages || [],
+    [stagesResponse?.stages]
+  );
+
+  const statuses = React.useMemo(
+    () => statusesResponse?.statuses || [],
+    [statusesResponse?.statuses]
+  );
+
+  const assignableUsers = React.useMemo(
+    () => assignableUsersResponse?.users || [],
+    [assignableUsersResponse?.users]
+  );
+
+  const defaultStage = React.useMemo(
+    () => stages.find((stage) => stage.is_default) || stages[0],
+    [stages]
+  );
+
+  const defaultStatus = React.useMemo(
+    () => statuses.find((status) => status.is_default) || statuses[0],
+    [statuses]
   );
 
   // Reset form when modal closes
@@ -158,18 +256,24 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         name: "",
         email: "",
         contact_number: "",
-        country_of_interest: [], // ✅ ADDED
-        course_level: "", // ✅ ADDED
+        country_of_interest: [],
+        course_level: "",
         source: "website",
         category: "",
         assigned_to: "",
-        stage: "Initial",
+        assigned_to_name: "",
+        stage: "",
+        status: "",
         lead_score: 0,
         notes: "",
         tags: [],
+        age: undefined,
+        experience: "",
+        nationality: "",
       });
       setErrors({});
       setNewTag("");
+      setActiveTab("details");
     }
   }, [isOpen]);
 
@@ -182,6 +286,44 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       }));
     }
   }, [isOpen, categories, formData.category]);
+
+  // Auto-select default stage
+  useEffect(() => {
+    if (isOpen && defaultStage && !formData.stage) {
+      setFormData((prev) => ({
+        ...prev,
+        stage: defaultStage.name,
+      }));
+    }
+  }, [isOpen, defaultStage, formData.stage]);
+
+  useEffect(() => {
+    if (isOpen && defaultStatus && !formData.status) {
+      setFormData((prev) => ({
+        ...prev,
+        status: defaultStatus.name,
+      }));
+    }
+  }, [isOpen, defaultStatus, formData.status]);
+
+  const handleAssignmentChange = (userEmail: string) => {
+    if (userEmail === "unassigned") {
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: "",
+        assigned_to_name: "",
+      }));
+    } else {
+      const selectedUser = assignableUsers.find(
+        (user) => user.email === userEmail
+      );
+      setFormData((prev) => ({
+        ...prev,
+        assigned_to: userEmail,
+        assigned_to_name: selectedUser?.name || userEmail,
+      }));
+    }
+  };
 
   const handleInputChange = (
     field: keyof LeadFormData,
@@ -247,8 +389,16 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       newErrors.category = "Category is required";
     }
 
+    if (!formData.stage) {
+      newErrors.stage = "Stage is required";
+    }
+
     if (formData.lead_score < 0 || formData.lead_score > 100) {
       newErrors.lead_score = "Lead score must be between 0 and 100";
+    }
+
+    if (formData.age && (formData.age < 16 || formData.age > 100)) {
+      newErrors.age = "Age must be between 16 and 100";
     }
 
     setErrors(newErrors);
@@ -263,7 +413,6 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     }
 
     try {
-      // ✅ UPDATED: Payload structure with country and course level
       const payload: CreateLeadPayload = {
         basic_info: {
           name: formData.name.trim(),
@@ -274,6 +423,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
         status_and_tags: {
           stage: formData.stage,
+          status: formData.status,
           lead_score: formData.lead_score,
           tags: formData.tags,
         },
@@ -282,9 +432,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
       };
 
-      // ✅ UPDATED: Include country and course level if provided
+      // Include optional fields
       if (formData.country_of_interest.length > 0) {
-        // ✅ Convert array to comma-separated string for backend
         payload.basic_info.country_of_interest = formatCountriesForBackend(
           formData.country_of_interest
         );
@@ -292,6 +441,23 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
       if (formData.course_level) {
         payload.basic_info.course_level = formData.course_level;
+      }
+
+      if (formData.assigned_to) {
+        payload.basic_info.assigned_to = formData.assigned_to;
+        payload.basic_info.assigned_to_name = formData.assigned_to_name;
+      }
+
+      if (formData.age) {
+        payload.basic_info.age = formData.age;
+      }
+
+      if (formData.experience) {
+        payload.basic_info.experience = formData.experience;
+      }
+
+      if (formData.nationality) {
+        payload.basic_info.nationality = formData.nationality;
       }
 
       console.log(
@@ -333,346 +499,485 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Create New Lead</DialogTitle>
-          <DialogDescription>
-            Add a new lead to the system. Fields marked with * are required.
-          </DialogDescription>
+          <DialogTitle>Add Lead</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Basic Information</h3>
+        <form onSubmit={handleSubmit} className="h-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="h-full"
+          >
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="status">Status & Tags</TabsTrigger>
+              <TabsTrigger value="assignment">Assignment</TabsTrigger>
+              <TabsTrigger value="additional">Additional Info</TabsTrigger>
+            </TabsList>
 
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Enter full name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                className={errors.name ? "border-red-500" : ""}
-                disabled={isCreating}
-              />
-              {errors.name && (
-                <p className="text-sm text-red-500">{errors.name}</p>
-              )}
-            </div>
+            <div className="mt-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+              {/* Details Tab */}
+              <TabsContent value="details" className="space-y-4 mt-0">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      placeholder="Enter full name"
+                      className={errors.name ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-500">{errors.name}</p>
+                    )}
+                  </div>
 
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter email address"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className={errors.email ? "border-red-500" : ""}
-                disabled={isCreating}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email}</p>
-              )}
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      placeholder="Enter email address"
+                      className={errors.email ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-500">{errors.email}</p>
+                    )}
+                  </div>
+                </div>
 
-            {/* Contact Number */}
-            <div className="space-y-2">
-              <Label htmlFor="contact_number">
-                Contact Number <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="contact_number"
-                type="tel"
-                placeholder="Enter contact number"
-                value={formData.contact_number}
-                onChange={(e) =>
-                  handleInputChange("contact_number", e.target.value)
-                }
-                className={errors.contact_number ? "border-red-500" : ""}
-                disabled={isCreating}
-              />
-              {errors.contact_number && (
-                <p className="text-sm text-red-500">{errors.contact_number}</p>
-              )}
-            </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_number">
+                      Contact Number <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="contact_number"
+                      type="tel"
+                      value={formData.contact_number}
+                      onChange={(e) =>
+                        handleInputChange("contact_number", e.target.value)
+                      }
+                      placeholder="Enter contact number"
+                      className={errors.contact_number ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.contact_number && (
+                      <p className="text-sm text-red-500">
+                        {errors.contact_number}
+                      </p>
+                    )}
+                  </div>
 
-            {/* ✅ UPDATED: Country of Interest & Course Level Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* ✅ UPDATED: Country of Interest - Using Generic MultiSelect */}
-              <div className="space-y-2">
-                <Label>Countries of Interest</Label>
-                <MultiSelect
-                  options={STUDY_DESTINATIONS}
-                  value={formData.country_of_interest}
-                  onChange={(value) =>
-                    handleInputChange("country_of_interest", value)
-                  }
-                  disabled={isCreating}
-                  error={errors.country_of_interest}
-                  placeholder="Select countries..."
-                  searchPlaceholder="Search countries..."
-                  emptyMessage="No countries found."
-                  maxDisplayItems={2}
-                  showCheckbox={true}
-                  allowSingleSelect={false}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      value={formData.age || ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "age",
+                          parseInt(e.target.value) || "0"
+                        )
+                      }
+                      placeholder="Enter age"
+                      min="16"
+                      max="100"
+                      disabled={isCreating}
+                    />
+                    {errors.age && (
+                      <p className="text-sm text-red-500">{errors.age}</p>
+                    )}
+                  </div>
 
-              {/* Course Level */}
-              <div className="space-y-2">
-                <Label htmlFor="course_level">Course Level</Label>
-                <Select
-                  value={formData.course_level}
-                  onValueChange={(value) =>
-                    handleInputChange("course_level", value)
-                  }
-                  disabled={isCreating}
-                >
-                  <SelectTrigger
-                    className={errors.course_level ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select course level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COURSE_LEVEL_OPTIONS.map((level) => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.course_level && (
-                  <p className="text-sm text-red-500">{errors.course_level}</p>
-                )}
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="experience">Experience</Label>
+                    <Select
+                      value={formData.experience}
+                      onValueChange={(value) =>
+                        handleInputChange("experience", value)
+                      }
+                      disabled={isCreating}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select experience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPERIENCE_LEVELS.map((level) => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            {/* Source and Category Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Source */}
-              <div className="space-y-2">
-                <Label htmlFor="source">Source</Label>
-                <Select
-                  value={formData.source}
-                  onValueChange={(value) => handleInputChange("source", value)}
-                  disabled={isCreating}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SOURCE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nationality">Nationality</Label>
+                    <Select
+                      value={formData.nationality}
+                      onValueChange={(value) =>
+                        handleInputChange("nationality", value)
+                      }
+                      disabled={isCreating}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select nationality" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NATIONALITIES.map((nationality) => (
+                          <SelectItem key={nationality} value={nationality}>
+                            {nationality}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Category */}
-              <div className="space-y-2">
-                <Label htmlFor="category">
-                  Category <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) =>
-                    handleInputChange("category", value)
-                  }
-                  disabled={isCreating || isLoadingCategories}
-                >
-                  <SelectTrigger
-                    className={errors.category ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name} ({category.short_form})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <p className="text-sm text-red-500">{errors.category}</p>
-                )}
-                {isLoadingCategories && (
-                  <p className="text-xs text-gray-500">Loading categories...</p>
-                )}
-              </div>
-            </div>
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="course_level">Course Level</Label>
+                    <Select
+                      value={formData.course_level}
+                      onValueChange={(value) =>
+                        handleInputChange("course_level", value)
+                      }
+                      disabled={isCreating}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select course level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COURSE_LEVEL_OPTIONS.map((level) => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          {/* Status and Tags */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Status & Tags</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="source">Source</Label>
+                    <Select
+                      value={formData.source}
+                      onValueChange={(value) =>
+                        handleInputChange("source", value)
+                      }
+                      disabled={isCreating}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SOURCE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            {/* Stage and Lead Score Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Stage */}
-              <div className="space-y-2">
-                <Label htmlFor="stage">Stage</Label>
-                <Select
-                  value={formData.stage}
-                  onValueChange={(value) => handleInputChange("stage", value)}
-                  disabled={isCreating}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select stage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEAD_STAGES.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className={`${option.className} mb-1`}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Countries of Interest</Label>
+                    <MultiSelect
+                      options={STUDY_DESTINATIONS}
+                      value={formData.country_of_interest}
+                      onChange={(value) =>
+                        handleInputChange("country_of_interest", value)
+                      }
+                      disabled={isCreating}
+                      placeholder="Select countries..."
+                      searchPlaceholder="Search countries..."
+                      emptyMessage="No countries found."
+                      maxDisplayItems={3}
+                      showCheckbox={true}
+                      allowSingleSelect={false}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category">
+                      Category <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        handleInputChange("category", value)
+                      }
+                      disabled={isCreating || isLoadingCategories}
+                    >
+                      <SelectTrigger
+                        className={errors.category ? "border-red-500" : ""}
                       >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name} ({category.short_form})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.category && (
+                      <p className="text-sm text-red-500">{errors.category}</p>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
 
-              {/* Lead Score */}
-              <div className="space-y-2">
-                <Label htmlFor="lead_score">Lead Score (0-100)</Label>
-                <Input
-                  id="lead_score"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="Enter score"
-                  value={formData.lead_score}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "lead_score",
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                  className={errors.lead_score ? "border-red-500" : ""}
-                  disabled={isCreating}
-                />
-                {errors.lead_score && (
-                  <p className="text-sm text-red-500">{errors.lead_score}</p>
-                )}
-              </div>
-            </div>
+              {/* Status & Tags Tab */}
+              <TabsContent value="status" className="space-y-4 mt-0">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="stage">
+                      Stage <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.stage}
+                      onValueChange={(value) =>
+                        handleInputChange("stage", value)
+                      }
+                      disabled={isCreating || isLoadingStages}
+                    >
+                      <SelectTrigger
+                        className={errors.stage ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder="Select stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stages.map((stage) => (
+                          <SelectItem key={stage.id} value={stage.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: stage.color }}
+                              />
+                              {stage.display_name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.stage && (
+                      <p className="text-sm text-red-500">{errors.stage}</p>
+                    )}
+                  </div>
 
-            {/* Tags */}
-            <div className="space-y-3">
-              <Label>Tags</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="stage">
+                      Status <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        handleInputChange("stage", value)
+                      }
+                      disabled={isCreating || isLoadingStages}
+                    >
+                      <SelectTrigger
+                        className={errors.status ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder="Select stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statuses.map((stage) => (
+                          <SelectItem key={stage.id} value={stage.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: stage.color }}
+                              />
+                              {stage.display_name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.stage && (
+                      <p className="text-sm text-red-500">{errors.stage}</p>
+                    )}
+                  </div>
 
-              {/* Tag Input */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add custom tag"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={handleTagKeyPress}
-                  disabled={isCreating}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddTag}
-                  disabled={!newTag.trim() || isCreating}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lead_score">
+                      Lead Score (0-100) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="lead_score"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.lead_score}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "lead_score",
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      placeholder="Enter score"
+                      className={errors.lead_score ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.lead_score && (
+                      <p className="text-sm text-red-500">
+                        {errors.lead_score}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-              {/* Predefined Tags */}
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Quick add:</p>
-                <div className="flex flex-wrap gap-2">
-                  {PREDEFINED_TAGS.map((tag) => (
+                <div className="space-y-4">
+                  <Label>
+                    Tags <span className="text-red-500">*</span>
+                  </Label>
+
+                  {/* Add custom tag */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a tag"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyPress={handleTagKeyPress}
+                      disabled={isCreating}
+                    />
                     <Button
-                      key={tag}
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAddPredefinedTag(tag)}
-                      disabled={formData.tags.includes(tag) || isCreating}
-                      className="h-7 text-xs"
+                      onClick={handleAddTag}
+                      disabled={!newTag.trim() || isCreating}
                     >
-                      + {tag}
+                      <Plus className="h-4 w-4" />
                     </Button>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Selected Tags */}
-              {formData.tags.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">Selected tags:</p>
+                  {/* Predefined tags */}
                   <div className="flex flex-wrap gap-2">
-                    {formData.tags.map((tag) => (
+                    {PREDEFINED_TAGS.map((tag) => (
                       <Badge
                         key={tag}
-                        variant="secondary"
-                        className="flex items-center gap-1"
+                        variant={
+                          formData.tags.includes(tag) ? "default" : "outline"
+                        }
+                        className="cursor-pointer"
+                        onClick={() => handleAddPredefinedTag(tag)}
                       >
                         {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(tag)}
-                          disabled={isCreating}
-                          className="ml-1 text-gray-500 hover:text-red-500"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
                       </Badge>
                     ))}
                   </div>
+
+                  {/* Selected tags */}
+                  {formData.tags.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">Selected tags:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.tags.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              disabled={isCreating}
+                              className="ml-1 text-gray-500 hover:text-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </TabsContent>
+
+              {/* Assignment Tab */}
+              <TabsContent value="assignment" className="space-y-4 mt-0">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="assigned_to">Assigned Counselor</Label>
+                    <Select
+                      value={formData.assigned_to || "unassigned"}
+                      onValueChange={handleAssignmentChange}
+                      disabled={isCreating || isLoadingUsers}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select assigned counselor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {assignableUsers.map((user) => (
+                          <SelectItem key={user.email} value={user.email}>
+                            {user.name} ({user.current_lead_count || 0} leads)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isLoadingUsers && (
+                      <p className="text-xs text-gray-500">Loading users...</p>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Additional Info Tab */}
+              <TabsContent value="additional" className="space-y-4 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange("notes", e.target.value)}
+                    placeholder="Add any additional notes about this lead..."
+                    rows={6}
+                    disabled={isCreating}
+                  />
+                </div>
+              </TabsContent>
             </div>
-          </div>
 
-          {/* Additional Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Additional Information</h3>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any additional notes about this lead..."
-                value={formData.notes}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
-                rows={4}
+            {/* Action buttons */}
+            <div className="flex justify-end gap-3 pt-6 border-t mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
                 disabled={isCreating}
-              />
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreating}>
+                {isCreating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Lead
+              </Button>
             </div>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isCreating}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isCreating}>
-              {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Lead
-            </Button>
-          </div>
+          </Tabs>
         </form>
       </DialogContent>
     </Dialog>
