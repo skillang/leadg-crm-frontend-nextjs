@@ -37,23 +37,26 @@ import MultiSelect, {
   formatCountriesForBackend,
 } from "@/components/common/MultiSelect";
 
-// Course level constants
+// Course level constants - ✅ FIXED: Match backend enum values
 export const COURSE_LEVEL_OPTIONS = [
-  { value: "bachelor's_degree", label: "Bachelor's Degree" },
-  { value: "master's_degree", label: "Master's Degree" },
-  { value: "phd", label: "PhD" },
-  { value: "diploma", label: "Diploma" },
   { value: "certificate", label: "Certificate" },
+  { value: "diploma", label: "Diploma" },
+  { value: "undergraduate", label: "Undergraduate" },
+  { value: "graduate", label: "Graduate" },
+  { value: "postgraduate", label: "Postgraduate" },
+  { value: "doctorate", label: "Doctorate" },
+  { value: "professional", label: "Professional" },
+  { value: "vocational", label: "Vocational" },
 ];
 
-// Experience levels
+// Experience levels - ✅ FIXED: Match backend enum values
 export const EXPERIENCE_LEVELS = [
   { value: "fresher", label: "Fresher" },
-  { value: "less_than_1_year", label: "Less than 1 year" },
+  { value: "less_than_1_year", label: "Less than 1 Year" },
   { value: "1_to_3_years", label: "1-3 Years" },
   { value: "3_to_5_years", label: "3-5 Years" },
   { value: "5_to_10_years", label: "5-10 Years" },
-  { value: "more_than_10_years", label: "10+ Years" },
+  { value: "more_than_10_years", label: "More than 10 Years" },
 ];
 
 // Nationalities
@@ -110,7 +113,7 @@ interface LeadFormData {
   assigned_to: string;
   assigned_to_name: string;
   stage: string;
-  status: string;
+  status: string; // ✅ ADDED: Status field
   lead_score: number;
   notes: string;
   tags: string[];
@@ -137,7 +140,7 @@ interface CreateLeadPayload {
   };
   status_and_tags: {
     stage: string;
-    status: string;
+    status: string; // ✅ ADDED: Status field
     lead_score: number;
     tags: string[];
   };
@@ -193,7 +196,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     assigned_to: "",
     assigned_to_name: "",
     stage: "",
-    status: "",
+    status: "", // ✅ ADDED: Status field
     lead_score: 0,
     notes: "",
     tags: [],
@@ -207,6 +210,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
   // API Hooks
   const [createLead, { isLoading: isCreating }] = useCreateLeadMutation();
+
+  // ✅ UPDATED: Use Redux APIs for categories, stages, statuses, and assignable users
   const { data: categoriesResponse, isLoading: isLoadingCategories } =
     useGetCategoriesQuery({});
   const { data: stagesResponse, isLoading: isLoadingStages } =
@@ -263,7 +268,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         assigned_to: "",
         assigned_to_name: "",
         stage: "",
-        status: "",
+        status: "", // ✅ ADDED: Status field
         lead_score: 0,
         notes: "",
         tags: [],
@@ -287,7 +292,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     }
   }, [isOpen, categories, formData.category]);
 
-  // Auto-select default stage
+  // Auto-select default stage and status
   useEffect(() => {
     if (isOpen && defaultStage && !formData.stage) {
       setFormData((prev) => ({
@@ -393,6 +398,10 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       newErrors.stage = "Stage is required";
     }
 
+    if (!formData.status) {
+      newErrors.status = "Status is required";
+    }
+
     if (formData.lead_score < 0 || formData.lead_score > 100) {
       newErrors.lead_score = "Lead score must be between 0 and 100";
     }
@@ -423,7 +432,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
         status_and_tags: {
           stage: formData.stage,
-          status: formData.status,
+          status: formData.status, // ✅ ADDED: Status field
           lead_score: formData.lead_score,
           tags: formData.tags,
         },
@@ -432,31 +441,31 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
       };
 
-      // Include optional fields
+      // Include optional fields only if they have valid values
       if (formData.country_of_interest.length > 0) {
         payload.basic_info.country_of_interest = formatCountriesForBackend(
           formData.country_of_interest
         );
       }
 
-      if (formData.course_level) {
+      if (formData.course_level && formData.course_level.trim()) {
         payload.basic_info.course_level = formData.course_level;
       }
 
-      if (formData.assigned_to) {
+      if (formData.assigned_to && formData.assigned_to.trim()) {
         payload.basic_info.assigned_to = formData.assigned_to;
         payload.basic_info.assigned_to_name = formData.assigned_to_name;
       }
 
-      if (formData.age) {
+      if (formData.age && formData.age > 0) {
         payload.basic_info.age = formData.age;
       }
 
-      if (formData.experience) {
+      if (formData.experience && formData.experience.trim()) {
         payload.basic_info.experience = formData.experience;
       }
 
-      if (formData.nationality) {
+      if (formData.nationality && formData.nationality.trim()) {
         payload.basic_info.nationality = formData.nationality;
       }
 
@@ -766,41 +775,6 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         {stages.map((stage) => (
-                          <SelectItem key={stage.id} value={stage.name}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: stage.color }}
-                              />
-                              {stage.display_name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.stage && (
-                      <p className="text-sm text-red-500">{errors.stage}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="stage">
-                      Status <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) =>
-                        handleInputChange("stage", value)
-                      }
-                      disabled={isCreating || isLoadingStages}
-                    >
-                      <SelectTrigger
-                        className={errors.status ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select stage" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statuses.map((stage) => (
                           <SelectItem key={stage.id} value={stage.name}>
                             <div className="flex items-center gap-2">
                               <div

@@ -365,7 +365,6 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         email: formData.email,
         contact_number: formData.contact_number,
         country_of_interest: formData.country_of_interest.join(", "),
-        course_level: formData.course_level,
         source: formData.source,
         category: formData.category,
         stage: formData.stage,
@@ -373,10 +372,24 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         lead_score: formData.lead_score,
         tags: formData.tags,
         notes: formData.notes,
-        age: formData.age,
-        experience: formData.experience,
-        nationality: formData.nationality,
       };
+
+      // ✅ FIXED: Only include optional fields if they have valid values
+      if (formData.course_level && formData.course_level.trim()) {
+        updateData.course_level = formData.course_level;
+      }
+
+      if (formData.age && formData.age > 0) {
+        updateData.age = formData.age;
+      }
+
+      if (formData.experience && formData.experience.trim()) {
+        updateData.experience = formData.experience;
+      }
+
+      if (formData.nationality && formData.nationality.trim()) {
+        updateData.nationality = formData.nationality;
+      }
 
       // Assignment fields
       if (formData.assigned_to && formData.assigned_to_name) {
