@@ -196,7 +196,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             contact_number: "",
             source: selectedSource,
             category: selectedCategory,
-            stage: "New",
+            stage: "",
             lead_score: 0,
             tags: [],
             notes: "",

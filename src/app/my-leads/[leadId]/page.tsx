@@ -93,8 +93,8 @@ const getPriorityColor = (priority: string) => {
 
 // Tab definitions
 const tabs = [
-  { id: "notes", label: "Notes" },
   { id: "tasks", label: "Tasks & reminders" },
+  { id: "notes", label: "Notes" },
   { id: "timeline", label: "Timeline" },
   { id: "documents", label: "Documents" },
   { id: "activity", label: "Activity log" },
@@ -112,7 +112,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function LeadDetailsPage() {
-  const [activeTab, setActiveTab] = useState("notes");
+  const [activeTab, setActiveTab] = useState("tasks");
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
 
   const params = useParams();

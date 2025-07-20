@@ -171,15 +171,23 @@ export interface CreateLeadApiRequest {
     age?: number;
     experience?: string;
     nationality?: string;
+    country_of_interest?: string; // Add if missing
+    course_level?: string; // Add if missing
   };
   status_and_tags: {
     stage: string;
+    status: string; // ✅ ADD THIS
     lead_score: number;
     tags: string[];
+  };
+  assignment: {
+    assigned_to: string | null;
   };
   additional_info: {
     notes: string;
   };
+  // For selective round robin API calls
+  selected_user_emails?: string;
 }
 
 // Enhanced update lead request with multi-assignment

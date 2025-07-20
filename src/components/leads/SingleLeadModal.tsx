@@ -28,6 +28,7 @@ import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   useCreateLeadMutation,
   useGetAssignableUsersWithDetailsQuery,
+  CreateLeadApiRequest,
 } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
@@ -113,40 +114,13 @@ interface LeadFormData {
   assigned_to: string;
   assigned_to_name: string;
   stage: string;
-  status: string; // ✅ ADDED: Status field
+  status: string;
   lead_score: number;
   notes: string;
   tags: string[];
   age?: number;
   experience?: string;
   nationality?: string;
-}
-
-// API payload interface
-interface CreateLeadPayload {
-  basic_info: {
-    name: string;
-    email: string;
-    contact_number: string;
-    country_of_interest?: string;
-    course_level?: string;
-    source: string;
-    category: string;
-    assigned_to?: string;
-    assigned_to_name?: string;
-    age?: number;
-    experience?: string;
-    nationality?: string;
-  };
-  status_and_tags: {
-    stage: string;
-    status: string; // ✅ ADDED: Status field
-    lead_score: number;
-    tags: string[];
-  };
-  additional_info: {
-    notes: string;
-  };
 }
 
 const PREDEFINED_TAGS = [
@@ -185,6 +159,13 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState("details");
+  const [assignmentMode, setAssignmentMode] = useState<
+    "manual" | "auto_round_robin" | "selective_round_robin"
+  >("manual");
+
+  // ✅ FIXED: Add missing selectedUserEmails state
+  const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([]);
+
   const [formData, setFormData] = useState<LeadFormData>({
     name: "",
     email: "",
@@ -196,7 +177,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     assigned_to: "",
     assigned_to_name: "",
     stage: "",
-    status: "", // ✅ ADDED: Status field
+    status: "",
     lead_score: 0,
     notes: "",
     tags: [],
@@ -268,7 +249,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         assigned_to: "",
         assigned_to_name: "",
         stage: "",
-        status: "", // ✅ ADDED: Status field
+        status: "",
         lead_score: 0,
         notes: "",
         tags: [],
@@ -279,6 +260,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       setErrors({});
       setNewTag("");
       setActiveTab("details");
+      setAssignmentMode("manual");
+      setSelectedUserEmails([]);
     }
   }, [isOpen]);
 
@@ -410,6 +393,15 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       newErrors.age = "Age must be between 16 and 100";
     }
 
+    // Validate selective round robin
+    if (
+      assignmentMode === "selective_round_robin" &&
+      selectedUserEmails.length === 0
+    ) {
+      newErrors.assignment =
+        "Please select at least one counselor for selective round robin";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -422,7 +414,8 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     }
 
     try {
-      const payload: CreateLeadPayload = {
+      // ✅ FIXED: Use the correct API payload structure
+      const payload: CreateLeadApiRequest = {
         basic_info: {
           name: formData.name.trim(),
           email: formData.email.trim(),
@@ -432,16 +425,20 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
         status_and_tags: {
           stage: formData.stage,
-          status: formData.status, // ✅ ADDED: Status field
+          status: formData.status,
           lead_score: formData.lead_score,
           tags: formData.tags,
+        },
+        assignment: {
+          assigned_to:
+            assignmentMode === "manual" ? formData.assigned_to || null : null,
         },
         additional_info: {
           notes: formData.notes.trim(),
         },
       };
 
-      // Include optional fields only if they have valid values
+      // Include optional basic_info fields only if they have valid values
       if (formData.country_of_interest.length > 0) {
         payload.basic_info.country_of_interest = formatCountriesForBackend(
           formData.country_of_interest
@@ -450,11 +447,6 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
       if (formData.course_level && formData.course_level.trim()) {
         payload.basic_info.course_level = formData.course_level;
-      }
-
-      if (formData.assigned_to && formData.assigned_to.trim()) {
-        payload.basic_info.assigned_to = formData.assigned_to;
-        payload.basic_info.assigned_to_name = formData.assigned_to_name;
       }
 
       if (formData.age && formData.age > 0) {
@@ -474,11 +466,28 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         JSON.stringify(payload, null, 2)
       );
 
-      const result = await createLead(payload).unwrap();
+      // ✅ FIXED: Handle different assignment modes properly
+      let result;
+
+      if (
+        assignmentMode === "selective_round_robin" &&
+        selectedUserEmails.length > 0
+      ) {
+        // For selective round robin, add selected_user_emails to payload
+        const payloadWithEmails = {
+          ...payload,
+          selected_user_emails: selectedUserEmails.join(","),
+        };
+
+        result = await createLead(payloadWithEmails).unwrap();
+      } else {
+        // For manual assignment and auto round robin, use standard payload
+        result = await createLead(payload).unwrap();
+      }
 
       showSuccess(
         result.message || "Lead created successfully!",
-        `Lead ID: ${result.lead.lead_id}`
+        `Lead ID: ${result.lead?.lead_id || "Generated"}`
       );
       onClose();
     } catch (error) {
@@ -791,6 +800,33 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                       <p className="text-sm text-red-500">{errors.stage}</p>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        handleInputChange("status", value)
+                      }
+                      disabled={isCreating || isLoadingStatuses}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statuses.map((status) => (
+                          <SelectItem key={status.id} value={status.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: status.color }}
+                              />
+                              {status.display_name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="lead_score">
@@ -892,29 +928,168 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
               {/* Assignment Tab */}
               <TabsContent value="assignment" className="space-y-4 mt-0">
                 <div className="space-y-4">
+                  {/* Assignment Mode Selection */}
                   <div className="space-y-2">
-                    <Label htmlFor="assigned_to">Assigned Counselor</Label>
+                    <Label>Assignment Mode</Label>
                     <Select
-                      value={formData.assigned_to || "unassigned"}
-                      onValueChange={handleAssignmentChange}
-                      disabled={isCreating || isLoadingUsers}
+                      value={assignmentMode}
+                      onValueChange={(
+                        value:
+                          | "manual"
+                          | "auto_round_robin"
+                          | "selective_round_robin"
+                      ) => {
+                        setAssignmentMode(value);
+                        if (value !== "manual") {
+                          setFormData((prev) => ({
+                            ...prev,
+                            assigned_to: "",
+                            assigned_to_name: "",
+                          }));
+                        }
+                        if (value !== "selective_round_robin") {
+                          setSelectedUserEmails([]);
+                        }
+                      }}
+                      disabled={isCreating}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select assigned counselor" />
+                        <SelectValue placeholder="Select assignment mode" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {assignableUsers.map((user) => (
-                          <SelectItem key={user.email} value={user.email}>
-                            {user.name} ({user.current_lead_count || 0} leads)
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="manual">
+                          Manual Assignment
+                        </SelectItem>
+                        <SelectItem value="auto_round_robin">
+                          Auto Round Robin (All Users)
+                        </SelectItem>
+                        <SelectItem value="selective_round_robin">
+                          Selective Round Robin
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    {isLoadingUsers && (
-                      <p className="text-xs text-gray-500">Loading users...</p>
-                    )}
                   </div>
+
+                  {/* Manual Assignment */}
+                  {assignmentMode === "manual" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="assigned_to">Assigned Counselor</Label>
+                      <Select
+                        value={formData.assigned_to || "unassigned"}
+                        onValueChange={handleAssignmentChange}
+                        disabled={isCreating || isLoadingUsers}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select assigned counselor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {assignableUsers.map((user) => (
+                            <SelectItem key={user.email} value={user.email}>
+                              {user.name} ({user.current_lead_count || 0} leads)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isLoadingUsers && (
+                        <p className="text-xs text-gray-500">
+                          Loading users...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Auto Round Robin Info */}
+                  {assignmentMode === "auto_round_robin" && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-medium text-blue-900">
+                        Auto Round Robin Assignment
+                      </h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Lead will be automatically assigned to the next
+                        available counselor in rotation among all active users.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Selective Round Robin */}
+                  {assignmentMode === "selective_round_robin" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Select Counselors for Round Robin</Label>
+                        <Select
+                          value=""
+                          onValueChange={(email) => {
+                            if (email && !selectedUserEmails.includes(email)) {
+                              setSelectedUserEmails([
+                                ...selectedUserEmails,
+                                email,
+                              ]);
+                            }
+                          }}
+                          disabled={isCreating || isLoadingUsers}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Add counselor to rotation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {assignableUsers
+                              .filter(
+                                (user) =>
+                                  !selectedUserEmails.includes(user.email)
+                              )
+                              .map((user) => (
+                                <SelectItem key={user.email} value={user.email}>
+                                  {user.name} ({user.current_lead_count || 0}{" "}
+                                  leads)
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Selected Users Display */}
+                      {selectedUserEmails.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>
+                            Selected Counselors ({selectedUserEmails.length})
+                          </Label>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedUserEmails.map((email) => {
+                              const user = assignableUsers.find(
+                                (u) => u.email === email
+                              );
+                              return (
+                                <Badge
+                                  key={email}
+                                  variant="secondary"
+                                  className="flex items-center gap-1"
+                                >
+                                  {user?.name || email}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedUserEmails((prev) =>
+                                        prev.filter((e) => e !== email)
+                                      )
+                                    }
+                                    disabled={isCreating}
+                                    className="ml-1 text-gray-500 hover:text-red-500"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Lead will be assigned to the next available
+                            counselor from the selected list.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
