@@ -29,6 +29,7 @@ export interface Lead {
   countryOfInterest: string;
   notes: string;
   createdAt: string;
+  createdBy: string;
   updatedAt: string;
   lastContacted: string | null;
   leadCategory: string;

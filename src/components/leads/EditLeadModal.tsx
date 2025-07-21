@@ -37,7 +37,6 @@ import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import MultiSelect, {
   STUDY_DESTINATIONS,
-  formatCountriesForBackend,
 } from "@/components/common/MultiSelect";
 import { Lead } from "@/models/types/lead";
 

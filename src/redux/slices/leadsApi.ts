@@ -53,6 +53,7 @@ interface RawLeadDetails {
     id: string;
     lead_id: string;
     created_at: string;
+    created_by: string;
     updated_at: string;
     last_contacted: string | null;
     status: string;
@@ -119,11 +120,30 @@ interface LeadDetailsResponse {
 
   notes: string;
   createdAt: string;
+  createdBy: string;
   updatedAt: string;
   lastContacted: string | null;
   status: string;
   assignmentHistory: AssignmentHistory[];
   leadCategory: string;
+}
+
+export interface FlatBulkLeadData {
+  name: string;
+  email: string;
+  contact_number: string;
+  source: string;
+  category: string;
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  country_of_interest?: string;
+  course_level?: string;
+  stage: string;
+  status: string;
+  lead_score?: number;
+  tags?: string[];
+  notes?: string;
 }
 
 // Updated user interfaces for multi-assignment
@@ -312,6 +332,7 @@ const transformApiLead = (apiLead: ApiLead): Lead => ({
   countryOfInterest: apiLead.country_of_interest || "",
   notes: apiLead.notes || "",
   createdAt: apiLead.created_at || "",
+  createdBy: apiLead.created_at || "",
   updatedAt: apiLead.updated_at || "",
   lastContacted: apiLead.last_contacted || null,
   leadCategory: apiLead.category || "",
@@ -351,6 +372,7 @@ const transformLeadDetailsResponse = (
 
   notes: data.additional_info.notes,
   createdAt: data.system_info.created_at,
+  createdBy: data.system_info.created_by,
   updatedAt: data.system_info.updated_at,
   lastContacted: data.system_info.last_contacted,
   status: data.system_info.status,
@@ -526,10 +548,10 @@ export const leadsApi = createApi({
     }),
 
     // Enhanced bulk create with assignment options
-    bulkCreateLeads: builder.mutation<
+    bulkCreateLeadsFlat: builder.mutation<
       any,
       {
-        leads: BulkLeadData[];
+        leads: FlatBulkLeadData[];
         force_create?: boolean;
         assignment_method?: string;
         selected_user_emails?: string;
@@ -551,7 +573,7 @@ export const leadsApi = createApi({
         return {
           url: `/leads/bulk-create?${searchParams.toString()}`,
           method: "POST",
-          body: leads,
+          body: leads, // Send flat array directly
         };
       },
       invalidatesTags: [
@@ -737,7 +759,7 @@ export const {
   useGetAssignableUsersWithDetailsQuery,
   useGetUserLeadStatsQuery,
   useCreateLeadMutation,
-  useBulkCreateLeadsMutation,
+  useBulkCreateLeadsFlatMutation,
   useUpdateLeadMutation,
   useUpdateLeadStageMutation,
   useAssignLeadToMultipleUsersMutation,

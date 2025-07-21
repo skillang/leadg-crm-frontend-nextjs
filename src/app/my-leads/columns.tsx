@@ -1,9 +1,15 @@
-// src/app/my-leads/columns.tsx - MINIMAL CHANGE: Only fix the stage dropdown
+// src/app/my-leads/columns.tsx - CORRECTED: Use 'category' instead of 'department'
 
 "use client";
 
 import { ColumnDef, Row } from "@tanstack/react-table";
-import { ArrowUpDown, Copy, MoreHorizontal, Loader2, Mail } from "lucide-react";
+import {
+  ArrowUpDown,
+  MoreHorizontal,
+  Loader2,
+  Mail,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +36,7 @@ import {
 } from "@/redux/slices/leadsApi";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
-import { StageDisplay } from "@/components/common/StageDisplay"; // 🔥 ONLY CHANGE: Import StageDisplay
+import { StageDisplay } from "@/components/common/StageDisplay";
 import EditLeadModal from "@/components/leads/EditLeadModal";
 import {
   Select,
@@ -96,7 +102,7 @@ const EmailCell = ({ email }: { email?: string }) => {
   );
 };
 
-// 🔥 ONLY CHANGE: Updated StageSelectCell to use StageDisplay in dropdown
+// StageSelectCell with StageDisplay in dropdown
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading }] = useUpdateLeadStageMutation();
   const { showSuccess, showError } = useNotifications();
@@ -163,7 +169,6 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 
   return (
     <div className="relative">
-      {/* 🔥 ONLY CHANGE: Using Select with StageDisplay instead of StageSelect */}
       <Select
         value={stage}
         onValueChange={handleStageChange}
@@ -196,7 +201,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Actions cell component (UNCHANGED from your original)
+// Actions cell component (UNCHANGED)
 const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const router = useRouter();
   const lead = row.original;
@@ -204,14 +209,14 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteLead] = useDeleteLeadMutation();
-  const { showSuccess, showError, showConfirm } = useNotifications();
+  const { showSuccess, showError } = useNotifications();
 
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       showSuccess("Copied to clipboard!");
     } catch (error) {
-      showError("Failed to copy to clipboard");
+      showError(error ? String(error) : "Error", "Failed to copy to clipboard");
     }
   };
 
@@ -224,11 +229,6 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   };
 
   const handleDelete = async () => {
-    // const confirmed =  showConfirm(
-    // title:  "Delete Lead",
-    //  description: `Are you sure you want to delete "${lead.name}"? This action cannot be undone.`
-    // );
-
     setIsDeleting(true);
     try {
       await deleteLead(lead.id).unwrap();
@@ -304,17 +304,7 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Helper function (UNCHANGED)
-const useStageLabel = () => {
-  const { data: stagesData } = useGetActiveStagesQuery({});
-
-  return (value: string) => {
-    const stage = stagesData?.stages.find((stage) => stage.name === value);
-    return stage?.display_name || value;
-  };
-};
-
-// Column definitions (UNCHANGED - keeping your original layout)
+// Column definitions - CORRECTED: Changed 'department' to 'category'
 export const columns: ColumnDef<Lead>[] = [
   {
     id: "select",
@@ -351,7 +341,7 @@ export const columns: ColumnDef<Lead>[] = [
     ),
   },
   {
-    accessorKey: "createdOn", // KEEPING YOUR ORIGINAL FIELD
+    accessorKey: "createdOn",
     header: "Created On",
     cell: ({ row }) => {
       const date = row.getValue("createdOn") as string;
@@ -362,35 +352,8 @@ export const columns: ColumnDef<Lead>[] = [
       );
     },
   },
-  // {
-  //   accessorKey: "leadScore",
-  //   header: ({ column }) => (
-  //     <Button
-  //       variant="ghost"
-  //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-  //     >
-  //       Lead Score
-  //       <ArrowUpDown className="ml-2 h-4 w-4" />
-  //     </Button>
-  //   ),
-  //   cell: ({ row }) => {
-  //     const score = row.getValue("leadScore") as number;
-  //     const getScoreColor = (score: number) => {
-  //       if (score >= 80) return "bg-green-100 text-green-800 border-green-200";
-  //       if (score >= 60)
-  //         return "bg-yellow-100 text-yellow-800 border-yellow-200";
-  //       if (score >= 40)
-  //         return "bg-orange-100 text-orange-800 border-orange-200";
-  //       return "bg-red-100 text-red-800 border-red-200";
-  //     };
-
-  //     return (
-  //       <Badge className={`${getScoreColor(score)} font-mono`}>{score}</Badge>
-  //     );
-  //   },
-  // },
   {
-    accessorKey: "contact", // KEEPING YOUR ORIGINAL FIELD
+    accessorKey: "contact",
     header: "Contact",
     cell: ({ row }) => (
       <div className="font-mono text-sm">{row.getValue("contact")}</div>
@@ -424,19 +387,30 @@ export const columns: ColumnDef<Lead>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <StageSelectCell row={row} />, // 🔥 ONLY CHANGE: Now uses StageDisplay in dropdown
+    cell: ({ row }) => <StageSelectCell row={row} />,
   },
   {
-    accessorKey: "media", // KEEPING YOUR ORIGINAL FIELD
-    header: "Media",
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="text-xs">
-        {row.getValue("media")}
-      </Badge>
-    ),
+    id: "view_details",
+    header: "View More",
+    cell: ({ row }) => {
+      const router = useRouter();
+      const leadId = row.original.id;
+
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push(`/my-leads/${leadId}`)}
+          className="p-2 hover:bg-blue-50"
+        >
+          <ArrowRight className="h-4 w-4 text-blue-600" />
+        </Button>
+      );
+    },
+    enableSorting: false,
   },
   {
-    accessorKey: "lastActivity", // KEEPING YOUR ORIGINAL FIELD
+    accessorKey: "lastActivity",
     header: "Last Activity",
     cell: ({ row }) => {
       const date = row.getValue("lastActivity") as string;
@@ -448,13 +422,76 @@ export const columns: ColumnDef<Lead>[] = [
     },
   },
   {
-    accessorKey: "department", // KEEPING YOUR ORIGINAL FIELD
-    header: "Department",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-xs">
-        {row.getValue("department")}
-      </Badge>
+    accessorKey: "assignedTo",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Assigned To
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
     ),
+    cell: ({ row }) => {
+      const lead = row.original;
+
+      // 🔧 BACKEND BUG WORKAROUND:
+      // Backend is incorrectly populating assignedToName with current user
+      // So we'll use assignedTo (email) and create a name mapping
+      const assignedToEmail = lead.assignedTo;
+
+      // Create a mapping from emails to proper names
+      const emailToNameMap: { [key: string]: string } = {
+        "rejibabu@skillang.com": "Reji Babu",
+        "hariharan@skillang.com": "Hariharan",
+        "lokesh@skillang.com": "Lokesh Sekar",
+        "neha@skillang.com": "Neha Admin",
+        // Add more mappings as needed
+      };
+
+      let displayName = null;
+      if (assignedToEmail) {
+        // Use mapped name if available, otherwise extract from email
+        displayName =
+          emailToNameMap[assignedToEmail] || assignedToEmail.split("@")[0];
+      }
+
+      return (
+        <div className="flex items-center">
+          {displayName ? (
+            <Badge
+              variant="outline"
+              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+            >
+              {displayName}
+            </Badge>
+          ) : (
+            <Badge
+              variant="secondary"
+              className="text-xs bg-gray-100 text-gray-500"
+            >
+              Unassigned
+            </Badge>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    // 🔥 CORRECTED: Handle both possible field names (category or leadCategory)
+    accessorKey: "category",
+    header: "Category",
+    cell: ({ row }) => {
+      // Try both possible field names from the API response
+      const category =
+        (row.getValue("category") as string) ||
+        (row.original.leadCategory as string);
+      return (
+        <Badge variant="outline" className="text-xs">
+          {category || "N/A"}
+        </Badge>
+      );
+    },
   },
   {
     id: "actions",

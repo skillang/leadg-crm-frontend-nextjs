@@ -18,6 +18,7 @@ export interface LeadDetailsResponse {
   assignedToName: string;
   notes: string;
   createdAt: string;
+  createdBy: string;
   updatedAt: string;
   lastContacted: string | null;
   status: string;

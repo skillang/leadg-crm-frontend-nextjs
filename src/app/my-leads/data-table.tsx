@@ -42,23 +42,12 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
   X,
-  CalendarDaysIcon,
   DownloadIcon,
   Grid2X2PlusIcon,
-  ListFilterIcon,
   SlidersHorizontalIcon,
   ArrowUpDown,
   ChevronDown,
@@ -68,12 +57,10 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Loader2,
 } from "lucide-react";
-
 // 🔥 NEW: Import stages API instead of constants
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
-import { StageDisplay, useStageUtils } from "@/components/common/StageDisplay";
+import { useStageUtils } from "@/components/common/StageDisplay";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

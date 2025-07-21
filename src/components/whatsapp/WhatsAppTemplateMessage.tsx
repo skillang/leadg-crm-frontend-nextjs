@@ -32,7 +32,6 @@ import {
   processTemplatesResponse,
   getTemplateIdentifier,
   getTemplateDisplayName,
-  type WhatsAppTemplate,
   type TemplateMessageRequest,
 } from "@/models/types/whatsapp";
 

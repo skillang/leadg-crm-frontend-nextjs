@@ -22,7 +22,7 @@ import {
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { StageDisplay, useStageUtils } from "@/components/common/StageDisplay";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
+// import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Lead } from "@/models/types/lead";
 import WhatsAppButton from "@/components/whatsapp/WhatsAppButton";
 import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
@@ -220,6 +220,7 @@ export default function LeadDetailsPage() {
         countryOfInterest: leadDetails.countryOfInterest || "",
         notes: leadDetails.notes || "",
         createdAt: leadDetails.createdAt,
+        createdBy: leadDetails.createdBy || "",
         updatedAt: leadDetails.updatedAt,
         lastContacted: null,
         leadCategory: leadDetails.leadCategory || "",
