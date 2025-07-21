@@ -37,6 +37,8 @@ import MultiSelect, {
   STUDY_DESTINATIONS,
   formatCountriesForBackend,
 } from "@/components/common/MultiSelect";
+import CourseLevelDropdown from "../common/CourseLevelDropdown";
+import ExperienceLevelDropdown from "../common/ExperienceLevelDropdown";
 
 // Course level constants - ✅ FIXED: Match backend enum values
 export const COURSE_LEVEL_OPTIONS = [
@@ -623,25 +625,15 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="experience">Experience</Label>
-                    <Select
+                    <ExperienceLevelDropdown
                       value={formData.experience}
                       onValueChange={(value) =>
                         handleInputChange("experience", value)
                       }
+                      label="Experience Level"
+                      placeholder="Select experience level"
                       disabled={isCreating}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select experience" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPERIENCE_LEVELS.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
-                            {level.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                 </div>
 
@@ -669,25 +661,18 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="course_level">Course Level</Label>
-                    <Select
+                    <CourseLevelDropdown
                       value={formData.course_level}
                       onValueChange={(value) =>
-                        handleInputChange("course_level", value)
+                        setFormData((prev) => ({
+                          ...prev,
+                          course_level: value,
+                        }))
                       }
-                      disabled={isCreating}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select course level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COURSE_LEVEL_OPTIONS.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
-                            {level.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      label="Course Level"
+                      placeholder="Select course level"
+                      required={false}
+                    />
                   </div>
 
                   <div className="space-y-2">

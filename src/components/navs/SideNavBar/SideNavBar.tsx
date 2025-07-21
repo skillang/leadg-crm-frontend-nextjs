@@ -5,11 +5,11 @@ import {
   Settings,
   BarChart2,
   Contact,
-  NotebookText,
   Users,
   LayoutDashboard,
-  // Bell,
+  NotebookText,
   ChevronDown,
+  ChevronRight,
   User,
   LogOut,
   UserCircle,
@@ -17,7 +17,9 @@ import {
   Building2,
   FolderOpen,
   UsersRound,
-  Target,
+  ChartPie,
+  ArrowsUpFromLine,
+  UserRoundCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,8 +36,8 @@ import {
 // Import authentication hook
 import { useAuth } from "@/redux/hooks/useAuth";
 
-// Menu items
-const items = [
+// Main menu items (non-admin)
+const mainMenuItems = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -60,53 +62,75 @@ const items = [
     title: "Reports",
     url: "#",
     icon: BarChart2,
+    adminOnly: true, // Only show to admins
   },
   {
     title: "Settings",
     url: "#",
     icon: Settings,
   },
+];
+
+// User management dropdown items
+const userMenuItems = [
   {
-    title: "Users", // NEW: Users management page
+    title: "Users",
     url: "/admin/users",
     icon: UsersRound,
-    adminOnly: true,
   },
   {
     title: "Register User",
     url: "/admin/register-user",
     icon: UserPlus,
-    adminOnly: true,
   },
   {
     title: "Manage Departments",
     url: "/admin/departments",
     icon: Building2,
-    adminOnly: true,
   },
+];
+
+// Lead Action dropdown items
+const leadActionItems = [
   {
     title: "Lead Categories",
     url: "/admin/lead-categories",
     icon: FolderOpen,
-    adminOnly: true,
   },
   {
     title: "Manage Stages",
     url: "/admin/stages",
-    icon: Target,
-    adminOnly: true,
+    icon: ArrowsUpFromLine,
   },
   {
     title: "Manage Status",
     url: "/admin/status-management",
-    icon: Target,
-    adminOnly: true,
+    icon: ChartPie,
+  },
+  {
+    title: "Manage Edu Levels",
+    url: "/admin/course-levels",
+    icon: NotebookText,
   },
 ];
+
+// Other admin items that don't fit in dropdowns
+// const otherAdminItems = [
+//   {
+//     title: "Manage Departments",
+//     url: "/admin/departments",
+//     icon: Building2,
+//   },
+// ];
 
 const SideNavBarComp = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Dropdown states
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isLeadActionDropdownOpen, setIsLeadActionDropdownOpen] =
+    useState(false);
 
   // Get user data and logout function from auth hook
   const { user, logout, isAdmin, userName, userEmail } = useAuth();
@@ -124,23 +148,13 @@ const SideNavBarComp = () => {
     }
   };
 
-  // Filter main menu items (exclude admin-only items from main menu)
-  const mainMenuItems = items.filter((item) => {
-    // Only show Reports to Admin users
-    if (item.title === "Reports" && !isAdmin) {
+  // Filter main menu items based on user role
+  const filteredMainMenuItems = mainMenuItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) {
       return false;
     }
-
-    // Hide all admin-only items from main menu (they'll be in Admin Features section)
-    if (item.adminOnly) {
-      return false;
-    }
-
     return true;
   });
-
-  // Get admin-only items for Admin Features section
-  const adminMenuItems = items.filter((item) => item.adminOnly);
 
   return (
     <Sidebar>
@@ -161,7 +175,7 @@ const SideNavBarComp = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainMenuItems.map((item) => (
+              {filteredMainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -176,7 +190,7 @@ const SideNavBarComp = () => {
         </SidebarGroup>
 
         {/* Admin Features Section */}
-        {isAdmin && adminMenuItems.length > 0 && (
+        {isAdmin && (
           <SidebarGroup>
             <div className="px-2 py-2">
               <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-t pt-2">
@@ -185,7 +199,80 @@ const SideNavBarComp = () => {
             </div>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminMenuItems.map((item) => (
+                {/* User Dropdown */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className="w-full justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <UserRoundCog />
+                      <span>User Actions</span>
+                    </div>
+                    {isUserDropdownOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </SidebarMenuButton>
+
+                  {/* User Dropdown Items */}
+                  {isUserDropdownOpen && (
+                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-sidebar-border">
+                      {userMenuItems.map((item) => (
+                        <div key={item.title}>
+                          <a
+                            href={item.url}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.title}</span>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </SidebarMenuItem>
+
+                {/* Lead Action Dropdown */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() =>
+                      setIsLeadActionDropdownOpen(!isLeadActionDropdownOpen)
+                    }
+                    className="w-full justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users />
+                      <span>Lead Actions</span>
+                    </div>
+                    {isLeadActionDropdownOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </SidebarMenuButton>
+
+                  {/* Lead Action Dropdown Items */}
+                  {isLeadActionDropdownOpen && (
+                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-sidebar-border">
+                      {leadActionItems.map((item) => (
+                        <div key={item.title}>
+                          <a
+                            href={item.url}
+                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.title}</span>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </SidebarMenuItem>
+
+                {/* Other Admin Items */}
+                {/* {otherAdminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <a href={item.url} className="relative">
@@ -197,7 +284,7 @@ const SideNavBarComp = () => {
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
+                ))} */}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

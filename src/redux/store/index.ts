@@ -17,6 +17,8 @@ import leadsReducer from "../slices/leadsSlices";
 import authReducer from "../slices/authSlice";
 import whatsappReducer from "../slices/whatsappSlice";
 import { whatsappApi } from "../slices/whatsappApi";
+import { courseLevelsApi } from "../slices/courseLevelsApi";
+import { experienceLevelsApi } from "../slices/experienceLevelsApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -38,9 +40,11 @@ const rootReducer = combineReducers({
   [contactsApi.reducerPath]: contactsApi.reducer,
   [categoriesApi.reducerPath]: categoriesApi.reducer,
   [stagesApi.reducerPath]: stagesApi.reducer,
-  [statusesApi.reducerPath]: statusesApi.reducer, // ADDED: Add statusesApi reducer
+  [statusesApi.reducerPath]: statusesApi.reducer,
+  [experienceLevelsApi.reducerPath]: experienceLevelsApi.reducer,
   whatsapp: whatsappReducer, // ADD THIS
   whatsappApi: whatsappApi.reducer,
+  [courseLevelsApi.reducerPath]: courseLevelsApi.reducer,
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -75,6 +79,8 @@ export const store = configureStore({
       categoriesApi.middleware,
       stagesApi.middleware,
       statusesApi.middleware,
+      courseLevelsApi.middleware,
+      experienceLevelsApi.middleware,
       whatsappApi.middleware
     ),
 });
