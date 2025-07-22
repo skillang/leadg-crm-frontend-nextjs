@@ -268,6 +268,16 @@ interface LeadStatsResponse {
   my_leads: number;
 }
 
+// 🔥 ADD THIS INTERFACE (just add this near the top with other interfaces)
+interface PaginatedResponse<T> {
+  leads?: T[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
+}
+
 export interface BulkLeadData {
   basic_info: {
     name: string;
@@ -387,7 +397,7 @@ export const leadsApi = createApi({
   endpoints: (builder) => ({
     // Enhanced leads query with multi-assignment support
     getLeads: builder.query<
-      Lead[],
+      Lead[] | PaginatedResponse<Lead>,
       {
         page?: number;
         limit?: number;
@@ -405,19 +415,61 @@ export const leadsApi = createApi({
             searchParams.append(key, value.toString());
           }
         });
-        return `/leads/?${searchParams.toString()}`;
+        const url = `/leads?${searchParams.toString()}`;
+        console.log("🔍 API URL being called:", url);
+        return url;
       },
-      transformResponse: (response: { leads: ApiLead[] }) =>
-        response?.leads ? response.leads.map(transformApiLead) : [],
+      // 🔥 ADD THIS: Force RTK Query to treat different params as different queries
+      serializeQueryArgs: ({ queryArgs }) => {
+        // Create unique cache key including ALL parameters
+        const cacheKey = `page=${queryArgs.page || 1}-limit=${
+          queryArgs.limit || 20
+        }-status=${queryArgs.lead_status || "all"}-search=${
+          queryArgs.search || ""
+        }`;
+        console.log("🔍 Cache key:", cacheKey);
+        return cacheKey;
+      },
+      transformResponse: (response: any) => {
+        console.log("🔍 Raw API Response in transformResponse:", response);
+
+        if (response?.leads && Array.isArray(response.leads)) {
+          const result = {
+            leads: response.leads.map(transformApiLead),
+            total: response.total,
+            page: response.page,
+            limit: response.limit,
+            has_next: response.has_next,
+            has_prev: response.has_prev,
+          };
+          console.log("🔍 Transformed paginated response:", result);
+          return result;
+        } else if (Array.isArray(response?.leads)) {
+          const result = response.leads.map(transformApiLead);
+          console.log("🔍 Transformed array response:", result.length, "leads");
+          return result;
+        } else if (Array.isArray(response)) {
+          const result = response.map(transformApiLead);
+          console.log("🔍 Transformed direct array:", result.length, "leads");
+          return result;
+        }
+        console.log("🔍 No valid data found in response");
+        return [];
+      },
       providesTags: (result) => [
         { type: "Lead", id: "LIST" },
-        ...(result || []).map(({ id }) => ({ type: "Lead" as const, id })),
+        ...(Array.isArray(result)
+          ? result.map(({ id }) => ({ type: "Lead" as const, id }))
+          : (result as PaginatedResponse<Lead>)?.leads?.map(({ id }) => ({
+              type: "Lead" as const,
+              id,
+            })) || []),
       ],
     }),
 
-    // Enhanced my leads query
+    // Same for getMyLeads:
     getMyLeads: builder.query<
-      Lead[],
+      Lead[] | PaginatedResponse<Lead>,
       {
         page?: number;
         limit?: number;
@@ -433,13 +485,62 @@ export const leadsApi = createApi({
             searchParams.append(key, value.toString());
           }
         });
-        return `/leads/my-leads?${searchParams.toString()}`;
+        const url = `/leads/my-leads?${searchParams.toString()}`;
+        console.log("🔍 My Leads API URL being called:", url);
+        return url;
       },
-      transformResponse: (response: { leads: ApiLead[] }) =>
-        response?.leads ? response.leads.map(transformApiLead) : [],
+      // 🔥 ADD THIS: Force unique cache keys
+      serializeQueryArgs: ({ queryArgs }) => {
+        const cacheKey = `myLeads-page=${queryArgs.page || 1}-limit=${
+          queryArgs.limit || 20
+        }-status=${queryArgs.lead_status || "all"}-search=${
+          queryArgs.search || ""
+        }`;
+        console.log("🔍 My Leads Cache key:", cacheKey);
+        return cacheKey;
+      },
+      transformResponse: (response: any) => {
+        console.log("🔍 My Leads Raw API Response:", response);
+
+        if (response?.leads && Array.isArray(response.leads)) {
+          const result = {
+            leads: response.leads.map(transformApiLead),
+            total: response.total,
+            page: response.page,
+            limit: response.limit,
+            has_next: response.has_next,
+            has_prev: response.has_prev,
+          };
+          console.log("🔍 My Leads Transformed paginated response:", result);
+          return result;
+        } else if (Array.isArray(response?.leads)) {
+          const result = response.leads.map(transformApiLead);
+          console.log(
+            "🔍 My Leads Transformed array response:",
+            result.length,
+            "leads"
+          );
+          return result;
+        } else if (Array.isArray(response)) {
+          const result = response.map(transformApiLead);
+          console.log(
+            "🔍 My Leads Transformed direct array:",
+            result.length,
+            "leads"
+          );
+          return result;
+        }
+        console.log("🔍 My Leads: No valid data found in response");
+        return [];
+      },
       providesTags: (result) => [
         { type: "Lead", id: "MY_LIST" },
-        ...(result || []).map(({ id }) => ({ type: "Lead" as const, id })),
+        ...(Array.isArray(result)
+          ? result.map(({ id }) => ({ type: "Lead" as const, id }))
+          : (result as PaginatedResponse<Lead>)?.leads?.map(({ id }) => ({
+              type: "Lead" as const,
+              id,
+            })) || []),
       ],
     }),
 

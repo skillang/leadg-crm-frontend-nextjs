@@ -1,16 +1,20 @@
-// src/app/sample-table/page.tsx
+// src/app/sample-table/page.tsx - MINIMAL CHANGES TO YOUR EXISTING FILE
 
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react"; // 🔥 ADD useState
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
-import { useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
-import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
+import {
+  leadsApi,
+  useGetLeadsQuery,
+  useGetMyLeadsQuery,
+} from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
 
-// Type for RTK Query error
+// Type for RTK Query error (KEEP EXISTING)
 interface RTKQueryError {
   data?: {
     detail?: string;
@@ -21,88 +25,174 @@ interface RTKQueryError {
 }
 
 export default function DemoPage() {
-  // Get user role from Redux
+  // 🔥 ADD PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Get user role from Redux (KEEP EXISTING)
+  const dispatch = useAppDispatch(); // Make sure you import useAppDispatch
   const isAdmin = useAppSelector(selectIsAdmin);
 
-  // Use appropriate query based on role
+  console.log("🔍 Current pagination state:", { currentPage, pageSize });
+
+  // 🔥 MODIFY EXISTING QUERIES TO INCLUDE PAGINATION PARAMS
+
   const {
-    data: adminLeads = [],
+    data: adminLeadsResponse,
     isLoading: adminLoading,
     error: adminError,
     refetch: refetchAdmin,
-  } = useGetLeadsQuery(undefined, {
-    skip: !isAdmin,
-  });
+  } = useGetLeadsQuery(
+    {
+      page: currentPage,
+      limit: pageSize,
+    },
+    {
+      skip: !isAdmin,
+      refetchOnMountOrArgChange: true, // Always refetch when args change
+    }
+  );
 
   const {
-    data: userLeads = [],
+    data: userLeadsResponse,
     isLoading: userLoading,
     error: userError,
     refetch: refetchUser,
-  } = useGetMyLeadsQuery(undefined, {
-    skip: isAdmin,
-  });
+  } = useGetMyLeadsQuery(
+    {
+      page: currentPage,
+      limit: pageSize,
+    },
+    {
+      skip: isAdmin,
+      refetchOnMountOrArgChange: true, // Always refetch when args change
+    }
+  );
 
-  // Determine which data to use
-  const leads = isAdmin ? adminLeads : userLeads;
+  const leadsResponse = isAdmin ? adminLeadsResponse : userLeadsResponse;
   const isLoading = isAdmin ? adminLoading : userLoading;
   const error = isAdmin ? adminError : userError;
   const refetch = isAdmin ? refetchAdmin : refetchUser;
 
-  // Apply filters
+  console.log("🔍 Raw API Response:", leadsResponse);
+
+  // Extract leads and pagination info
+  let leads: any[] = [];
+  let paginationMeta = undefined;
+
+  if (leadsResponse) {
+    if (Array.isArray(leadsResponse)) {
+      // Old format: just array of leads
+      leads = leadsResponse;
+      console.log("🔍 Using old array format, leads count:", leads.length);
+    } else if (leadsResponse.leads) {
+      // New format: paginated response
+      leads = leadsResponse.leads;
+      paginationMeta = {
+        total: leadsResponse.total || 0,
+        page: leadsResponse.page || currentPage,
+        limit: leadsResponse.limit || pageSize,
+        has_next: leadsResponse.has_next || false,
+        has_prev: leadsResponse.has_prev || false,
+      };
+      console.log("🔍 Using paginated format:", {
+        leadsCount: leads.length,
+        paginationMeta,
+      });
+    }
+  }
+
+  // 🔥 ADD: Debug leads BEFORE applying filters
+  console.log("🔍 Leads BEFORE applying filters:", leads.length, leads);
+
+  // Apply filters (KEEP EXISTING BUT ADD DEBUGGING)
   const filteredLeadsSelector = useMemo(
     () => createFilteredLeadsSelector(leads),
     [leads]
   );
+
+  console.log("🔍 Selector created with leads:", leads.length);
+
   const filteredLeads = useAppSelector(filteredLeadsSelector);
 
-  // const handleAddLead = () => {
-  // console.log("Add new lead clicked");
-  // TODO: Open create lead modal
-  // };
+  // 🔥 ADD: Debug leads AFTER applying filters
+  console.log(
+    "🔍 Leads AFTER applying filters:",
+    filteredLeads.length,
+    filteredLeads
+  );
+
+  // 🔥 ADD: Check if there are any other selectors or filters being applied
+  console.log("🔍 Final data being passed to table:", {
+    originalLeads: leads.length,
+    filteredLeads: filteredLeads.length,
+    paginationMeta,
+    // 🔥 ADD: Show actual data being passed
+    firstFewLeads: filteredLeads
+      .slice(0, 3)
+      .map((lead) => ({ id: lead.id, name: lead.name })),
+  });
+
+  // 🔥 SIMPLIFIED PAGINATION HANDLERS
+  const handlePageChange = (newPage: number) => {
+    console.log("📄 Page change:", currentPage, "→", newPage);
+    setCurrentPage(newPage);
+
+    // 🔥 FORCE REFETCH AFTER STATE UPDATE
+    setTimeout(() => {
+      console.log("🔄 Force refetching after page change...");
+      refetch();
+    }, 100);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    console.log("📊 Page size change:", pageSize, "→", newSize);
+    setPageSize(newSize);
+    setCurrentPage(1);
+
+    // 🔥 FORCE REFETCH AFTER STATE UPDATE
+    setTimeout(() => {
+      console.log("🔄 Force refetching after page size change...");
+      refetch();
+    }, 100);
+  };
 
   const handleRefresh = () => {
     refetch();
   };
 
-  // Helper function to extract error message with proper typing
+  // Helper function to extract error message with proper typing (KEEP EXISTING)
   const getErrorMessage = (error: unknown): string => {
     if (!error) return "Unknown error occurred";
-
     const rtkError = error as RTKQueryError;
-
-    // Try to get error message from various possible locations
-    if (rtkError.data?.detail) {
-      return rtkError.data.detail;
-    }
-    if (rtkError.data?.message) {
-      return rtkError.data.message;
-    }
-    if (rtkError.message) {
-      return rtkError.message;
-    }
-
+    if (rtkError.data?.detail) return rtkError.data.detail;
+    if (rtkError.data?.message) return rtkError.data.message;
+    if (rtkError.message) return rtkError.message;
     return "Failed to load leads";
   };
 
-  // Loading state
+  // 🔥 ADD LOADING STATE WITH SPINNER
   if (isLoading) {
     return (
       <div className="container mx-auto">
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2 text-lg">
-            {isAdmin ? "Loading all leads..." : "Loading your leads... ⚡"}
-          </span>
+          <div className="flex flex-col items-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mb-2" />
+            <span className="text-lg">
+              {isAdmin ? "Loading all leads..." : "Loading your leads..."}
+            </span>
+            <span className="text-sm text-gray-500 mt-1">
+              Page {currentPage}, {pageSize} per page
+            </span>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // Error state (KEEP EXISTING)
   if (error) {
     const errorMessage = getErrorMessage(error);
-
     return (
       <div className="container mx-auto">
         <div className="flex flex-col items-center justify-center h-64">
@@ -135,7 +225,7 @@ export default function DemoPage() {
 
   return (
     <div className="container mx-auto space-y-6">
-      {/* No Data State */}
+      {/* No Data State (KEEP EXISTING) */}
       {leads.length === 0 ? (
         <div className="bg-white rounded-lg shadow border p-12 text-center">
           <div className="text-gray-400 mb-4">
@@ -179,6 +269,10 @@ export default function DemoPage() {
               : "Your assigned leads with real-time updates"
           } with sorting, filtering, and actions`}
           onExportCsv={() => console.log("Export CSV from DataTable")}
+          paginationMeta={paginationMeta}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          isLoading={isLoading}
         />
       )}
     </div>

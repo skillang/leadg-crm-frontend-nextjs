@@ -1,18 +1,15 @@
+// src/app/admin/users/page.tsx - Fixed with correct types
+
 "use client";
 
-import React from "react";
-import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi";
+import React, { useState } from "react";
+import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi"; // Import from leadsApi
+import { useDeleteUserMutation } from "@/redux/slices/authApi"; // Import from authApi
+import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-// import { useNotifications } from "@/components/common/NotificationSystem";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -22,45 +19,80 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Users,
-  RefreshCw,
-  Mail,
-  UserCheck,
   Crown,
-  TrendingUp,
+  UserCheck,
+  Mail,
   AlertTriangle,
-  CheckCircle,
+  RefreshCw,
+  TrendingUp,
+  Trash2,
+  UserX,
 } from "lucide-react";
 
-// RTK Query error type interface
-interface RTKQueryError {
-  data?: {
-    detail?: string;
-    message?: string;
+// 🔥 FIXED: Use the correct interface from API (matches leadsApi.ts)
+interface UserStats {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string; // 🔥 This is string, not union type
+  assigned_leads_count: number;
+}
+
+// 🔥 FIXED: Updated interface to match API response
+interface UserStatsData {
+  success: boolean;
+  user_stats: UserStats[]; // 🔥 Use UserStats, not UserStat
+  summary: {
+    total_users: number;
+    total_leads: number;
+    assigned_leads: number;
+    unassigned_leads: number;
   };
-  message?: string;
-  status?: number;
+  performance?: string;
 }
 
 const AdminUsersPage = () => {
-  // Admin access check - must be called before any conditionals
-  const { hasAccess, AccessDeniedComponent } = useAdminAccess({
+  // 🔥 Admin access control (must be called first)
+  const {
+    hasAccess,
+    AccessDeniedComponent,
+    user: currentUser,
+  } = useAdminAccess({
     title: "Admin Access Required",
-    description: "You need admin privileges to view user statistics.",
+    description: "You need admin privileges to view user management.",
   });
 
-  // const { showError } = useNotifications();
+  // Notifications
+  const { showSuccess, showError, showWarning } = useNotifications();
 
-  // Fetch user lead statistics
+  // State for delete confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserStats | null>(null); // 🔥 FIXED: UserStats
+
+  // RTK Query hooks
   const {
     data: userStatsData,
-    isLoading,
     error,
-    refetch,
+    isLoading,
     isFetching,
+    refetch,
   } = useGetUserLeadStatsQuery();
 
-  // If no admin access, show access denied component
+  // 🔥 NEW: Delete user mutation (using authApi)
+  const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
+
+  // Return access denied if not admin
   if (!hasAccess) {
     return AccessDeniedComponent;
   }
@@ -69,26 +101,31 @@ const AdminUsersPage = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2 text-lg">Loading user statistics...</span>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center gap-3 text-blue-600">
+                <RefreshCw className="h-5 w-5 animate-spin" />
+                <span className="font-medium">Loading user statistics...</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   // Handle error state
   if (error) {
-    const rtkError = error as RTKQueryError;
     const errorMessage =
-      rtkError.data?.detail ||
-      rtkError.data?.message ||
-      rtkError.message ||
+      (error as any)?.data?.detail ||
+      (error as any)?.data?.message ||
+      (error as any)?.message ||
       "Failed to load user statistics";
 
     return (
       <div className="container mx-auto p-6">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
@@ -135,8 +172,8 @@ const AdminUsersPage = () => {
 
   const { user_stats, summary } = userStatsData;
 
-  // Sort users: admins first, then by assigned leads count (descending), then by name
-  const sortedUsers = [...user_stats].sort((a, b) => {
+  // 🔥 FIXED: Correct sorting with UserStats type
+  const sortedUsers = [...user_stats].sort((a: UserStats, b: UserStats) => {
     // Admins first
     if (a.role === "admin" && b.role !== "admin") return -1;
     if (a.role !== "admin" && b.role === "admin") return 1;
@@ -160,6 +197,73 @@ const AdminUsersPage = () => {
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  // 🔥 FIXED: Handle delete user initiation with correct type
+  const handleDeleteUser = (user: UserStats) => {
+    // Prevent self-deletion
+    if (user.email === currentUser?.email) {
+      showWarning("You cannot delete your own account.");
+      return;
+    }
+
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  // 🔥 NEW: Confirm delete user
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      // Call delete user API using user ID or email
+      const result = await deleteUser(userToDelete.email).unwrap();
+
+      // Success handling
+      showWarning(`User Deleted`, "User Deleted");
+
+      // Close dialog and reset state
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+
+      // Refresh user stats
+      refetch();
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+
+      // Extract error message
+      const errorMessage =
+        error?.data?.detail ||
+        error?.data?.message ||
+        error?.message ||
+        "Failed to delete user. Please try again.";
+
+      showError(errorMessage, "Deletion Failed");
+
+      // Close dialog
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
+  // 🔥 NEW: Cancel delete
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  };
+
+  // 🔥 FIXED: Check if user can be deleted with correct type
+  const canDeleteUser = (user: UserStats): boolean => {
+    // Cannot delete self
+    if (user.email === currentUser?.email) return false;
+
+    // Check if this is the last admin
+    const adminCount = user_stats.filter(
+      (u: UserStats) => u.role === "admin"
+    ).length;
+    if (user.role === "admin" && adminCount <= 1) return false;
+
+    return true;
   };
 
   return (
@@ -191,57 +295,58 @@ const AdminUsersPage = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.total_users}</div>
-            <p className="text-xs text-muted-foreground">Active team members</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.total_leads}</div>
-            <p className="text-xs text-muted-foreground">All leads in system</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Assigned Leads
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {summary.assigned_leads}
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Users
+                </p>
+                <p className="text-2xl font-bold">{summary.total_users}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {((summary.assigned_leads / summary.total_leads) * 100).toFixed(
-                1
-              )}
-              % of total
-            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">
-              {summary.unassigned_leads}
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Leads
+                </p>
+                <p className="text-2xl font-bold">{summary.total_leads}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
             </div>
-            <p className="text-xs text-muted-foreground">Need assignment</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Assigned Leads
+                </p>
+                <p className="text-2xl font-bold">{summary.assigned_leads}</p>
+              </div>
+              <UserCheck className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Unassigned Leads
+                </p>
+                <p className="text-2xl font-bold">{summary.unassigned_leads}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -251,11 +356,8 @@ const AdminUsersPage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            User Lead Statistics
+            User Statistics ({sortedUsers.length})
           </CardTitle>
-          <CardDescription>
-            Overview of all users and their assigned lead counts
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -266,6 +368,7 @@ const AdminUsersPage = () => {
                 <TableHead>Email</TableHead>
                 <TableHead className="text-right">Assigned Leads</TableHead>
                 <TableHead className="text-right">Workload %</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,25 +376,18 @@ const AdminUsersPage = () => {
                 const RoleIcon = getRoleIcon(user.role);
                 const workloadPercentage =
                   summary.total_leads > 0
-                    ? (
-                        (user.assigned_leads_count / summary.total_leads) *
-                        100
-                      ).toFixed(1)
-                    : "0.0";
+                    ? Math.round(
+                        (user.assigned_leads_count / summary.total_leads) * 100
+                      )
+                    : 0;
+                const isDeletable = canDeleteUser(user);
 
                 return (
                   <TableRow key={user.user_id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                          <RoleIcon className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            ID: {user.user_id.slice(-8)}
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <RoleIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{user.name}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -315,6 +411,33 @@ const AdminUsersPage = () => {
                         {workloadPercentage}%
                       </span>
                     </TableCell>
+                    <TableCell className="text-right">
+                      {isDeletable ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user)}
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          disabled={isDeletingUser}
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                          className="text-gray-400 cursor-not-allowed"
+                          title={
+                            user.email === currentUser?.email
+                              ? "Cannot delete your own account"
+                              : "Cannot delete the last admin"
+                          }
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -330,19 +453,50 @@ const AdminUsersPage = () => {
         </CardContent>
       </Card>
 
-      {/* Performance Info */}
-      {userStatsData.performance && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-blue-700">
-              <TrendingUp className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                Performance: {userStatsData.performance.replace(/_/g, " ")}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* 🔥 NEW: Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-600" />
+              Delete User Account
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p className="text-muted-foreground text-sm">
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold">{userToDelete?.name}</span> (
+                  {userToDelete?.email})?
+                </p>
+                <p className="text-sm text-gray-600">
+                  This action cannot be undone. The user will be deactivated and
+                  their data will be preserved for audit purposes.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeletingUser}
+            >
+              {isDeletingUser ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete User
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

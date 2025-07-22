@@ -128,3 +128,17 @@ section {
   justify-content: center;
   padding: 2rem;
 }
+
+/* Add these rules to your globals.css file */
+
+/* Prevent horizontal scroll on html and body */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure all containers respect width constraints */
+* {
+  box-sizing: border-box;
+}

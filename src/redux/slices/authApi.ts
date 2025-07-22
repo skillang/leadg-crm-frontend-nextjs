@@ -172,6 +172,16 @@ interface CreateDepartmentResponse {
   department: Department;
 }
 
+interface DeleteUserResponse {
+  success: boolean;
+  message: string;
+  reassigned_leads?: number;
+  deleted_user: {
+    email: string;
+    name: string;
+  };
+}
+
 // Base query with headers
 const baseQuery = fetchBaseQuery({
   baseUrl: `${API_BASE_URL}/auth`,
@@ -350,6 +360,23 @@ export const authApi = createApi({
       invalidatesTags: ["Department"],
     }),
 
+    deleteUser: builder.mutation<DeleteUserResponse, string>({
+      query: (userId) => ({
+        url: `/users/${userId}`,
+        method: "DELETE",
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(setError(null));
+        } catch (error) {
+          console.error("User deletion failed:", error);
+        }
+      },
+      // Invalidate user lists to refresh data after deletion
+      invalidatesTags: ["User", "Department"],
+    }),
+
     // 🔥 NEW: Delete department (admin only)
     deleteDepartment: builder.mutation<
       { success: boolean; message: string },
@@ -375,4 +402,5 @@ export const {
   useCreateDepartmentMutation,
   useUpdateDepartmentMutation,
   useDeleteDepartmentMutation,
+  useDeleteUserMutation,
 } = authApi;

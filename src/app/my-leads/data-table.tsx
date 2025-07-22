@@ -58,7 +58,15 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-// 🔥 NEW: Import stages API instead of constants
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
 
@@ -70,6 +78,17 @@ interface DataTableProps<TData, TValue> {
   onAddNew?: () => void;
   onExportCsv?: () => void;
   onCustomize?: () => void;
+  // 🔥 ADD THESE OPTIONAL PROPS
+  paginationMeta?: {
+    total: number;
+    page: number;
+    limit: number;
+    has_next: boolean;
+    has_prev: boolean;
+  };
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -78,6 +97,10 @@ export function DataTable<TData, TValue>({
   title = "Leads",
   description,
   onExportCsv,
+  paginationMeta,
+  onPageChange,
+  onPageSizeChange,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -107,7 +130,6 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -115,15 +137,27 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
     globalFilterFn: "includesString",
+    ...(paginationMeta
+      ? {
+          // Server-side pagination: disable TanStack pagination entirely
+          manualPagination: true,
+          pageCount: Math.ceil(paginationMeta.total / paginationMeta.limit),
+        }
+      : {
+          // Client-side pagination: use TanStack pagination
+          getPaginationRowModel: getPaginationRowModel(),
+          onPaginationChange: setPagination,
+        }),
+
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
       globalFilter,
-      pagination,
+      // 🔥 FIX: Only include pagination state for client-side pagination
+      ...(paginationMeta ? {} : { pagination }),
     },
   });
 
@@ -226,6 +260,168 @@ export function DataTable<TData, TValue>({
             </Badge>
           </button>
         ))}
+      </div>
+    );
+  };
+  const ServerPagination = () => {
+    if (!paginationMeta || !onPageChange || !onPageSizeChange) return null;
+
+    const { total, page, limit, has_next, has_prev } = paginationMeta;
+    const totalPages = Math.ceil(total / limit);
+    const startRecord = (page - 1) * limit + 1;
+    const endRecord = Math.min(page * limit, total);
+
+    const getVisiblePages = () => {
+      if (totalPages <= 3) {
+        // Show all pages if 3 or fewer
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+
+      if (page <= 2) {
+        // Show first 3 pages if current page is 1 or 2
+        return [1, 2, 3];
+      }
+
+      if (page >= totalPages - 1) {
+        // Show last 3 pages if current page is near the end
+        return [totalPages - 2, totalPages - 1, totalPages];
+      }
+
+      // Show current page and one on each side
+      return [page - 1, page, page + 1];
+    };
+
+    const visiblePages = getVisiblePages();
+    const showStartEllipsis = visiblePages[0] > 1;
+    const showEndEllipsis = visiblePages[visiblePages.length - 1] < totalPages;
+
+    return (
+      <div className="flex items-center justify-between w-full px-4 py-4 border-t bg-white">
+        {/* 🔥 LEFT SIDE - Results info and page size selector */}
+        <div className="flex items-center space-x-6">
+          {/* Results info */}
+          <div className="text-sm text-muted-foreground whitespace-nowrap">
+            Showing {startRecord} to {endRecord} of {total} results
+          </div>
+
+          {/* Page size selector */}
+          <div className="flex items-center space-x-2 whitespace-nowrap">
+            <span className="text-sm text-muted-foreground">
+              Rows per page:
+            </span>
+            <Select
+              value={limit.toString()}
+              onValueChange={(value) => {
+                onPageSizeChange(Number(value));
+                onPageChange(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[70px] border-input">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* 🔥 RIGHT SIDE - Pagination controls */}
+        <div className="flex items-center">
+          <Pagination>
+            <PaginationContent className="flex items-center space-x-1">
+              {/* Previous Button */}
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => has_prev && onPageChange(page - 1)}
+                  className={`
+                  h-8 px-3 text-sm
+                  ${
+                    !has_prev
+                      ? "pointer-events-none opacity-50 cursor-not-allowed"
+                      : "cursor-pointer hover:bg-accent"
+                  }
+                `}
+                />
+              </PaginationItem>
+
+              {/* First page + ellipsis if needed */}
+              {showStartEllipsis && (
+                <>
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => onPageChange(1)}
+                      isActive={page === 1}
+                      className="h-8 w-8 p-0 text-sm cursor-pointer hover:bg-accent"
+                    >
+                      1
+                    </PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationEllipsis className="h-8 w-8 text-sm" />
+                  </PaginationItem>
+                </>
+              )}
+
+              {/* Visible page numbers */}
+              {visiblePages.map((pageNum) => (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    onClick={() => onPageChange(pageNum)}
+                    isActive={page === pageNum}
+                    className={`
+                    h-8 w-8 p-0 text-sm cursor-pointer
+                    ${
+                      page === pageNum
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-accent"
+                    }
+                  `}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              {/* Last page + ellipsis if needed */}
+              {showEndEllipsis && (
+                <>
+                  <PaginationItem>
+                    <PaginationEllipsis className="h-8 w-8 text-sm" />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => onPageChange(totalPages)}
+                      isActive={page === totalPages}
+                      className="h-8 w-8 p-0 text-sm cursor-pointer hover:bg-accent"
+                    >
+                      {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                </>
+              )}
+
+              {/* Next Button */}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => has_next && onPageChange(page + 1)}
+                  className={`
+                  h-8 px-3 text-sm
+                  ${
+                    !has_next
+                      ? "pointer-events-none opacity-50 cursor-not-allowed"
+                      : "cursor-pointer hover:bg-accent"
+                  }
+                `}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       </div>
     );
   };
@@ -572,44 +768,91 @@ export function DataTable<TData, TValue>({
 
       {/* Data Table */}
       <div className="rounded-md border">
+        {isLoading && (
+          <div className="p-4 text-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+            Loading leads...
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-muted/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+            {!isLoading && data.length > 0 ? (
+              paginationMeta ? (
+                // Server-side pagination: render all data directly
+                <>
+                  {data.map((item: any, index) => (
+                    <TableRow key={index} className="hover:bg-muted/50">
+                      {columns.map((column, colIndex) => {
+                        const accessorKey = (column as any).accessorKey;
+                        const cellValue = accessorKey
+                          ? item[accessorKey]
+                          : null;
+
+                        return (
+                          <TableCell key={colIndex}>
+                            {column.cell
+                              ? (column.cell as any)({
+                                  row: {
+                                    original: item,
+                                    getValue: (key: string) =>
+                                      item[key] ||
+                                      item[accessorKey] ||
+                                      cellValue,
+                                    id: index.toString(),
+                                    index,
+                                    getIsSelected: () => false,
+                                    toggleSelected: () => {},
+                                  },
+                                  getValue: () => cellValue,
+                                  column: column,
+                                  table: table,
+                                })
+                              : cellValue || "-"}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))
-            ) : (
+                </>
+              ) : (
+                // Client-side pagination: use table rows
+                <>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      className="hover:bg-muted/50"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
+              )
+            ) : !isLoading ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -620,13 +863,12 @@ export function DataTable<TData, TValue>({
                     : "No leads found."}
                 </TableCell>
               </TableRow>
-            )}
+            ) : null}
           </TableBody>
         </Table>
-      </div>
 
-      {/* Improved Pagination */}
-      <ImprovedPagination />
+        {paginationMeta ? <ServerPagination /> : <ImprovedPagination />}
+      </div>
     </div>
   );
 }
