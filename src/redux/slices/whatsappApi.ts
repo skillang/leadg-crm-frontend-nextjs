@@ -1,12 +1,15 @@
 // src/redux/slices/whatsappApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "../store";
+import type {
+  WhatsAppTemplate,
+  AccountStatusResponse,
+  ContactValidationResponse,
+  SendTemplateResponse,
+  SendTextResponse,
+} from "@/models/types/whatsapp";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-// interface ContactValidationRequest {
-//   contact: string;
-// }
 
 interface TemplateMessageRequest {
   template_name: string;
@@ -19,18 +22,11 @@ interface TextMessageRequest {
   message: string;
 }
 
-interface WhatsAppTemplate {
-  name: string;
-  display_name: string;
-  parameters: string[];
-  template: string;
-  category?: string;
-}
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
+// Define the raw template response structure
+interface TemplateApiResponse {
+  data?: WhatsAppTemplate[];
+  templates?: WhatsAppTemplate[];
+  [key: string]: unknown;
 }
 
 export const whatsappApi = createApi({
@@ -49,13 +45,13 @@ export const whatsappApi = createApi({
   tagTypes: ["WhatsAppStatus", "Templates"],
   endpoints: (builder) => ({
     // Check WhatsApp account status
-    checkAccountStatus: builder.query<ApiResponse<string>, void>({
+    checkAccountStatus: builder.query<AccountStatusResponse, void>({
       query: () => "/account/status",
       providesTags: ["WhatsAppStatus"],
     }),
 
     // Validate contact number
-    validateContact: builder.mutation<ApiResponse<boolean>, string>({
+    validateContact: builder.mutation<ContactValidationResponse, string>({
       query: (contact) => ({
         url: "/validate-contact",
         method: "POST",
@@ -67,33 +63,37 @@ export const whatsappApi = createApi({
     getTemplates: builder.query<WhatsAppTemplate[], void>({
       query: () => "/templates",
       providesTags: ["Templates"],
-      transformResponse: (response: any) => {
+      transformResponse: (
+        response: TemplateApiResponse | WhatsAppTemplate[]
+      ) => {
         // Handle both direct array response and wrapped response
         if (Array.isArray(response)) {
           return response;
         }
-        return response.data || response;
+        // Check for common response wrapper patterns
+        return response.data || response.templates || [];
       },
     }),
 
     // Send template message
-    sendTemplate: builder.mutation<ApiResponse<string>, TemplateMessageRequest>(
-      {
-        query: ({ template_name, contact, lead_name }) => ({
-          url: "/send-template",
-          method: "POST",
-          body: {
-            template_name,
-            contact,
-            lead_name,
-          },
-        }),
-        invalidatesTags: ["WhatsAppStatus"],
-      }
-    ),
+    sendTemplate: builder.mutation<
+      SendTemplateResponse,
+      TemplateMessageRequest
+    >({
+      query: ({ template_name, contact, lead_name }) => ({
+        url: "/send-template",
+        method: "POST",
+        body: {
+          template_name,
+          contact,
+          lead_name,
+        },
+      }),
+      invalidatesTags: ["WhatsAppStatus"],
+    }),
 
     // Send text message
-    sendTextMessage: builder.mutation<ApiResponse<string>, TextMessageRequest>({
+    sendTextMessage: builder.mutation<SendTextResponse, TextMessageRequest>({
       query: ({ contact, message }) => ({
         url: "/send-text",
         method: "POST",

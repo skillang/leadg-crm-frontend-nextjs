@@ -548,22 +548,8 @@ export default function LeadDetailsPage() {
                       </TableCell>
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
-                          {/* {(leadDetails.date_of_birth as string) ||
-                            "Not specified"} */}
-                          {/* {formatDate(leadDetails.date_of_birth || "no")} */}
-                          {/* Debug version */}
-
-                          {leadDetails.date_of_birth
-                            ? formatDate(leadDetails.date_of_birth)
-                            : (console.log(
-                                "Raw API response:",
-                                JSON.stringify(leadDetails, null, 2)
-                              ),
-                              (
-                                <span className="text-red-500">
-                                  Missing from API response
-                                </span>
-                              ))}
+                          {(leadDetails.date_of_birth as string) ||
+                            "Not specified"}
                         </span>
                       </TableCell>
                     </TableRow>

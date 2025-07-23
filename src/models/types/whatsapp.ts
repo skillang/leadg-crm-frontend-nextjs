@@ -68,10 +68,40 @@ export interface ContactValidationRequest {
   contact: string;
 }
 
-// Response Types
+// Define specific data types for API responses
+interface SendTemplateData {
+  message_id?: string;
+  status?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+interface SendTextData {
+  message_id?: string;
+  status?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+interface ContactValidationData {
+  is_valid?: boolean;
+  exists_on_whatsapp?: boolean;
+  phone_number?: string;
+  [key: string]: unknown;
+}
+
+interface AccountStatusData {
+  status?: string;
+  phone_number?: string;
+  display_name?: string;
+  business_name?: string;
+  [key: string]: unknown;
+}
+
+// Response Types with specific data types
 export interface SendTemplateResponse {
   success: boolean;
-  data?: any;
+  data?: SendTemplateData;
   template_name?: string;
   contact?: string;
   lead_name?: string;
@@ -81,7 +111,7 @@ export interface SendTemplateResponse {
 
 export interface SendTextResponse {
   success: boolean;
-  data?: any;
+  data?: SendTextData;
   contact?: string;
   message?: string;
   error?: string;
@@ -89,7 +119,7 @@ export interface SendTextResponse {
 
 export interface ContactValidationResponse {
   success: boolean;
-  data?: any;
+  data?: ContactValidationData;
   contact?: string;
   message?: string;
   error?: string;
@@ -97,7 +127,7 @@ export interface ContactValidationResponse {
 
 export interface AccountStatusResponse {
   success: boolean;
-  data?: any;
+  data?: AccountStatusData;
   message?: string;
   error?: string;
 }
@@ -140,19 +170,27 @@ export interface WhatsAppState {
   currentUser: UserData | null;
 }
 
-// API Response Interfaces
-export interface ApiResponse<T = any> {
+// Generic API Response Interface with specific type parameter
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
 }
 
+// Error Details Interface
+interface ErrorDetails {
+  code?: string | number;
+  field?: string;
+  validation_errors?: string[];
+  [key: string]: unknown;
+}
+
 // Error Handling
 export interface WhatsAppError {
   message: string;
   code?: string | number;
-  details?: any;
+  details?: ErrorDetails;
   timestamp: string;
 }
 
@@ -236,24 +274,32 @@ export const extractTemplateParameters = (template: string): string[] => {
   return parameters;
 };
 
-// Type Guards
+// Type Guards with better type safety
 export const isTemplatesApiResponse = (
-  data: any
+  data: unknown
 ): data is TemplatesApiResponse => {
-  return data && typeof data === "object" && typeof data.success === "boolean";
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    "success" in data &&
+    typeof (data as TemplatesApiResponse).success === "boolean"
+  );
 };
 
-export const isTemplateArray = (data: any): data is WhatsAppTemplate[] => {
+export const isTemplateArray = (data: unknown): data is WhatsAppTemplate[] => {
   return (
     Array.isArray(data) && (data.length === 0 || isWhatsAppTemplate(data[0]))
   );
 };
 
-export const isWhatsAppTemplate = (data: any): data is WhatsAppTemplate => {
+export const isWhatsAppTemplate = (data: unknown): data is WhatsAppTemplate => {
   return (
-    data &&
+    data !== null &&
     typeof data === "object" &&
-    (typeof data.display_name === "string" || typeof data.name === "string")
+    data !== undefined &&
+    ("display_name" in data || "name" in data) &&
+    (typeof (data as WhatsAppTemplate).display_name === "string" ||
+      typeof (data as WhatsAppTemplate).name === "string")
   );
 };
 
@@ -331,7 +377,7 @@ export const createContactValidationRequest = (
 export const createWhatsAppError = (
   message: string,
   code?: string | number,
-  details?: any
+  details?: ErrorDetails
 ): WhatsAppError => ({
   message,
   code,
@@ -346,8 +392,8 @@ export const processTemplatesResponse = (
   try {
     // Handle string response (JSON)
     if (typeof response === "string") {
-      const parsed = JSON.parse(response);
-      return processTemplatesResponse(parsed);
+      const parsed: unknown = JSON.parse(response);
+      return processTemplatesResponse(parsed as TemplatesResponse);
     }
 
     // Handle array response
@@ -423,7 +469,8 @@ export const DEFAULT_TEMPLATES: WhatsAppTemplate[] = [
   }),
 ];
 
-export default {
+// Named export object to fix the anonymous default export warning
+const WhatsAppUtils = {
   MESSAGE_TYPES,
   VALIDATION_STATUS,
   getParameterValue,
@@ -445,4 +492,6 @@ export default {
   createContactValidationRequest,
   createWhatsAppError,
   DEFAULT_TEMPLATES,
-};
+} as const;
+
+export default WhatsAppUtils;

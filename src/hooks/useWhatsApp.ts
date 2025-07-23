@@ -25,6 +25,10 @@ import {
   type UserData,
   type WhatsAppTemplate,
   type TemplateParameters,
+  type AccountStatusResponse,
+  type ContactValidationResponse,
+  type SendTemplateResponse,
+  type SendTextResponse,
 } from "@/models/types/whatsapp";
 
 interface UseWhatsAppReturn {
@@ -42,7 +46,7 @@ interface UseWhatsAppReturn {
   isSending: boolean;
   currentLead: LeadData | null;
   currentUser: UserData | null;
-  accountStatus: any;
+  accountStatus: AccountStatusResponse | undefined;
   templates: WhatsAppTemplate[] | undefined;
 
   // Loading states
@@ -60,14 +64,19 @@ interface UseWhatsAppReturn {
   togglePreview: () => void;
 
   // API calls
-  validatePhoneNumber: (phoneNumber: string) => Promise<any>;
+  validatePhoneNumber: (
+    phoneNumber: string
+  ) => Promise<ContactValidationResponse>;
   sendWhatsAppTemplate: (
     templateName: string,
     contact: string,
     leadName: string,
     parameters?: Record<string, string>
-  ) => Promise<any>;
-  sendWhatsAppText: (contact: string, message: string) => Promise<any>;
+  ) => Promise<SendTemplateResponse>;
+  sendWhatsAppText: (
+    contact: string,
+    message: string
+  ) => Promise<SendTextResponse>;
 
   // Helper functions
   canSendMessage: () => boolean;
@@ -137,7 +146,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
 
   // Contact validation
   const validatePhoneNumber = useCallback(
-    async (phoneNumber: string) => {
+    async (phoneNumber: string): Promise<ContactValidationResponse> => {
       if (!phoneNumber) {
         throw new Error("Phone number is required");
       }
@@ -165,7 +174,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
       contact: string,
       leadName: string,
       parameters: Record<string, string> = {}
-    ) => {
+    ): Promise<SendTemplateResponse> => {
       try {
         const result = await sendTemplate({
           template_name: templateName,
@@ -183,7 +192,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
   );
 
   const sendWhatsAppText = useCallback(
-    async (contact: string, message: string) => {
+    async (contact: string, message: string): Promise<SendTextResponse> => {
       if (!message?.trim()) {
         throw new Error("Message cannot be empty");
       }
@@ -220,7 +229,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
 
   const areAllParametersFilled = useCallback((): boolean => {
     const templateData = getSelectedTemplateData();
-    if (!templateData) return false;
+    if (!templateData || !templateData.parameters) return false;
 
     return templateData.parameters.every((param) =>
       whatsappState.templateParameters[param]?.trim()
@@ -236,11 +245,11 @@ const useWhatsApp = (): UseWhatsAppReturn => {
 
       const autoParams: Record<string, string> = {};
 
-      if (template.parameters.includes("lead_name")) {
+      if (template.parameters?.includes("lead_name")) {
         autoParams.lead_name = whatsappState.currentLead.name;
       }
 
-      if (template.parameters.includes("agent_name")) {
+      if (template.parameters?.includes("agent_name")) {
         const user = whatsappState.currentUser;
         autoParams.agent_name = `${user.firstName} ${user.lastName}`;
       }
@@ -260,7 +269,6 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     ...whatsappState,
     accountStatus,
     templates,
-
     // Loading states
     isCheckingStatus,
     isLoadingTemplates,

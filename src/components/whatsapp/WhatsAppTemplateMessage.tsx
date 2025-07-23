@@ -35,6 +35,19 @@ import {
   type TemplateMessageRequest,
 } from "@/models/types/whatsapp";
 
+// Define error interfaces for type safety
+interface ApiErrorData {
+  detail?: string;
+  message?: string;
+  error?: string;
+}
+
+interface ApiError {
+  data?: ApiErrorData;
+  message?: string;
+  status?: number;
+}
+
 const WhatsAppTemplateMessage: React.FC = () => {
   const dispatch = useDispatch();
   const { showSuccess, showError } = useNotifications();
@@ -130,11 +143,14 @@ const WhatsAppTemplateMessage: React.FC = () => {
       await sendTemplate(sendRequest).unwrap();
       showSuccess("WhatsApp template message sent successfully!");
       dispatch(closeModal());
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // Type-safe error handling
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.detail ||
-        error?.data?.message ||
-        error?.message ||
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.data?.error ||
+        apiError?.message ||
         "Failed to send WhatsApp message. Please try again.";
       showError(errorMessage);
       console.error("Failed to send template:", error);
