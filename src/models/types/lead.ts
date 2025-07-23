@@ -23,6 +23,7 @@ export interface Lead {
   age?: number;
   experience?: string; // fresher, 1-2_years, 3-5_years, 5-10_years, 10+_years
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
 
   // Existing fields
@@ -64,6 +65,7 @@ export interface CreateLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
 }
 
@@ -165,6 +167,7 @@ export interface UpdateLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
   assigned_to?: string;
   assigned_to_name?: string;

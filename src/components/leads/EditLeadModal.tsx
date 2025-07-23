@@ -142,6 +142,7 @@ interface EditLeadFormData {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
 }
 
@@ -178,6 +179,7 @@ interface LeadUpdateData {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   assigned_to?: string;
   assigned_to_name?: string;
   assignment_method?: string;
@@ -281,6 +283,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         age: lead.age,
         experience: lead.experience,
         nationality: lead.nationality,
+        date_of_birth: lead.date_of_birth,
         current_location: lead.current_location || "",
       };
 
@@ -439,6 +442,10 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
       if (formData.current_location && formData.current_location.trim()) {
         updateData.current_location = formData.current_location;
+      }
+
+      if (formData.date_of_birth && formData.date_of_birth.trim()) {
+        updateData.date_of_birth = formData.date_of_birth;
       }
 
       // Assignment fields

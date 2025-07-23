@@ -69,6 +69,7 @@ interface FlatBulkLeadData {
   currentLocation?: string;
   country_of_interest?: string;
   course_level?: string;
+  date_of_birth?: string;
   stage: string;
   status: string;
   lead_score?: number;
@@ -97,6 +98,7 @@ interface ParsedLead {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
   country_of_interest?: string;
   course_level?: string;
@@ -185,9 +187,9 @@ const HEADER_MAPPING: Record<string, string> = {
   age: "age",
   Age: "age",
   AGE: "age", // Added for your CSV
+
   "date of birth": "date_of_birth",
   "Date of Birth": "date_of_birth",
-
   "DATE OF BIRTH": "date_of_birth", // Added for your CSV
   dob: "date_of_birth",
 
@@ -582,7 +584,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
               case "date_of_birth":
                 if (value && value.toLowerCase() !== "not defined") {
-                  notesData.push(`Date of Birth: ${value}`);
+                  // notesData.push(`Date of Birth: ${value}`);
+                  lead.date_of_birth = value;
                 }
                 break;
 

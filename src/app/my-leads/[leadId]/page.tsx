@@ -209,6 +209,7 @@ export default function LeadDetailsPage() {
         age: leadDetails.age,
         experience: leadDetails.experience,
         nationality: leadDetails.nationality,
+        date_of_birth: leadDetails.date_of_birth,
         courseLevel: leadDetails.courseLevel || "",
         countryOfInterest: leadDetails.countryOfInterest || "",
         notes: leadDetails.notes || "",
@@ -537,6 +538,32 @@ export default function LeadDetailsPage() {
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
                           {leadDetails.age || "Not specified"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Date of birth
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {/* {(leadDetails.date_of_birth as string) ||
+                            "Not specified"} */}
+                          {/* {formatDate(leadDetails.date_of_birth || "no")} */}
+                          {/* Debug version */}
+
+                          {leadDetails.date_of_birth
+                            ? formatDate(leadDetails.date_of_birth)
+                            : (console.log(
+                                "Raw API response:",
+                                JSON.stringify(leadDetails, null, 2)
+                              ),
+                              (
+                                <span className="text-red-500">
+                                  Missing from API response
+                                </span>
+                              ))}
                         </span>
                       </TableCell>
                     </TableRow>

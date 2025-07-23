@@ -124,6 +124,7 @@ interface LeadFormData {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
 }
 
@@ -188,6 +189,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     age: undefined,
     experience: "",
     nationality: "",
+    date_of_birth: "",
     current_location: "",
   });
 
@@ -261,6 +263,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         age: undefined,
         experience: "",
         nationality: "",
+        date_of_birth: "",
         current_location: "",
       });
       setErrors({});
@@ -468,6 +471,10 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       }
 
       if (formData.current_location && formData.current_location.trim()) {
+        payload.basic_info.current_location = formData.current_location;
+      }
+
+      if (formData.date_of_birth && formData.date_of_birth.trim()) {
         payload.basic_info.current_location = formData.current_location;
       }
 

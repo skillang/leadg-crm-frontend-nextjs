@@ -34,6 +34,7 @@ interface ApiLead {
   experience?: string;
   nationality?: string;
   current_location?: string;
+  date_of_birth?: string;
 
   course_level?: string;
   country_of_interest?: string;
@@ -70,6 +71,7 @@ interface RawLeadDetails {
     age?: number;
     experience?: string;
     nationality?: string;
+    date_of_birth?: string;
     current_location?: string;
   };
   status_and_tags: {
@@ -120,6 +122,7 @@ interface LeadDetailsResponse {
   experience?: string;
   nationality?: string;
   current_location?: string;
+  date_of_birth?: string;
 
   notes: string;
   createdAt: string;
@@ -140,6 +143,7 @@ export interface FlatBulkLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  date_of_birth?: string;
   current_location?: string;
   country_of_interest?: string;
   course_level?: string;
@@ -196,6 +200,7 @@ export interface CreateLeadApiRequest {
     experience?: string;
     nationality?: string;
     current_location?: string;
+    date_of_birth?: string;
     country_of_interest?: string; // Add if missing
     course_level?: string; // Add if missing
   };
@@ -239,6 +244,7 @@ interface UpdateLeadRequest {
   current_location?: string;
   country_of_interest?: string;
   course_level?: string;
+  date_of_birth?: string;
 
   // Add index signature to allow dynamic assignment
   [key: string]: any;
@@ -294,7 +300,9 @@ export interface BulkLeadData {
     age?: number;
     experience?: string;
     nationality?: string;
+    date_of_birth?: string;
     current_location?: string;
+    date_of_borth?: string;
   };
   status_and_tags: {
     stage: string;
@@ -344,6 +352,7 @@ const transformApiLead = (apiLead: ApiLead): Lead => ({
   age: apiLead.age,
   experience: apiLead.experience,
   nationality: apiLead.nationality,
+  date_of_birth: apiLead.date_of_birth,
   current_location: apiLead.current_location || "",
 
   courseLevel: apiLead.course_level || "",
@@ -387,6 +396,7 @@ const transformLeadDetailsResponse = (
   age: data.basic_info.age,
   experience: data.basic_info.experience,
   nationality: data.basic_info.nationality,
+  date_of_birth: data.basic_info.date_of_birth,
   current_location: data.basic_info.current_location,
 
   notes: data.additional_info.notes,
