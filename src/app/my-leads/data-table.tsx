@@ -49,10 +49,7 @@ import {
   DownloadIcon,
   Grid2X2PlusIcon,
   SlidersHorizontalIcon,
-  ArrowUpDown,
   ChevronDown,
-  ArrowUp,
-  ArrowDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -197,14 +194,14 @@ export function DataTable<TData, TValue>({
     setGlobalFilter("");
   };
 
-  const getSortIcon = (isSorted: false | "asc" | "desc") => {
-    if (!isSorted) return <ArrowUpDown className="ml-2 h-4 w-4" />;
-    return isSorted === "desc" ? (
-      <ArrowDown className="ml-2 h-4 w-4" />
-    ) : (
-      <ArrowUp className="ml-2 h-4 w-4" />
-    );
-  };
+  // const getSortIcon = (isSorted: false | "asc" | "desc") => {
+  //   if (!isSorted) return <ArrowUpDown className="ml-2 h-4 w-4" />;
+  //   return isSorted === "desc" ? (
+  //     <ArrowDown className="ml-2 h-4 w-4" />
+  //   ) : (
+  //     <ArrowUp className="ml-2 h-4 w-4" />
+  //   );
+  // };
 
   // 🔥 NEW: Stage statistics component using API data
   const StageStatsOverview = () => {
@@ -213,12 +210,12 @@ export function DataTable<TData, TValue>({
 
       const counts: Record<string, number> = {};
       stagesData.stages.forEach((stage) => {
-        counts[stage.name] = (data as any[]).filter(
-          (lead: any) => lead.stage === stage.name
+        counts[stage.name] = (data as Array<{ stage: string }>).filter(
+          (lead) => lead.stage === stage.name
         ).length;
       });
       return counts;
-    }, [stagesData, data]);
+    }, [stagesData?.stages]);
 
     if (stagesLoading) {
       return (

@@ -8,7 +8,6 @@ import {
   Users,
   LayoutDashboard,
   NotebookText,
-  ChevronDown,
   ChevronRight,
   User,
   LogOut,
@@ -20,6 +19,7 @@ import {
   ChartPie,
   ArrowsUpFromLine,
   UserRoundCog,
+  ChevronUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,10 +31,25 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Import authentication hook
 import { useAuth } from "@/redux/hooks/useAuth";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Main menu items (non-admin)
 const mainMenuItems = [
@@ -124,13 +139,7 @@ const leadActionItems = [
 // ];
 
 const SideNavBarComp = () => {
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Dropdown states
-  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [isLeadActionDropdownOpen, setIsLeadActionDropdownOpen] =
-    useState(false);
 
   // Get user data and logout function from auth hook
   const { user, logout, isAdmin, userName, userEmail } = useAuth();
@@ -144,7 +153,6 @@ const SideNavBarComp = () => {
       console.error("Logout failed:", error);
     } finally {
       setIsLoggingOut(false);
-      setIsUserMenuOpen(false);
     }
   };
 
@@ -199,92 +207,59 @@ const SideNavBarComp = () => {
             </div>
             <SidebarGroupContent>
               <SidebarMenu>
-                {/* User Dropdown */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                    className="w-full justify-between cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <UserRoundCog />
-                      <span>User Actions</span>
-                    </div>
-                    {isUserDropdownOpen ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </SidebarMenuButton>
-
-                  {/* User Dropdown Items */}
-                  {isUserDropdownOpen && (
-                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-sidebar-border">
-                      {userMenuItems.map((item) => (
-                        <div key={item.title}>
-                          <a
-                            href={item.url}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
-                          >
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </SidebarMenuItem>
-
-                {/* Lead Action Dropdown */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() =>
-                      setIsLeadActionDropdownOpen(!isLeadActionDropdownOpen)
-                    }
-                    className="w-full justify-between cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Users />
-                      <span>Lead Actions</span>
-                    </div>
-                    {isLeadActionDropdownOpen ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </SidebarMenuButton>
-
-                  {/* Lead Action Dropdown Items */}
-                  {isLeadActionDropdownOpen && (
-                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-sidebar-border">
-                      {leadActionItems.map((item) => (
-                        <div key={item.title}>
-                          <a
-                            href={item.url}
-                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
-                          >
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </SidebarMenuItem>
-
-                {/* Other Admin Items */}
-                {/* {otherAdminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <a href={item.url} className="relative">
-                        <item.icon />
-                        <span>{item.title}</span>
-                        <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
-                          Admin
-                        </span>
-                      </a>
-                    </SidebarMenuButton>
+                {/* User Actions with Collapsible Sub-Menu */}
+                <Collapsible defaultOpen={false} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="w-full">
+                        <UserRoundCog />
+                        <span>User Actions</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {userMenuItems.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild>
+                              <a href={item.url}>
+                                <item.icon />
+                                <span>{item.title}</span>
+                              </a>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
                   </SidebarMenuItem>
-                ))} */}
+                </Collapsible>
+
+                {/* Lead Actions with Collapsible Sub-Menu */}
+                <Collapsible defaultOpen={false} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="w-full">
+                        <Users />
+                        <span>Lead Actions</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {leadActionItems.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild>
+                              <a href={item.url}>
+                                <item.icon />
+                                <span>{item.title}</span>
+                              </a>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -294,84 +269,77 @@ const SideNavBarComp = () => {
       {/* Footer */}
       <SidebarFooter className="p-2 border-t">
         <div className="space-y-3">
-          {/* User Account */}
-          <div className="relative">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-full flex items-center justify-between p-2 hover:bg-accent rounded-lg transition-colors"
-              disabled={isLoggingOut}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                  <UserCircle className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-medium">
-                    {userName || "My account"}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[150px]">
-                    {userEmail || "user@example.com"}
-                  </div>
-                </div>
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 text-muted-foreground transition-transform ${
-                  isUserMenuOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {/* User Dropdown */}
-            {isUserMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-lg shadow-lg z-50">
-                <div className="p-2 space-y-1">
-                  {/* User Info Header */}
-                  <div className="px-3 py-2 border-b">
-                    <div className="text-sm font-medium text-foreground">
-                      {userName}
+          {/* User Account Dropdown */}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="w-full justify-between"
+                    disabled={isLoggingOut}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                        <UserCircle className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-medium">
+                          {userName || "My account"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[150px]">
+                          {userEmail || "user@example.com"}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {user?.department}
-                    </div>
-                  </div>
+                    <ChevronUp className="ml-auto w-4 h-4 text-muted-foreground" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
 
-                  {/* Menu Items */}
-                  <button className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors">
-                    <User className="w-4 h-4" />
-                    <span className="text-sm">Profile</span>
-                  </button>
+                <DropdownMenuContent
+                  side="top"
+                  align="center"
+                  className="w-[--radix-popper-anchor-width] min-w-[245px]"
+                >
+                  {/* Profile Menu Item */}
+                  <DropdownMenuItem className="cursor-pointer">
+                    <User className="w-4 h-4 mr-2" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
 
-                  <hr className="my-1" />
+                  <DropdownMenuSeparator />
 
                   {/* Sign Out Button */}
-                  <button
+                  <DropdownMenuItem
+                    className="cursor-pointer text-destructive focus:text-destructive"
                     onClick={handleSignOut}
                     disabled={isLoggingOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-destructive/10 text-destructive rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoggingOut ? (
                       <>
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
-                        <span className="text-sm">Signing out...</span>
+                        <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
+                        <span>Signing out...</span>
                       </>
                     ) : (
                       <>
-                        <LogOut className="w-4 h-4" />
-                        <span className="text-sm">Sign Out</span>
+                        <LogOut className="w-4 h-4 mr-2" />
+                        <span>Sign Out</span>
                       </>
                     )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
 
+          {/* Status and Role Information */}
           <div className="flex items-center justify-around">
             {/* Status Indicator */}
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span>Online</span>
             </div>
+
             {/* Role Badge */}
             <div className="flex justify-center">
               <span

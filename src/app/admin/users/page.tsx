@@ -40,6 +40,16 @@ import {
   UserX,
 } from "lucide-react";
 
+// Define API error interface for better type safety
+interface ApiError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
+
 // 🔥 FIXED: Use the correct interface from API (matches leadsApi.ts)
 interface UserStats {
   user_id: string;
@@ -47,19 +57,6 @@ interface UserStats {
   email: string;
   role: string; // 🔥 This is string, not union type
   assigned_leads_count: number;
-}
-
-// 🔥 FIXED: Updated interface to match API response
-interface UserStatsData {
-  success: boolean;
-  user_stats: UserStats[]; // 🔥 Use UserStats, not UserStat
-  summary: {
-    total_users: number;
-    total_leads: number;
-    assigned_leads: number;
-    unassigned_leads: number;
-  };
-  performance?: string;
 }
 
 const AdminUsersPage = () => {
@@ -73,8 +70,8 @@ const AdminUsersPage = () => {
     description: "You need admin privileges to view user management.",
   });
 
-  // Notifications
-  const { showSuccess, showError, showWarning } = useNotifications();
+  // Notifications - removed unused showSuccess
+  const { showError, showWarning } = useNotifications();
 
   // State for delete confirmation
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -117,10 +114,11 @@ const AdminUsersPage = () => {
 
   // Handle error state
   if (error) {
+    const apiError = error as ApiError;
     const errorMessage =
-      (error as any)?.data?.detail ||
-      (error as any)?.data?.message ||
-      (error as any)?.message ||
+      apiError?.data?.detail ||
+      apiError?.data?.message ||
+      apiError?.message ||
       "Failed to load user statistics";
 
     return (
@@ -217,10 +215,10 @@ const AdminUsersPage = () => {
 
     try {
       // Call delete user API using user ID or email
-      const result = await deleteUser(userToDelete.email).unwrap();
+      await deleteUser(userToDelete.email).unwrap();
 
       // Success handling
-      showWarning(`User Deleted`, "User Deleted");
+      showWarning(`User Deleted`, "User has been successfully deleted");
 
       // Close dialog and reset state
       setDeleteDialogOpen(false);
@@ -228,14 +226,15 @@ const AdminUsersPage = () => {
 
       // Refresh user stats
       refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete user:", error);
 
       // Extract error message
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.detail ||
-        error?.data?.message ||
-        error?.message ||
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
         "Failed to delete user. Please try again.";
 
       showError(errorMessage, "Deletion Failed");

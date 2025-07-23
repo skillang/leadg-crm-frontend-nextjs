@@ -1,4 +1,4 @@
-// src/components/leads/SingleLeadModal.tsx - TABBED INTERFACE
+// src/components/leads/SingleLeadModal.tsx - FIXED COUNTRY HANDLING
 
 "use client";
 
@@ -35,10 +35,15 @@ import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import MultiSelect, {
   STUDY_DESTINATIONS,
-  formatCountriesForBackend,
 } from "@/components/common/MultiSelect";
 import CourseLevelDropdown from "../common/CourseLevelDropdown";
 import ExperienceLevelDropdown from "../common/ExperienceLevelDropdown";
+
+// ✅ FIXED: Helper function to convert countries array to string for backend
+const formatCountriesForBackend = (countries: string[]): string => {
+  if (!countries || countries.length === 0) return "";
+  return countries.join(", ");
+};
 
 // Course level constants - ✅ FIXED: Match backend enum values
 export const COURSE_LEVEL_OPTIONS = [
@@ -65,16 +70,12 @@ export const EXPERIENCE_LEVELS = [
 // Nationalities
 export const NATIONALITIES = [
   "Indian",
-  "American",
   "British",
-  "Canadian",
-  "Australian",
   "German",
+  "UAE",
   "French",
   "Chinese",
   "Japanese",
-  "Korean",
-  "Pakistani",
   "Bangladeshi",
   "Sri Lankan",
   "Nepalese",
@@ -109,7 +110,7 @@ interface LeadFormData {
   name: string;
   email: string;
   contact_number: string;
-  country_of_interest: string[];
+  country_of_interest: string[]; // ✅ KEEP as array in frontend for UX
   course_level: string;
   source: string;
   category: string;
@@ -123,6 +124,7 @@ interface LeadFormData {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
 }
 
 const PREDEFINED_TAGS = [
@@ -186,6 +188,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
     age: undefined,
     experience: "",
     nationality: "",
+    current_location: "",
   });
 
   const [newTag, setNewTag] = useState("");
@@ -258,6 +261,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         age: undefined,
         experience: "",
         nationality: "",
+        current_location: "",
       });
       setErrors({});
       setNewTag("");
@@ -440,7 +444,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         },
       };
 
-      // Include optional basic_info fields only if they have valid values
+      // ✅ FIXED: Convert countries array to string for backend
       if (formData.country_of_interest.length > 0) {
         payload.basic_info.country_of_interest = formatCountriesForBackend(
           formData.country_of_interest
@@ -461,6 +465,10 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
       if (formData.nationality && formData.nationality.trim()) {
         payload.basic_info.nationality = formData.nationality;
+      }
+
+      if (formData.current_location && formData.current_location.trim()) {
+        payload.basic_info.current_location = formData.current_location;
       }
 
       console.log(
@@ -609,10 +617,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                       type="number"
                       value={formData.age || ""}
                       onChange={(e) =>
-                        handleInputChange(
-                          "age",
-                          parseInt(e.target.value) || "0"
-                        )
+                        handleInputChange("age", parseInt(e.target.value) || 0)
                       }
                       placeholder="Enter age"
                       min="16"
@@ -661,6 +666,20 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="current_location">Current Location</Label>
+                    <Input
+                      id="current_location"
+                      type="text"
+                      value={formData.current_location}
+                      onChange={(e) =>
+                        handleInputChange("current_location", e.target.value)
+                      }
+                      placeholder="Enter current location"
+                      disabled={isCreating}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <CourseLevelDropdown
                       value={formData.course_level}
                       onValueChange={(value) =>
@@ -674,7 +693,9 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                       required={false}
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="source">Source</Label>
                     <Select
@@ -695,26 +716,6 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Countries of Interest</Label>
-                    <MultiSelect
-                      options={STUDY_DESTINATIONS}
-                      value={formData.country_of_interest}
-                      onChange={(value) =>
-                        handleInputChange("country_of_interest", value)
-                      }
-                      disabled={isCreating}
-                      placeholder="Select countries..."
-                      searchPlaceholder="Search countries..."
-                      emptyMessage="No countries found."
-                      maxDisplayItems={3}
-                      showCheckbox={true}
-                      allowSingleSelect={false}
-                    />
                   </div>
 
                   <div className="space-y-2">
@@ -745,6 +746,24 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                       <p className="text-sm text-red-500">{errors.category}</p>
                     )}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Countries of Interest</Label>
+                  <MultiSelect
+                    options={STUDY_DESTINATIONS}
+                    value={formData.country_of_interest}
+                    onChange={(value) =>
+                      handleInputChange("country_of_interest", value)
+                    }
+                    disabled={isCreating}
+                    placeholder="Select countries..."
+                    searchPlaceholder="Search countries..."
+                    emptyMessage="No countries found."
+                    maxDisplayItems={3}
+                    showCheckbox={true}
+                    allowSingleSelect={false}
+                  />
                 </div>
               </TabsContent>
 
@@ -1072,6 +1091,12 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                             counselor from the selected list.
                           </p>
                         </div>
+                      )}
+
+                      {errors.assignment && (
+                        <p className="text-sm text-red-500">
+                          {errors.assignment}
+                        </p>
                       )}
                     </div>
                   )}

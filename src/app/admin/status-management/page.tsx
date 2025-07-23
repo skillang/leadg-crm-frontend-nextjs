@@ -1,9 +1,8 @@
 // src/pages/admin/StatusManagement.tsx
 
 "use client";
-// src/pages/admin/StatusManagement.tsx
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   useGetStatusesQuery,
   useDeleteStatusMutation,
@@ -27,6 +26,16 @@ import { useNotifications } from "@/components/common/NotificationSystem";
 import StatusForm from "@/components/admin/StatusForm";
 import StatusCard from "@/components/admin/StausCard";
 
+// Define API error interface for better type safety
+interface ApiError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
+
 const StatusManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [showForm, setShowForm] = useState(false);
@@ -47,8 +56,8 @@ const StatusManagement: React.FC = () => {
     active_only: false,
   });
 
-  // Mutations
-  const [deleteStatus, { isLoading: isDeleting }] = useDeleteStatusMutation();
+  // Mutations - removed unused isDeleting
+  const [deleteStatus] = useDeleteStatusMutation();
   const [activateStatus, { isLoading: isActivating }] =
     useActivateStatusMutation();
   const [deactivateStatus, { isLoading: isDeactivating }] =
@@ -58,7 +67,12 @@ const StatusManagement: React.FC = () => {
   const [setupDefaults, { isLoading: isSettingUp }] =
     useSetupDefaultStatusesMutation();
 
-  const statuses = statusesData?.statuses || [];
+  // Use useMemo to prevent unnecessary re-renders in useCallback dependencies
+  const statuses = useMemo(
+    () => statusesData?.statuses || [],
+    [statusesData?.statuses]
+  );
+
   const stats = {
     total: statusesData?.total || 0,
     active: statusesData?.active_count || 0,
@@ -92,8 +106,11 @@ const StatusManagement: React.FC = () => {
               showSuccess(
                 result.message || "Status force deleted successfully"
               );
-            } catch (error: any) {
-              showError(error?.data?.detail || "Failed to force delete status");
+            } catch (error: unknown) {
+              const apiError = error as ApiError;
+              showError(
+                apiError?.data?.detail || "Failed to force delete status"
+              );
             }
           },
           onCancel: async () => {
@@ -103,8 +120,11 @@ const StatusManagement: React.FC = () => {
               showSuccess(
                 `Status "${status.display_name}" deactivated (data preserved)`
               );
-            } catch (error: any) {
-              showError(error?.data?.detail || "Failed to deactivate status");
+            } catch (error: unknown) {
+              const apiError = error as ApiError;
+              showError(
+                apiError?.data?.detail || "Failed to deactivate status"
+              );
             }
           },
         });
@@ -131,9 +151,10 @@ const StatusManagement: React.FC = () => {
               }).unwrap();
 
               showSuccess(result.message || "Status deleted successfully");
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error("Delete error:", error);
-              showError(error?.data?.detail || "Failed to delete status");
+              const apiError = error as ApiError;
+              showError(apiError?.data?.detail || "Failed to delete status");
             }
           },
         });
@@ -153,8 +174,9 @@ const StatusManagement: React.FC = () => {
           await activateStatus(status.id).unwrap();
           showSuccess(`Status "${status.display_name}" activated`);
         }
-      } catch (error: any) {
-        showError(error?.data?.detail || "Failed to toggle status");
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        showError(apiError?.data?.detail || "Failed to toggle status");
       }
     },
     [activateStatus, deactivateStatus, showSuccess, showError]
@@ -190,8 +212,9 @@ const StatusManagement: React.FC = () => {
       try {
         await reorderStatuses(reorderData).unwrap();
         showSuccess("Status order updated");
-      } catch (error: any) {
-        showError(error?.data?.detail || "Failed to reorder statuses");
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        showError(apiError?.data?.detail || "Failed to reorder statuses");
       }
     },
     [statuses, reorderStatuses, showSuccess, showError]
@@ -203,8 +226,9 @@ const StatusManagement: React.FC = () => {
       await setupDefaults().unwrap();
       showSuccess("Default statuses created successfully");
       refetch();
-    } catch (error: any) {
-      showError(error?.data?.detail || "Failed to setup default statuses");
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      showError(apiError?.data?.detail || "Failed to setup default statuses");
     }
   }, [setupDefaults, showSuccess, showError, refetch]);
 
@@ -227,7 +251,7 @@ const StatusManagement: React.FC = () => {
                 Error Loading Statuses
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                {(error as any)?.data?.detail || "Something went wrong"}
+                {(error as ApiError)?.data?.detail || "Something went wrong"}
               </p>
               <Button onClick={() => refetch()} variant="outline">
                 Try Again

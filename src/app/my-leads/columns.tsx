@@ -1,6 +1,4 @@
-// src/app/my-leads/columns.tsx - CORRECTED: Use 'category' instead of 'department'
-
-"use client";
+// src/app/my-leads/columns.tsx - FIXED: Function Factory Pattern
 
 import { ColumnDef, Row } from "@tanstack/react-table";
 import {
@@ -27,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useRouter } from "next/navigation";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useState } from "react";
 import { Lead } from "@/models/types/lead";
 import {
@@ -102,7 +100,7 @@ const EmailCell = ({ email }: { email?: string }) => {
   );
 };
 
-// StageSelectCell with StageDisplay in dropdown
+// StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const [updateStage, { isLoading }] = useUpdateLeadStageMutation();
   const { showSuccess, showError } = useNotifications();
@@ -201,11 +199,15 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Actions cell component (UNCHANGED)
-const ActionsCell = ({ row }: { row: Row<Lead> }) => {
-  const router = useRouter();
+// FIXED: Actions cell that accepts router as prop
+const ActionsCell = ({
+  row,
+  router,
+}: {
+  row: Row<Lead>;
+  router: AppRouterInstance;
+}) => {
   const lead = row.original;
-  const [isActionsLoading, setIsActionsLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteLead] = useDeleteLeadMutation();
@@ -235,8 +237,9 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
       showSuccess(`Lead "${lead.name}" has been deleted successfully.`);
     } catch (error: unknown) {
       const errorMessage =
-        (error as any)?.data?.detail ||
-        (error as any)?.message ||
+        (error as { data?: { detail?: string }; message?: string })?.data
+          ?.detail ||
+        (error as { data?: { detail?: string }; message?: string })?.message ||
         "Failed to delete lead";
       showError(`Failed to delete lead: ${errorMessage}`);
     } finally {
@@ -248,13 +251,9 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            disabled={isActionsLoading || isDeleting}
-          >
+          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isDeleting}>
             <span className="sr-only">Open menu</span>
-            {isActionsLoading || isDeleting ? (
+            {isDeleting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <MoreHorizontal className="h-4 w-4" />
@@ -304,8 +303,30 @@ const ActionsCell = ({ row }: { row: Row<Lead> }) => {
   );
 };
 
-// Column definitions - CORRECTED: Changed 'department' to 'category'
-export const columns: ColumnDef<Lead>[] = [
+// FIXED: View Details Cell that accepts router as prop
+const ViewDetailsCell = ({
+  row,
+  router,
+}: {
+  row: Row<Lead>;
+  router: AppRouterInstance;
+}) => {
+  const leadId = row.original.id;
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => router.push(`/my-leads/${leadId}`)}
+      className="p-2 hover:bg-blue-50"
+    >
+      <ArrowRight className="h-4 w-4 text-blue-600" />
+    </Button>
+  );
+};
+
+// FIXED: Create columns as a factory function that accepts router
+export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -348,6 +369,10 @@ export const columns: ColumnDef<Lead>[] = [
       return (
         <div className="text-gray-600">
           {date ? new Date(date).toLocaleDateString() : "N/A"}
+          {/* <div className="font-medium">
+            {row.getValue("createdAt") as string}
+          </div> */}
+          {/* {formatDate(leadDetails.createdAt)} */}
         </div>
       );
     },
@@ -392,21 +417,7 @@ export const columns: ColumnDef<Lead>[] = [
   {
     id: "view_details",
     header: "View More",
-    cell: ({ row }) => {
-      const router = useRouter();
-      const leadId = row.original.id;
-
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/my-leads/${leadId}`)}
-          className="p-2 hover:bg-blue-50"
-        >
-          <ArrowRight className="h-4 w-4 text-blue-600" />
-        </Button>
-      );
-    },
+    cell: ({ row }) => <ViewDetailsCell row={row} router={router} />,
     enableSorting: false,
   },
   {
@@ -434,10 +445,6 @@ export const columns: ColumnDef<Lead>[] = [
     ),
     cell: ({ row }) => {
       const lead = row.original;
-
-      // 🔧 BACKEND BUG WORKAROUND:
-      // Backend is incorrectly populating assignedToName with current user
-      // So we'll use assignedTo (email) and create a name mapping
       const assignedToEmail = lead.assignedTo;
 
       // Create a mapping from emails to proper names
@@ -446,12 +453,10 @@ export const columns: ColumnDef<Lead>[] = [
         "hariharan@skillang.com": "Hariharan",
         "lokesh@skillang.com": "Lokesh Sekar",
         "neha@skillang.com": "Neha Admin",
-        // Add more mappings as needed
       };
 
       let displayName = null;
       if (assignedToEmail) {
-        // Use mapped name if available, otherwise extract from email
         displayName =
           emailToNameMap[assignedToEmail] || assignedToEmail.split("@")[0];
       }
@@ -478,7 +483,6 @@ export const columns: ColumnDef<Lead>[] = [
     },
   },
   {
-    // 🔥 CORRECTED: Handle both possible field names (category or leadCategory)
     accessorKey: "category",
     header: "Category",
     cell: ({ row }) => {
@@ -496,6 +500,12 @@ export const columns: ColumnDef<Lead>[] = [
   {
     id: "actions",
     enableHiding: false,
-    cell: ({ row }) => <ActionsCell row={row} />,
+    cell: ({ row }) => <ActionsCell row={row} router={router} />,
   },
 ];
+
+// DEPRECATED: Keep this for backward compatibility but mark as deprecated
+export const columns: ColumnDef<Lead>[] = [];
+console.warn(
+  "Using deprecated 'columns' export. Use 'createColumns(router)' instead."
+);

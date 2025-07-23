@@ -242,6 +242,7 @@ export const parseCountriesFromString = (countryString: string): string[] => {
 };
 
 export const formatCountriesForBackend = (countries: string[]): string => {
+  if (!countries || countries.length === 0) return "";
   return countries.join(", ");
 };
 
@@ -250,8 +251,21 @@ export const getCountryLabel = (value: string): string => {
   return country?.label || value;
 };
 
+// ============================================================================
+// TYPE DEFINITIONS FOR USER TRANSFORMATION
+// ============================================================================
+
+// Define the User interface based on the project knowledge
+interface User {
+  email: string;
+  name: string;
+  current_lead_count?: number;
+  is_active: boolean;
+  departments?: string[];
+}
+
 // Transform user data to MultiSelect options
-export const transformUsersToOptions = (users: any[]): SelectOption[] => {
+export const transformUsersToOptions = (users: User[]): SelectOption[] => {
   return users.map((user) => ({
     value: user.email,
     label: user.name,

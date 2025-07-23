@@ -1,4 +1,4 @@
-// src/components/leads/EditLeadModal.tsx - TABBED INTERFACE
+// src/components/leads/EditLeadModal.tsx - FIXED TYPESCRIPT ERRORS
 
 "use client";
 
@@ -114,7 +114,10 @@ const PREDEFINED_TAGS = [
   "Next Fall",
 ];
 
-// Interfaces
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
 interface EditLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -130,7 +133,7 @@ interface EditLeadFormData {
   source: string;
   category: string;
   stage: string;
-  status: string; // ✅ ADDED: Status field
+  status: string;
   lead_score: number;
   tags: string[];
   assigned_to: string;
@@ -139,6 +142,7 @@ interface EditLeadFormData {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
 }
 
 interface ApiErrorDetail {
@@ -155,6 +159,41 @@ interface ApiError {
   status?: number;
 }
 
+// Lead update data interface - Fixed typing for API calls
+interface LeadUpdateData {
+  lead_id: string;
+  name: string;
+  email: string;
+  contact_number: string;
+  country_of_interest: string;
+  source: string;
+  category: string;
+  stage: string;
+  status: string;
+  current_location?: string;
+  lead_score: number;
+  tags: string[];
+  notes: string;
+  course_level?: string;
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  assignment_method?: string;
+}
+
+// Multi-assignment request interface
+interface MultiAssignmentRequest {
+  leadId: string;
+  userEmails: string[];
+  reason: string;
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 // Helper function to parse countries from string
 const parseCountriesFromString = (countryString: string): string[] => {
   if (!countryString || typeof countryString !== "string") return [];
@@ -163,6 +202,10 @@ const parseCountriesFromString = (countryString: string): string[] => {
     .map((c) => c.trim())
     .filter(Boolean);
 };
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 const EditLeadModal: React.FC<EditLeadModalProps> = ({
   isOpen,
@@ -182,6 +225,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     status: "",
     lead_score: 0,
     tags: [],
+    current_location: "",
     assigned_to: "",
     assigned_to_name: "",
     notes: "",
@@ -193,14 +237,13 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
   const [selectedCoAssignees, setSelectedCoAssignees] = useState<string[]>([]);
   const [multiAssignReason, setMultiAssignReason] = useState("");
 
-  // API hooks
+  // API hooks - Fixed: Removed unused variables
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
   const [assignToMultiple, { isLoading: isAssigningMultiple }] =
     useAssignLeadToMultipleUsersMutation();
-  const [removeFromAssignment, { isLoading: isRemoving }] =
-    useRemoveUserFromAssignmentMutation();
+  const [removeFromAssignment] = useRemoveUserFromAssignmentMutation();
 
-  const { data: assignableUsersResponse, isLoading: isLoadingUsers } =
+  const { data: assignableUsersResponse } =
     useGetAssignableUsersWithDetailsQuery();
   const { data: categoriesResponse, isLoading: isLoadingCategories } =
     useGetCategoriesQuery({});
@@ -229,7 +272,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         source: lead.source || "website",
         category: lead.leadCategory || "",
         stage: lead.stage || "",
-        status: lead.status || "", // ✅ ADDED: Status field
+        status: lead.status || "",
         lead_score: lead.leadScore || 0,
         tags: lead.tags || [],
         assigned_to: lead.assignedTo || "",
@@ -238,6 +281,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         age: lead.age,
         experience: lead.experience,
         nationality: lead.nationality,
+        current_location: lead.current_location || "",
       };
 
       setFormData(newFormData);
@@ -360,7 +404,8 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     if (!validateForm() || !lead) return;
 
     try {
-      const updateData: Record<string, any> = {
+      // Fixed: Properly typed update data object
+      const updateData: LeadUpdateData = {
         lead_id: lead.leadId || lead.id,
         name: formData.name,
         email: formData.email,
@@ -369,7 +414,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         source: formData.source,
         category: formData.category,
         stage: formData.stage,
-        status: formData.status, // ✅ ADDED: Status field
+        status: formData.status,
         lead_score: formData.lead_score,
         tags: formData.tags,
         notes: formData.notes,
@@ -392,6 +437,10 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         updateData.nationality = formData.nationality;
       }
 
+      if (formData.current_location && formData.current_location.trim()) {
+        updateData.current_location = formData.current_location;
+      }
+
       // Assignment fields
       if (formData.assigned_to && formData.assigned_to_name) {
         updateData.assigned_to = formData.assigned_to;
@@ -401,7 +450,8 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
       console.log("Sending update data:", updateData);
 
-      await updateLead(updateData as any).unwrap();
+      // Fixed: Properly typed API call
+      await updateLead(updateData).unwrap();
       onClose();
     } catch (error) {
       const apiError = error as ApiError;
@@ -439,11 +489,14 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         ? [formData.assigned_to, ...selectedCoAssignees]
         : selectedCoAssignees;
 
-      await assignToMultiple({
+      // Fixed: Properly typed multi-assignment request
+      const multiAssignRequest: MultiAssignmentRequest = {
         leadId: lead.leadId || lead.id,
         userEmails: allAssignees,
         reason: multiAssignReason,
-      }).unwrap();
+      };
+
+      await assignToMultiple(multiAssignRequest).unwrap();
 
       setShowMultiAssignment(false);
       setSelectedCoAssignees([]);
@@ -615,10 +668,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       type="number"
                       value={formData.age || ""}
                       onChange={(e) =>
-                        handleInputChange(
-                          "age",
-                          parseInt(e.target.value) || "0"
-                        )
+                        handleInputChange("age", parseInt(e.target.value) || 0)
                       }
                       placeholder="Age"
                       min="16"
@@ -667,6 +717,29 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="current-location">
+                      Current Location <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="current-location"
+                      value={formData.current_location}
+                      onChange={(e) =>
+                        handleInputChange("current_location", e.target.value)
+                      }
+                      placeholder="Current location"
+                      className={
+                        errors.current_location ? "border-red-500" : ""
+                      }
+                      disabled={isUpdating}
+                    />
+                    {errors.current_location && (
+                      <p className="text-sm text-red-500">
+                        {errors.current_location}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
                     <CourseLevelDropdown
                       value={formData.course_level}
                       onValueChange={(value) =>
@@ -680,28 +753,28 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       required={false}
                     />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="source">Source</Label>
-                    <Select
-                      value={formData.source}
-                      onValueChange={(value) =>
-                        handleInputChange("source", value)
-                      }
-                      disabled={isUpdating}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select source" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SOURCE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="source">Source</Label>
+                  <Select
+                    value={formData.source}
+                    onValueChange={(value) =>
+                      handleInputChange("source", value)
+                    }
+                    disabled={isUpdating}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOURCE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1135,4 +1208,4 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
   );
 };
 
-export default EditLeadModal; // src/components/leads/EditLeadModal.tsx - TABBED INTERFACE
+export default EditLeadModal;

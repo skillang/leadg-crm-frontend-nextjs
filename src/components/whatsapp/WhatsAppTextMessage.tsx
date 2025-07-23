@@ -12,6 +12,17 @@ import { setSending, closeModal } from "@/redux/slices/whatsappSlice";
 import { useSendTextMessageMutation } from "@/redux/slices/whatsappApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 
+interface ApiErrorData {
+  detail?: string;
+  message?: string;
+}
+
+interface ApiError {
+  data?: ApiErrorData;
+  message?: string;
+  status?: number;
+}
+
 const WhatsAppTextMessage: React.FC = () => {
   const dispatch = useDispatch();
   const { showSuccess, showError } = useNotifications();
@@ -37,14 +48,17 @@ const WhatsAppTextMessage: React.FC = () => {
       showSuccess("WhatsApp message sent successfully!");
 
       dispatch(closeModal());
-    } catch (error: any) {
-      showError(
-        error?.data?.detail ||
-          "Failed to send WhatsApp message. Please try again."
-      );
+    } catch (error: unknown) {
+      // Type-safe error handling
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
+        "Failed to send WhatsApp message. Please try again.";
+
+      showError(errorMessage);
       console.error("Failed to send text message:", error);
-    } finally {
-      dispatch(setSending(false));
     }
   };
 

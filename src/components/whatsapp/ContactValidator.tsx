@@ -12,6 +12,18 @@ import {
 } from "@/redux/slices/whatsappSlice";
 import { useValidateContactMutation } from "@/redux/slices/whatsappApi";
 
+interface ApiErrorDetail {
+  msg: string;
+}
+
+interface ValidationApiError {
+  data?: {
+    detail?: string | ApiErrorDetail[];
+  };
+  message?: string;
+  status?: number;
+}
+
 const ContactValidator: React.FC = () => {
   const dispatch = useDispatch();
   const { currentLead, contactValidation } = useSelector(
@@ -38,18 +50,19 @@ const ContactValidator: React.FC = () => {
         } else {
           dispatch(setContactValid(false));
         }
-      } catch (error: any) {
-        // Handle different types of errors
+      } catch (error) {
+        const err = error as ValidationApiError;
+
         let errorMessage = "Failed to validate contact";
 
-        if (error?.data?.detail) {
-          if (typeof error.data.detail === "string") {
-            errorMessage = error.data.detail;
-          } else if (Array.isArray(error.data.detail)) {
-            errorMessage = error.data.detail[0]?.msg || errorMessage;
+        if (err?.data?.detail) {
+          if (typeof err.data.detail === "string") {
+            errorMessage = err.data.detail;
+          } else if (Array.isArray(err.data.detail)) {
+            errorMessage = err.data.detail[0]?.msg || errorMessage;
           }
-        } else if (error?.message) {
-          errorMessage = error.message;
+        } else if (err?.message) {
+          errorMessage = err.message;
         }
 
         dispatch(setContactValidationError(errorMessage));

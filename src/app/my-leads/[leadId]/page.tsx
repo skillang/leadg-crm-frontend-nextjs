@@ -35,6 +35,7 @@ import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer";
 import ContactsContainer from "@/components/contacts/ContactsContainer";
+import { formatDate } from "@/utils/formatDate";
 
 // Simple Card components
 const Card = ({
@@ -106,14 +107,6 @@ const tabs = [
 ];
 
 // Format date
-const formatDate = (dateString: string) => {
-  if (!dateString) return "Not available";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
 
 export default function LeadDetailsPage() {
   const [activeTab, setActiveTab] = useState("tasks");
@@ -588,6 +581,17 @@ export default function LeadDetailsPage() {
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
                           {leadDetails.nationality || "Not Specified"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="border-b">
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Current Location:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.current_location || "Not Specified"}
                         </span>
                       </TableCell>
                     </TableRow>

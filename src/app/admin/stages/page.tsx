@@ -53,6 +53,17 @@ import {
 } from "lucide-react";
 import { Stage, CreateStageRequest, STAGE_COLORS } from "@/models/types/stage";
 
+// Define API error interface for better type safety
+interface ApiError {
+  data?: {
+    message?: string;
+    detail?: string;
+  };
+  message?: string;
+  status?: number;
+  originalStatus?: number;
+}
+
 const StageManagementPage = () => {
   // State for forms and dialogs
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -135,10 +146,13 @@ const StageManagementPage = () => {
         is_default: false,
       });
       refetchActive();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Create stage error:", error);
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.message || error?.message || "Unknown error occurred";
+        apiError?.data?.message ||
+        apiError?.message ||
+        "Unknown error occurred";
       showError(`Failed to create stage: ${errorMessage}`, "Creation Failed");
     }
   };
@@ -162,10 +176,13 @@ const StageManagementPage = () => {
       showSuccess("Stage updated successfully!", "Update Complete");
       setIsEditDialogOpen(false);
       setEditingStage(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Update stage error:", error);
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.message || error?.message || "Unknown error occurred";
+        apiError?.data?.message ||
+        apiError?.message ||
+        "Unknown error occurred";
       showError(`Failed to update stage: ${errorMessage}`, "Update Failed");
     }
   };
@@ -192,10 +209,7 @@ const StageManagementPage = () => {
           );
         } catch (error: unknown) {
           console.error("Delete stage error:", error);
-          const apiError = error as {
-            data?: { message?: string };
-            message?: string;
-          };
+          const apiError = error as ApiError;
           const errorMessage =
             apiError?.data?.message ||
             apiError?.message ||
@@ -233,20 +247,21 @@ const StageManagementPage = () => {
         console.log("Activate result:", result);
         showSuccess("Stage activated successfully!");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Toggle stage status error:", error);
+      const apiError = error as ApiError;
       console.error("Error details:", {
-        message: error?.message,
-        data: error?.data,
-        status: error?.status,
-        originalStatus: error?.originalStatus,
+        message: apiError?.message,
+        data: apiError?.data,
+        status: apiError?.status,
+        originalStatus: apiError?.originalStatus,
       });
 
       const errorMessage =
-        error?.data?.detail ||
-        error?.data?.message ||
-        error?.message ||
-        `HTTP ${error?.status || "Unknown"} error`;
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
+        `HTTP ${apiError?.status || "Unknown"} error`;
 
       showError(
         `Failed to ${
@@ -305,10 +320,7 @@ const StageManagementPage = () => {
       showSuccess("Stages reordered successfully!");
     } catch (error: unknown) {
       console.error("Reorder error:", error);
-      const apiError = error as {
-        data?: { message?: string };
-        message?: string;
-      };
+      const apiError = error as ApiError;
       const errorMessage =
         apiError?.data?.message ||
         apiError?.message ||

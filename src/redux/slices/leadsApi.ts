@@ -33,6 +33,7 @@ interface ApiLead {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
 
   course_level?: string;
   country_of_interest?: string;
@@ -69,6 +70,7 @@ interface RawLeadDetails {
     age?: number;
     experience?: string;
     nationality?: string;
+    current_location?: string;
   };
   status_and_tags: {
     stage: string;
@@ -117,6 +119,7 @@ interface LeadDetailsResponse {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
 
   notes: string;
   createdAt: string;
@@ -137,6 +140,7 @@ export interface FlatBulkLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
   country_of_interest?: string;
   course_level?: string;
   stage: string;
@@ -191,6 +195,7 @@ export interface CreateLeadApiRequest {
     age?: number;
     experience?: string;
     nationality?: string;
+    current_location?: string;
     country_of_interest?: string; // Add if missing
     course_level?: string; // Add if missing
   };
@@ -231,6 +236,7 @@ interface UpdateLeadRequest {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
   country_of_interest?: string;
   course_level?: string;
 
@@ -288,6 +294,7 @@ export interface BulkLeadData {
     age?: number;
     experience?: string;
     nationality?: string;
+    current_location?: string;
   };
   status_and_tags: {
     stage: string;
@@ -337,6 +344,7 @@ const transformApiLead = (apiLead: ApiLead): Lead => ({
   age: apiLead.age,
   experience: apiLead.experience,
   nationality: apiLead.nationality,
+  current_location: apiLead.current_location || "",
 
   courseLevel: apiLead.course_level || "",
   countryOfInterest: apiLead.country_of_interest || "",
@@ -379,6 +387,7 @@ const transformLeadDetailsResponse = (
   age: data.basic_info.age,
   experience: data.basic_info.experience,
   nationality: data.basic_info.nationality,
+  current_location: data.basic_info.current_location,
 
   notes: data.additional_info.notes,
   createdAt: data.system_info.created_at,
@@ -665,7 +674,7 @@ export const leadsApi = createApi({
         selected_user_emails,
       }) => {
         const searchParams = new URLSearchParams();
-        if (force_create) searchParams.append("force_create", "true");
+        if (force_create) searchParams.append("force_create", "false");
         if (assignment_method)
           searchParams.append("assignment_method", assignment_method);
         if (selected_user_emails)

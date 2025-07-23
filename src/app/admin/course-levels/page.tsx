@@ -58,11 +58,8 @@ import {
   Edit,
   Trash2,
   Search,
-  Filter,
   CheckCircle,
   XCircle,
-  RotateCcw,
-  Settings,
   GraduationCap,
   Users,
   MoreVertical,
@@ -71,7 +68,6 @@ import {
   Hash,
   Eye,
   EyeOff,
-  ArrowUpDown,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -80,6 +76,16 @@ import {
   CreateCourseLevelRequest,
   UpdateCourseLevelRequest,
 } from "@/models/types/courseLevel";
+
+// Define API error interface for better type safety
+interface ApiError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
 
 const CourseLevelManagementPage = () => {
   // State for forms and dialogs
@@ -207,10 +213,11 @@ const CourseLevelManagementPage = () => {
 
       // Refetch active data since new course levels are created as active by default
       refetchActive();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.detail ||
-        error?.data?.message ||
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
         "Failed to create course level";
       showError(errorMessage);
     }
@@ -239,10 +246,11 @@ const CourseLevelManagementPage = () => {
       // Refetch both tabs since status might have changed
       refetchActive();
       refetchInactive();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.detail ||
-        error?.data?.message ||
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
         "Failed to update course level";
       showError(errorMessage);
     }
@@ -270,20 +278,21 @@ const CourseLevelManagementPage = () => {
       } else {
         refetchInactive();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Close dialog first
       setDeleteConfirmOpen(false);
       setDeletingCourseLevel(null);
 
       // Extract meaningful error message
       let errorMessage = "Failed to delete course level";
+      const apiError = error as ApiError;
 
-      if (error?.data?.detail) {
-        errorMessage = error.data.detail;
-      } else if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
+      if (apiError?.data?.detail) {
+        errorMessage = apiError.data.detail;
+      } else if (apiError?.data?.message) {
+        errorMessage = apiError.data.message;
+      } else if (apiError?.message) {
+        errorMessage = apiError.message;
       } else if (typeof error === "string") {
         errorMessage = error;
       }
@@ -313,10 +322,11 @@ const CourseLevelManagementPage = () => {
       // Refetch both tabs since activation/deactivation moves items between tabs
       refetchActive();
       refetchInactive();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
       const errorMessage =
-        error?.data?.detail ||
-        error?.data?.message ||
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
         `Failed to ${action} course level`;
       showError(errorMessage);
     }
@@ -353,15 +363,6 @@ const CourseLevelManagementPage = () => {
       month: "short",
       day: "numeric",
     });
-  };
-
-  const toggleSort = (field: "name" | "created_at" | "sort_order") => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
   };
 
   return (
@@ -886,8 +887,9 @@ const CourseLevelManagementPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Course Level</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete the course level "
-              {deletingCourseLevel?.display_name}"?
+              Are you sure you want to permanently delete the course level
+              &quot;
+              {deletingCourseLevel?.display_name}&quot;?
               <br />
               <br />
               <strong>This action cannot be undone.</strong>

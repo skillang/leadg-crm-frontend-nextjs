@@ -199,7 +199,7 @@ export const stagesApi = createApi({
       }),
       async onQueryStarted(stageId, { queryFulfilled }) {
         try {
-          const result = await queryFulfilled;
+          await queryFulfilled;
           // console.log("Activate stage API result:", result);
         } catch (error) {
           console.error("Activate stage API error:", error);
@@ -219,9 +219,9 @@ export const stagesApi = createApi({
         url: `/stages/${stageId}/deactivate`,
         method: "PATCH",
       }),
-      async onQueryStarted(stageId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(stageId, { queryFulfilled }) {
         try {
-          const result = await queryFulfilled;
+          await queryFulfilled;
           // console.log("Deactivate stage API result:", result);
         } catch (error) {
           console.error("Deactivate stage API error:", error);

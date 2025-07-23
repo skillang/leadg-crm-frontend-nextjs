@@ -23,6 +23,7 @@ export interface Lead {
   age?: number;
   experience?: string; // fresher, 1-2_years, 3-5_years, 5-10_years, 10+_years
   nationality?: string;
+  current_location?: string;
 
   // Existing fields
   courseLevel: string;
@@ -63,6 +64,7 @@ export interface CreateLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
 }
 
 // Multi-assignment specific interfaces
@@ -163,6 +165,7 @@ export interface UpdateLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
   assigned_to?: string;
   assigned_to_name?: string;
   assignment_method?: string;

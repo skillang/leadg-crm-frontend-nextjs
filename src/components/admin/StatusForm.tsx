@@ -43,6 +43,16 @@ import {
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { Loader2 } from "lucide-react";
 
+// Define API error interface for better type safety
+interface ApiError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
+}
+
 // Form validation schema
 const statusSchema = z.object({
   name: z
@@ -200,9 +210,10 @@ const StatusForm: React.FC<StatusFormProps> = ({
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Form submission error:", error);
-      showError(error?.data?.detail || "Failed to save status");
+      const apiError = error as ApiError;
+      showError(apiError?.data?.detail || "Failed to save status");
     }
   };
 

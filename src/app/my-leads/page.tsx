@@ -2,17 +2,15 @@
 
 "use client";
 import { useMemo, useState } from "react"; // 🔥 ADD useState
-import { columns } from "./columns";
+import { createColumns } from "./columns"; // 🔥 CHANGED: Import createColumns instead of columns
 import { DataTable } from "./data-table";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppSelector } from "@/redux/hooks";
 import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
-import {
-  leadsApi,
-  useGetLeadsQuery,
-  useGetMyLeadsQuery,
-} from "@/redux/slices/leadsApi";
+import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
+import { useRouter } from "next/navigation"; // 🔥 ADDED: Import useRouter
+import { Lead } from "@/models/types/lead";
 
 // Type for RTK Query error (KEEP EXISTING)
 interface RTKQueryError {
@@ -25,13 +23,15 @@ interface RTKQueryError {
 }
 
 export default function DemoPage() {
+  const router = useRouter(); // 🔥 ADDED: Add router at component level
+
   // 🔥 ADD PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-
-  // Get user role from Redux (KEEP EXISTING)
-  const dispatch = useAppDispatch(); // Make sure you import useAppDispatch
   const isAdmin = useAppSelector(selectIsAdmin);
+
+  // 🔥 ADDED: Create columns with router
+  const columns = useMemo(() => createColumns(router), [router]);
 
   console.log("🔍 Current pagination state:", { currentPage, pageSize });
 
@@ -76,31 +76,37 @@ export default function DemoPage() {
 
   console.log("🔍 Raw API Response:", leadsResponse);
 
-  // Extract leads and pagination info
-  let leads: any[] = [];
-  let paginationMeta = undefined;
+  const { leads, paginationMeta } = useMemo(() => {
+    let extractedLeads: Lead[] = [];
+    let extractedPaginationMeta = undefined;
 
-  if (leadsResponse) {
-    if (Array.isArray(leadsResponse)) {
-      // Old format: just array of leads
-      leads = leadsResponse;
-      console.log("🔍 Using old array format, leads count:", leads.length);
-    } else if (leadsResponse.leads) {
-      // New format: paginated response
-      leads = leadsResponse.leads;
-      paginationMeta = {
-        total: leadsResponse.total || 0,
-        page: leadsResponse.page || currentPage,
-        limit: leadsResponse.limit || pageSize,
-        has_next: leadsResponse.has_next || false,
-        has_prev: leadsResponse.has_prev || false,
-      };
-      console.log("🔍 Using paginated format:", {
-        leadsCount: leads.length,
-        paginationMeta,
-      });
+    if (leadsResponse) {
+      if (Array.isArray(leadsResponse)) {
+        // Old format: just array of leads
+        extractedLeads = leadsResponse;
+        console.log(
+          "🔍 Using old array format, leads count:",
+          extractedLeads.length
+        );
+      } else if (leadsResponse.leads) {
+        // New format: paginated response
+        extractedLeads = leadsResponse.leads;
+        extractedPaginationMeta = {
+          total: leadsResponse.total || 0,
+          page: leadsResponse.page || currentPage,
+          limit: leadsResponse.limit || pageSize,
+          has_next: leadsResponse.has_next || false,
+          has_prev: leadsResponse.has_prev || false,
+        };
+        console.log("🔍 Using paginated format:", {
+          leadsCount: extractedLeads.length,
+          paginationMeta: extractedPaginationMeta,
+        });
+      }
     }
-  }
+
+    return { leads: extractedLeads, paginationMeta: extractedPaginationMeta };
+  }, [leadsResponse, currentPage, pageSize]);
 
   // 🔥 ADD: Debug leads BEFORE applying filters
   console.log("🔍 Leads BEFORE applying filters:", leads.length, leads);
@@ -111,31 +117,31 @@ export default function DemoPage() {
     [leads]
   );
 
-  console.log("🔍 Selector created with leads:", leads.length);
+  // console.log("🔍 Selector created with leads:", leads.length);
 
   const filteredLeads = useAppSelector(filteredLeadsSelector);
 
   // 🔥 ADD: Debug leads AFTER applying filters
-  console.log(
-    "🔍 Leads AFTER applying filters:",
-    filteredLeads.length,
-    filteredLeads
-  );
+  // console.log(
+  //   "🔍 Leads AFTER applying filters:",
+  //   filteredLeads.length,
+  //   filteredLeads
+  // );
 
   // 🔥 ADD: Check if there are any other selectors or filters being applied
-  console.log("🔍 Final data being passed to table:", {
-    originalLeads: leads.length,
-    filteredLeads: filteredLeads.length,
-    paginationMeta,
-    // 🔥 ADD: Show actual data being passed
-    firstFewLeads: filteredLeads
-      .slice(0, 3)
-      .map((lead) => ({ id: lead.id, name: lead.name })),
-  });
+  // console.log("🔍 Final data being passed to table:", {
+  //   originalLeads: leads.length,
+  //   filteredLeads: filteredLeads.length,
+  //   paginationMeta,
+  //   // 🔥 ADD: Show actual data being passed
+  //   firstFewLeads: filteredLeads
+  //     .slice(0, 3)
+  //     .map((lead) => ({ id: lead.id, name: lead.name })),
+  // });
 
   // 🔥 SIMPLIFIED PAGINATION HANDLERS
   const handlePageChange = (newPage: number) => {
-    console.log("📄 Page change:", currentPage, "→", newPage);
+    // console.log("📄 Page change:", currentPage, "→", newPage);
     setCurrentPage(newPage);
 
     // 🔥 FORCE REFETCH AFTER STATE UPDATE
@@ -146,7 +152,7 @@ export default function DemoPage() {
   };
 
   const handlePageSizeChange = (newSize: number) => {
-    console.log("📊 Page size change:", pageSize, "→", newSize);
+    // console.log("📊 Page size change:", pageSize, "→", newSize);
     setPageSize(newSize);
     setCurrentPage(1);
 

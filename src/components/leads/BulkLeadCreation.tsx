@@ -1,11 +1,7 @@
-// src/components/leads/BulkUploadModal.tsx
-import React, { useState, useCallback, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React, { useCallback, useRef, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Copy, Edit2, Check, X } from "lucide-react";
+import { useGetLeadsQuery } from "@/redux/slices/leadsApi";
 import {
   Select,
   SelectContent,
@@ -13,12 +9,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -30,13 +33,14 @@ import {
 import {
   Upload,
   FileText,
-  Download,
   Users,
   AlertCircle,
   CheckCircle,
   XCircle,
   User,
   Loader2,
+  Info,
+  FileType,
 } from "lucide-react";
 import {
   useBulkCreateLeadsFlatMutation,
@@ -44,7 +48,7 @@ import {
 } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { useGetStagesQuery } from "@/redux/slices/stagesApi";
-import { useGetStatusesQuery } from "@/redux/slices/statusesApi"; // Add this import
+import { useGetStatusesQuery } from "@/redux/slices/statusesApi";
 import MultiSelect, {
   transformUsersToOptions,
 } from "@/components/common/MultiSelect";
@@ -62,6 +66,7 @@ interface FlatBulkLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
+  currentLocation?: string;
   country_of_interest?: string;
   course_level?: string;
   stage: string;
@@ -85,13 +90,14 @@ interface ParsedLead {
   source: string;
   category: string;
   stage: string;
-  status: string; // Add status field
+  status: string;
   lead_score: number;
   tags: string[];
   notes: string;
   age?: number;
   experience?: string;
   nationality?: string;
+  current_location?: string;
   country_of_interest?: string;
   course_level?: string;
   errors: string[];
@@ -108,6 +114,7 @@ const HEADER_MAPPING: Record<string, string> = {
   "student name": "name",
   "CANDIDATE NAME": "name",
   Name: "name",
+
   // Email mappings
   email: "email",
   "email address": "email",
@@ -116,6 +123,7 @@ const HEADER_MAPPING: Record<string, string> = {
   "email id": "email",
   "Mail ID": "email",
   "Mail id": "email",
+
   // Phone mappings
   contact_number: "contact_number",
   "contact number": "contact_number",
@@ -127,6 +135,7 @@ const HEADER_MAPPING: Record<string, string> = {
   tel: "contact_number",
   "PHONE NUMBER": "contact_number",
   "Phone Number": "contact_number",
+
   // Country mappings
   country_of_interest: "country_of_interest",
   "country of interest": "country_of_interest",
@@ -135,18 +144,23 @@ const HEADER_MAPPING: Record<string, string> = {
   "target country": "country_of_interest",
   country: "country_of_interest",
   "Interested Country": "country_of_interest",
+
   // Course level mappings
   course_level: "course_level",
   "course level": "course_level",
   "education level": "course_level",
   "degree level": "course_level",
   "study level": "course_level",
+  qualification: "course_level", // Added for your CSV
+  QUALIFICATION: "course_level", // Added for your CSV
+
   // Status mappings
   status: "status",
   "lead status": "status",
   "current status": "status",
   Status: "status",
   STATUS: "status",
+
   // Stage mappings
   stage: "stage",
   "lead stage": "stage",
@@ -158,31 +172,168 @@ const HEADER_MAPPING: Record<string, string> = {
   "pipeline stage": "stage",
   Stage: "stage",
   STAGE: "stage",
+
   // Experience mappings
   experience: "experience",
   "years of experience": "experience",
   "total experience": "experience",
+  EXPERIENCE: "experience", // Added for your CSV
+  "SPECIALITY EXPERIENCE": "specialty_experience", // Added for your CSV
+  "specialty experience": "specialty_experience",
+
   // Age mappings
   age: "age",
   Age: "age",
-  "date of birth": "age",
-  "Date of Birth": "age",
-  // Nationality mappings
+  AGE: "age", // Added for your CSV
+  "date of birth": "date_of_birth",
+  "Date of Birth": "date_of_birth",
+
+  "DATE OF BIRTH": "date_of_birth", // Added for your CSV
+  dob: "date_of_birth",
+
+  // ✅ FIXED: Nationality mappings (Added missing variations)
   nationality: "nationality",
   Nationality: "nationality",
+  NATIONALITY: "nationality", // ← This was missing!
+  "nationality country": "nationality",
+  "country of nationality": "nationality",
+
+  // ✅ FIXED: Current location mappings (Added missing variations)
+  current_location: "current_location",
+  "current location": "current_location",
+  "CURRENT LOCATION": "current_location", // ← This was missing!
+  "current address": "current_location",
+  "current city": "current_location",
+  location: "current_location",
+  address: "current_location",
+  city: "current_location",
+
   // Notes mappings
   notes: "notes",
   note: "notes",
   comment: "notes",
   comments: "notes",
-  remarks: "remarks",
-  description: "description",
-  // Additional details
+  remarks: "notes",
+  description: "notes",
   "areas of interest": "notes",
+  "Areas of interest and other details": "notes", // Added for your CSV
   "other details": "notes",
+
+  // Status indicators (added for your CSV)
+  contacted: "contact_status",
+  communicated: "contact_status",
+  "CONTACTED/ COMMUNICATED": "contact_status",
+  interested: "status_indicator",
+  "not interested": "status_indicator",
+  submitted: "status_indicator",
+  "not qualified": "status_indicator",
+  "INTERESTED/NOT INTERESTED/SUBMITTED/ NOT QUALIFIED": "status_indicator",
+
+  // Date fields (added for your CSV)
+  date: "date",
+  DATE: "date",
+  "lasted update date": "last_update",
+  "Lasted update date": "last_update",
+  "updated by": "updated_by",
+  "Updated by": "updated_by",
+
+  // Serial number (added for your CSV)
+  "si.no": "serial_number",
+  "SI.NO": "serial_number",
+  "serial number": "serial_number",
+  "sr no": "serial_number",
 };
 
 const REQUIRED_COLUMNS = ["name", "email", "contact_number"];
+
+// Editable Field Component for inline editing
+interface EditableFieldProps {
+  value: string;
+  placeholder?: string;
+  hasError: boolean;
+  onSave: (value: string) => void;
+  type?: "text" | "email" | "tel" | "number";
+}
+
+const EditableField: React.FC<EditableFieldProps> = ({
+  value,
+  placeholder = "",
+  hasError,
+  onSave,
+  type = "text",
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+
+  const handleSave = () => {
+    onSave(editValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(value);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      handleCancel();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          type={type}
+          className="h-7 text-xs"
+          autoFocus
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSave}
+          className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+        >
+          <Check className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCancel}
+          className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`group flex items-center gap-1 cursor-pointer p-1 rounded ${
+        hasError ? "bg-red-50 border border-red-200" : "hover:bg-gray-50"
+      }`}
+      onClick={() => setIsEditing(true)}
+      title="Click to edit"
+    >
+      <span className={`text-sm truncate ${hasError ? "text-red-700" : ""}`}>
+        {value || (
+          <span className="text-red-500 italic">
+            {hasError ? `Missing ${placeholder.toLowerCase()}` : placeholder}
+          </span>
+        )}
+      </span>
+      <Edit2 className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+};
 
 const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   isOpen,
@@ -193,9 +344,11 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
   const [validLeads, setValidLeads] = useState<ParsedLead[]>([]);
   const [invalidLeads, setInvalidLeads] = useState<ParsedLead[]>([]);
+  const [duplicateLeads, setDuplicateLeads] = useState<ParsedLead[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResults, setUploadResults] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("valid");
 
   // Form configuration
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -220,16 +373,17 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     error: categoriesError,
   } = useGetCategoriesQuery({ include_inactive: false });
 
-  // Add stages query
   const { data: stagesResponse, isLoading: stagesLoading } = useGetStagesQuery({
     active_only: true,
   });
 
-  // Add statuses query
   const { data: statusesResponse, isLoading: statusesLoading } =
     useGetStatusesQuery({
       active_only: true,
     });
+
+  // Get existing leads for duplicate checking
+  const { data: existingLeadsResponse } = useGetLeadsQuery({});
 
   const [bulkCreateLeads, { isLoading: isCreatingLeads }] =
     useBulkCreateLeadsFlatMutation();
@@ -286,7 +440,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const parseCSV = (file: File) => {
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const csvData = e.target?.result as string;
         const lines = csvData.split("\n").filter((line) => line.trim() !== "");
@@ -321,13 +475,24 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         const leads: ParsedLead[] = [];
         const valid: ParsedLead[] = [];
         const invalid: ParsedLead[] = [];
+        const duplicateChecks: Array<{
+          email: string;
+          contact_number: string;
+        }> = [];
+
+        // Generate unique identifiers based on timestamp
+        const baseTimestamp = Date.now();
 
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i]
             .split(",")
             .map((v) => v.trim().replace(/"/g, ""));
           const errors: string[] = [];
-          const notesData: string[] = []; // Collect additional info for notes
+          const notesData: string[] = [];
+
+          // Create unique identifier for this row
+          const rowTimestamp = baseTimestamp + i;
+          const uniqueId = `${rowTimestamp}${i.toString().padStart(3, "0")}`;
 
           // Create lead object with defaults assigned upfront
           const lead: ParsedLead = {
@@ -337,8 +502,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             contact_number: "",
             source: selectedSource,
             category: selectedCategory,
-            stage: defaultStage, // Auto-assign default stage
-            status: defaultStatus, // Auto-assign default status
+            stage: defaultStage,
+            status: defaultStatus,
             lead_score: 0,
             tags: [],
             notes: "",
@@ -353,21 +518,50 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             switch (key) {
               case "name":
                 lead.name = value;
-                if (!value) errors.push("Name is required");
+                if (!value) {
+                  errors.push("Name is required");
+                } else {
+                  lead.name = value.trim();
+                }
                 break;
 
               case "email":
-                lead.email = value;
                 if (!value) {
-                  errors.push("Email is required");
+                  lead.email = `notvalid${uniqueId}@gmail.com`;
+                  notesData.push("Original Email: Missing - Auto-generated");
                 } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                  errors.push("Invalid email format");
+                  lead.email = `notvalid${uniqueId}@gmail.com`;
+                  notesData.push(
+                    `Original Email: ${value} (Invalid format) - Auto-generated`
+                  );
+                } else {
+                  lead.email = value.toLowerCase().trim();
                 }
                 break;
 
               case "contact_number":
-                lead.contact_number = value;
-                if (!value) errors.push("Contact number is required");
+                if (!value) {
+                  const generatedPhone = generateUniquePhoneNumber(
+                    rowTimestamp,
+                    i
+                  );
+                  lead.contact_number = generatedPhone;
+                  notesData.push("Original Phone: Missing - Auto-generated");
+                } else {
+                  const cleanedPhone = value.replace(/[\s\-\(\)\+]/g, "");
+                  if (!/^\d{10,15}$/.test(cleanedPhone)) {
+                    const generatedPhone = generateUniquePhoneNumber(
+                      rowTimestamp,
+                      i
+                    );
+                    lead.contact_number = generatedPhone;
+                    notesData.push(
+                      `Original Phone: ${value} (Invalid format) - Auto-generated`
+                    );
+                  } else {
+                    lead.contact_number = cleanedPhone;
+                  }
+                }
                 break;
 
               case "age":
@@ -381,11 +575,9 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   if (!isNaN(age) && age > 0 && age <= 120) {
                     lead.age = age;
                   } else {
-                    // Add to notes instead of marking as error
                     notesData.push(`Age: ${value}`);
                   }
                 }
-                // Don't add error for missing or invalid age
                 break;
 
               case "date_of_birth":
@@ -395,17 +587,17 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 break;
 
               case "experience":
-                if (value) {
+                if (value && value.trim()) {
                   const normalizedExp = value.toLowerCase().trim();
                   const validExperience = [
                     "fresher",
+                    "less_than_1_year",
                     "1_to_3_years",
                     "3_to_5_years",
                     "5_to_10_years",
-                    "10+_years",
+                    "more_than_10_years",
                   ];
 
-                  // Try to map common experience formats
                   let mappedExp = normalizedExp;
                   if (
                     normalizedExp.includes("fresher") ||
@@ -432,75 +624,127 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     normalizedExp.includes("above") ||
                     normalizedExp.includes("more")
                   ) {
-                    mappedExp = "10+_years";
+                    mappedExp = "more_than_10_years";
                   }
 
                   if (validExperience.includes(mappedExp)) {
                     lead.experience = mappedExp;
                   } else {
-                    // Add to notes instead of marking as error
                     notesData.push(`Experience: ${value}`);
                   }
                 }
                 break;
 
               case "specialty_experience":
-                if (value) {
+                if (value && value.trim()) {
                   notesData.push(`Specialty Experience: ${value}`);
                 }
                 break;
 
+              // ✅ FIXED: Nationality processing
               case "nationality":
-                lead.nationality = value;
-                break;
+                if (value && value.trim()) {
+                  // Clean and validate nationality
+                  const cleanedNationality = value.trim();
+                  // List of valid nationalities - you can expand this
+                  const validNationalities = [
+                    "Indian",
+                    "American",
+                    "British",
+                    "Canadian",
+                    "Australian",
+                    "German",
+                    "French",
+                    "Chinese",
+                    "Japanese",
+                    "Korean",
+                    "Pakistani",
+                    "Bangladeshi",
+                    "Sri Lankan",
+                    "Nepalese",
+                    "African",
+                    "European",
+                    "Other",
+                  ];
 
-              case "country_of_interest":
-                lead.country_of_interest = value;
-                break;
+                  // Try to find a match (case insensitive)
+                  const matchedNationality = validNationalities.find(
+                    (nat) =>
+                      nat.toLowerCase() === cleanedNationality.toLowerCase()
+                  );
 
-              case "course_level":
-                lead.course_level = value;
-                break;
-
-              case "notes":
-                if (value) {
-                  notesData.push(value);
+                  if (matchedNationality) {
+                    lead.nationality = matchedNationality;
+                  } else {
+                    // If not in predefined list, use the cleaned value
+                    lead.nationality = cleanedNationality;
+                  }
                 }
                 break;
 
-              // Additional fields that should go to notes
-              case "status_indicator":
-                if (value) {
-                  notesData.push(`Status: ${value}`);
+              // ✅ FIXED: Current location processing (was missing break statement)
+              case "current_location":
+                if (value && value.trim()) {
+                  lead.current_location = value.trim();
+                }
+                break; // ← This break was missing!
+
+              case "country_of_interest":
+                if (value && value.trim()) {
+                  lead.country_of_interest = value.trim();
+                }
+                break;
+
+              case "course_level":
+                if (value && value.trim()) {
+                  lead.course_level = value.trim();
+                }
+                break;
+
+              case "notes":
+                if (value && value.trim()) {
+                  notesData.push(value.trim());
                 }
                 break;
 
               case "contact_status":
-                if (value) {
+                if (value && value.trim()) {
                   notesData.push(`Contact Status: ${value}`);
                 }
                 break;
 
+              case "status_indicator":
+                if (value && value.trim()) {
+                  notesData.push(`Status: ${value}`);
+                }
+                break;
+
               case "last_update":
-                if (value) {
+                if (value && value.trim()) {
                   notesData.push(`Last Updated: ${value}`);
                 }
                 break;
 
               case "updated_by":
-                if (value) {
+                if (value && value.trim()) {
                   notesData.push(`Updated By: ${value}`);
                 }
                 break;
 
               case "serial_number":
-                if (value) {
+                if (value && value.trim()) {
                   notesData.push(`Serial No: ${value}`);
                 }
                 break;
 
+              case "date":
+                if (value && value.trim()) {
+                  notesData.push(`Date: ${value}`);
+                }
+                break;
+
               case "tags":
-                if (value) {
+                if (value && value.trim()) {
                   lead.tags = value
                     .split(";")
                     .map((tag) => tag.trim())
@@ -509,7 +753,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 break;
 
               case "lead_score":
-                if (value) {
+                if (value && value.trim()) {
                   const score = parseInt(value);
                   if (isNaN(score) || score < 0 || score > 100) {
                     errors.push("Invalid lead score (must be 0-100)");
@@ -520,60 +764,51 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 break;
 
               case "stage":
-                // If stage is provided, validate it against available stages
-                if (value) {
+                if (value && value.trim()) {
                   const stageExists = stages.some(
                     (stage) => stage.name.toLowerCase() === value.toLowerCase()
                   );
                   if (stageExists) {
-                    // Find the exact stage name with correct casing
                     const foundStage = stages.find(
                       (stage) =>
                         stage.name.toLowerCase() === value.toLowerCase()
                     );
                     lead.stage = foundStage?.name || defaultStage;
                   } else {
-                    // Don't mark as invalid, just use default stage
                     console.warn(
                       `Stage "${value}" not found, using default: ${defaultStage}`
                     );
                     lead.stage = defaultStage;
                   }
                 }
-                // If no value provided, defaultStage is already assigned
                 break;
 
               case "status":
-                // If status is provided, validate it against available statuses
-                if (value) {
+                if (value && value.trim()) {
                   const statusExists = statuses.some(
                     (status) =>
                       status.name.toLowerCase() === value.toLowerCase()
                   );
                   if (statusExists) {
-                    // Find the exact status name with correct casing
                     const foundStatus = statuses.find(
                       (status) =>
                         status.name.toLowerCase() === value.toLowerCase()
                     );
                     lead.status = foundStatus?.name || defaultStatus;
                   } else {
-                    // Don't mark as invalid, just use default status
                     console.warn(
                       `Status "${value}" not found, using default: ${defaultStatus}`
                     );
                     lead.status = defaultStatus;
                   }
                 }
-                // If no value provided, defaultStatus is already assigned
                 break;
 
               default:
-                // Collect unmapped fields as additional notes
+                // Handle any unmapped columns by adding to notes
                 if (value && value.trim() && key !== "") {
-                  notesData.push(
-                    `${rawHeaders[headers.indexOf(key)]}: ${value}`
-                  );
+                  const originalHeader = rawHeaders[headers.indexOf(key)];
+                  notesData.push(`${originalHeader}: ${value}`);
                 }
                 break;
             }
@@ -584,11 +819,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             lead.notes = notesData.join(" | ");
           }
 
-          // Set validation status
+          // Set validation status - now only check for name since email/phone are auto-generated
           lead.errors = errors;
-          lead.isValid = errors.length === 0;
+          lead.isValid = errors.length === 0 && lead.name.trim() !== "";
 
-          // Debug logging for invalid leads
           if (!lead.isValid) {
             console.log(`Lead ${i} is invalid:`, {
               name: lead.name,
@@ -600,18 +834,82 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
           leads.push(lead);
 
+          // Add to duplicate check list (only for valid leads)
           if (lead.isValid) {
-            valid.push(lead);
-          } else {
-            invalid.push(lead);
+            duplicateChecks.push({
+              email: lead.email,
+              contact_number: lead.contact_number,
+            });
           }
         }
 
-        // Update state
+        // Check for duplicates against database before showing in modal
+        console.log("🔍 Checking for duplicates against database...");
+        const duplicateResults = checkForDuplicates(duplicateChecks);
+
+        // Filter out duplicates from valid leads
+        const finalValidLeads: ParsedLead[] = [];
+        const finalDuplicateLeads: ParsedLead[] = [];
+        const finalInvalidLeads: ParsedLead[] = [];
+
+        leads.forEach((lead) => {
+          if (!lead.isValid) {
+            finalInvalidLeads.push(lead);
+            return;
+          }
+
+          // Check if this lead is a duplicate
+          const duplicateInfo = duplicateResults.find(
+            (dup) =>
+              dup.email === lead.email ||
+              dup.contact_number === lead.contact_number
+          );
+
+          if (duplicateInfo) {
+            // Mark as duplicate and add note
+            lead.notes = `DUPLICATE: ${duplicateInfo.reason} | ${
+              lead.notes || ""
+            }`.trim();
+            lead.errors = [...lead.errors, duplicateInfo.reason];
+            lead.isValid = false;
+            finalDuplicateLeads.push(lead);
+          } else {
+            finalValidLeads.push(lead);
+          }
+        });
+
+        console.log(
+          `🔍 Duplicate check complete: ${finalDuplicateLeads.length} duplicates found`
+        );
+
+        // Update state with separate duplicate tracking
         setParsedLeads(leads);
-        setValidLeads(valid);
-        setInvalidLeads(invalid);
-        setErrors({}); // Clear any previous errors
+        setValidLeads(finalValidLeads);
+        setInvalidLeads(finalInvalidLeads);
+        setDuplicateLeads(finalDuplicateLeads);
+        setErrors({});
+
+        // Set active tab based on results
+        if (finalValidLeads.length > 0) {
+          setActiveTab("valid");
+        } else if (finalDuplicateLeads.length > 0) {
+          setActiveTab("duplicates");
+        } else {
+          setActiveTab("invalid");
+        }
+
+        // Show summary notification
+        if (finalDuplicateLeads.length > 0) {
+          showError(
+            `${finalDuplicateLeads.length} leads already exist in the database and have been separated into the Duplicates tab.`,
+            "Duplicates Detected"
+          );
+        } else if (finalValidLeads.length > 0) {
+          showSuccess(
+            `${finalValidLeads.length} valid leads ready for upload. No duplicates detected.`,
+            "CSV Parsed Successfully"
+          );
+        }
       } catch (error) {
         console.error("Error parsing CSV:", error);
         setErrors({ file: "Error parsing CSV file. Please check the format." });
@@ -625,13 +923,100 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     reader.readAsText(file);
   };
 
+  // Helper function to check duplicates against existing leads
+  const checkForDuplicates = (
+    leads: Array<{ email: string; contact_number: string }>
+  ) => {
+    // Handle both array and paginated response formats
+    let existingLeads: any[] = [];
+
+    if (existingLeadsResponse) {
+      if (Array.isArray(existingLeadsResponse)) {
+        // Direct array format
+        existingLeads = existingLeadsResponse;
+      } else if (
+        existingLeadsResponse.leads &&
+        Array.isArray(existingLeadsResponse.leads)
+      ) {
+        // Paginated response format
+        existingLeads = existingLeadsResponse.leads;
+      }
+    }
+
+    if (existingLeads.length === 0) {
+      console.log("No existing leads data available for duplicate check");
+      return [];
+    }
+
+    const duplicates: Array<{
+      email: string;
+      contact_number: string;
+      reason: string;
+    }> = [];
+
+    for (const lead of leads) {
+      // Check for email duplicates (case insensitive)
+      const isDuplicateEmail = existingLeads.some((existing: any) => {
+        // Handle multiple possible field names from API response
+        const existingEmail = existing.email || existing.basic_info?.email;
+        return (
+          existingEmail &&
+          existingEmail.toLowerCase() === lead.email.toLowerCase()
+        );
+      });
+
+      // Check for phone number duplicates
+      const isDuplicatePhone = existingLeads.some((existing: any) => {
+        // Handle multiple possible field names from API response
+        const existingPhone =
+          existing.contact ||
+          existing.contact_number ||
+          existing.phoneNumber ||
+          existing.basic_info?.contact_number;
+        return existingPhone && existingPhone === lead.contact_number;
+      });
+
+      if (isDuplicateEmail || isDuplicatePhone) {
+        duplicates.push({
+          email: lead.email,
+          contact_number: lead.contact_number,
+          reason: isDuplicateEmail
+            ? "Email already exists"
+            : "Phone number already exists",
+        });
+      }
+    }
+
+    console.log(
+      `🔍 Duplicate check complete: ${duplicates.length} duplicates found out of ${leads.length} leads`
+    );
+    console.log(`📊 Checked against ${existingLeads.length} existing leads`);
+    return duplicates;
+  };
+
+  // Helper function to generate unique phone numbers based on timestamp
+  const generateUniquePhoneNumber = (
+    timestamp: number,
+    rowIndex: number
+  ): string => {
+    // Convert timestamp to string and extract digits
+    const timestampStr = timestamp.toString();
+    const rowStr = rowIndex.toString().padStart(3, "0");
+
+    // Create a 10-digit number using timestamp and row index
+    // Format: 9XXXXXXXXX (starting with 9 to make it look like a mobile number)
+    const lastDigits = timestampStr.slice(-6); // Get last 6 digits of timestamp
+    const phoneNumber = `9${lastDigits}${rowStr}`.slice(0, 10);
+
+    return phoneNumber;
+  };
+
   const handleUpload = async () => {
     if (validLeads.length === 0) {
       setErrors({ upload: "No valid leads to upload" });
       return;
     }
 
-    // Validate assignment configuration
     if (
       autoAssign &&
       assignmentMethod === "selected_users" &&
@@ -646,9 +1031,9 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadResults(null);
 
     try {
-      // Convert parsed leads to API format - Flat structure as required by backend
       const leadsToCreate: FlatBulkLeadData[] = validLeads.map((lead) => ({
         name: lead.name,
         email: lead.email,
@@ -658,24 +1043,23 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         age: lead.age,
         experience: lead.experience,
         nationality: lead.nationality,
+        current_location: lead.current_location,
         country_of_interest: lead.country_of_interest,
         course_level: lead.course_level,
-        stage: lead.stage, // Will use default stage or parsed stage
-        status: defaultStatus, // Use default status from API
+        stage: lead.stage,
+        status: defaultStatus,
         lead_score: lead.lead_score || 0,
         tags: lead.tags || [],
         notes: lead.notes || "",
       }));
 
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
-      // Use the Redux mutation for flat data
       const result = await bulkCreateLeads({
         leads: leadsToCreate,
-        force_create: false,
+        force_create: false, // Set to false to respect duplicate detection
         assignment_method: autoAssign ? assignmentMethod : undefined,
         selected_user_emails:
           autoAssign && assignmentMethod === "selected_users"
@@ -685,84 +1069,87 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
       clearInterval(progressInterval);
       setUploadProgress(100);
-      setUploadResults(result);
 
-      // Call success callback
+      const processedResult = {
+        ...result,
+        created_count: result?.summary?.successful_creates || 0,
+        duplicates_count: result?.summary?.duplicates_skipped || 0,
+        failed_count: result?.summary?.failed_creates || 0,
+        total_attempted: result?.summary?.total_attempted || validLeads.length,
+      };
+
+      setUploadResults(processedResult);
+
+      // Show simple success notification and close modal immediately
+      const createdCount = processedResult.created_count;
+      showSuccess(
+        `${createdCount} ${
+          createdCount === 1 ? "lead" : "leads"
+        } uploaded successfully`,
+        "Upload Complete"
+      );
+
+      // Call onSuccess callback if provided
       if (onSuccess) {
-        setTimeout(() => {
-          onSuccess({
-            success: true,
-            created_count:
-              result?.summary?.successful_creates || validLeads.length,
-            message: "Leads uploaded successfully",
-          });
-        }, 100);
+        onSuccess({
+          success: true,
+          created_count: processedResult.created_count,
+          duplicates_count: processedResult.duplicates_count,
+          failed_count: processedResult.failed_count,
+          message: result?.message || "Leads processed successfully",
+          results: result?.results || [],
+        });
       }
+
+      // Close modal immediately
+      setTimeout(() => {
+        handleModalClose();
+      }, 500); // Small delay to ensure notification is visible
     } catch (error: any) {
       setUploadProgress(0);
 
+      console.error("Bulk upload error:", error);
+
       let errorMessage = "Failed to upload leads";
-      if (error?.data?.detail) {
-        if (Array.isArray(error.data.detail)) {
-          errorMessage = error.data.detail.map((e: any) => e.msg).join(", ");
-        } else if (typeof error.data.detail === "string") {
-          errorMessage = error.data.detail;
+      let duplicateInfo = "";
+
+      // Enhanced error handling for different error types
+      if (error?.data) {
+        // Handle RTK Query errors
+        if (error.data?.detail) {
+          if (Array.isArray(error.data.detail)) {
+            errorMessage = error.data.detail.map((e: any) => e.msg).join(", ");
+          } else if (typeof error.data.detail === "string") {
+            errorMessage = error.data.detail;
+          }
+        } else if (error.data?.message) {
+          errorMessage = error.data.message;
         }
-      } else if (error?.data?.message) {
-        errorMessage = error.data.message;
+
+        // Check for bulk operation results in error response
+        if (error.data?.summary) {
+          const summary = error.data.summary;
+          duplicateInfo = `Created: ${
+            summary.successful_creates || 0
+          }, Duplicates: ${summary.duplicates_skipped || 0}, Failed: ${
+            summary.failed_creates || 0
+          }`;
+        }
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      setErrors({ upload: errorMessage });
+
+      // Show appropriate error message
+      const fullErrorMessage = duplicateInfo
+        ? `${errorMessage}. ${duplicateInfo}`
+        : errorMessage;
+
+      setErrors({ upload: fullErrorMessage });
+
+      showError(fullErrorMessage, "Upload Error");
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const downloadTemplate = () => {
-    const headers = [
-      "name",
-      "email",
-      "contact_number",
-      "age",
-      "experience",
-      "nationality",
-      "country_of_interest",
-      "course_level",
-      "notes",
-      "tags",
-      "lead_score",
-      "stage",
-      "status",
-    ];
-
-    const sampleData = [
-      "John Doe",
-      "john.doe@example.com",
-      "+1234567890",
-      "25",
-      "3_to_5_years",
-      "US",
-      "Canada",
-      "Bachelor",
-      "Interested in nursing program",
-      "urgent;qualified",
-      "85",
-      defaultStage, // Use the actual default stage
-      defaultStatus, // Use the actual default status
-    ];
-
-    const csvContent = [headers.join(","), sampleData.join(",")].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "lead_upload_template.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
   };
 
   const resetUpload = () => {
@@ -770,6 +1157,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     setParsedLeads([]);
     setValidLeads([]);
     setInvalidLeads([]);
+    setDuplicateLeads([]);
     setUploadProgress(0);
     setUploadResults(null);
     setErrors({});
@@ -777,16 +1165,109 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     setAutoAssign(true);
     setAssignmentMethod("all_users");
     setSelectedCounselors([]);
+    setActiveTab("valid");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
+  // Reset everything when modal closes
+  const handleModalClose = () => {
+    resetUpload(); // Clear all data
+    onClose(); // Call the original close handler
+  };
+
+  // Handle field editing for invalid leads
+  const handleFieldEdit = (
+    leadIndex: number,
+    fieldName: string,
+    newValue: any
+  ) => {
+    const updatedInvalidLeads = [...invalidLeads];
+    const lead = updatedInvalidLeads[leadIndex];
+
+    // Update the field value
+    if (fieldName === "name") {
+      lead.name = newValue.toString().trim();
+    } else if (fieldName === "email") {
+      lead.email = newValue.toString().toLowerCase().trim();
+    } else if (fieldName === "contact_number") {
+      // Clean phone number
+      const cleanedPhone = newValue.toString().replace(/[\s\-\(\)\+]/g, "");
+      lead.contact_number = cleanedPhone;
+    } else if (fieldName === "lead_score") {
+      const score = parseInt(newValue) || 0;
+      lead.lead_score = Math.max(0, Math.min(100, score)); // Clamp between 0-100
+    }
+
+    // Re-validate the lead
+    const errors: string[] = [];
+
+    // Validate name
+    if (!lead.name || lead.name.trim() === "") {
+      errors.push("Name is required");
+    }
+
+    // Validate email
+    if (!lead.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) {
+      errors.push("Valid email is required");
+    }
+
+    // Validate contact number
+    if (!lead.contact_number || !/^\d{10,15}$/.test(lead.contact_number)) {
+      errors.push("Valid phone number (10-15 digits) is required");
+    }
+
+    // Validate lead score
+    if (lead.lead_score < 0 || lead.lead_score > 100) {
+      errors.push("Lead score must be between 0-100");
+    }
+
+    // Update validation status
+    lead.errors = errors;
+    lead.isValid = errors.length === 0;
+
+    // Check if lead is now valid
+    if (lead.isValid) {
+      // Move to valid leads
+      const updatedValidLeads = [...validLeads, lead];
+      const filteredInvalidLeads = updatedInvalidLeads.filter(
+        (_, index) => index !== leadIndex
+      );
+
+      setValidLeads(updatedValidLeads);
+      setInvalidLeads(filteredInvalidLeads);
+
+      // Show success notification
+      showSuccess(
+        `Lead "${lead.name}" has been fixed and moved to Valid leads!`,
+        "Lead Fixed"
+      );
+
+      // Switch to valid tab if this was the last invalid lead
+      if (filteredInvalidLeads.length === 0) {
+        setActiveTab("valid");
+      }
+    } else {
+      // Update invalid leads array
+      setInvalidLeads(updatedInvalidLeads);
+    }
+
+    // Update parsed leads as well
+    const updatedParsedLeads = parsedLeads.map((parsedLead) => {
+      if (parsedLead.index === lead.index) {
+        return lead;
+      }
+      return parsedLead;
+    });
+    setParsedLeads(updatedParsedLeads);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent
-        className="max-w-6xl w-[95wh] max-h-[90vh] overflow-y-auto"
-        style={{ maxHeight: "90vh", minWidth: "80%" }}
+        className="max-w-7xl w-[95vw] max-h-[95vh] overflow-y-auto"
+        style={{ maxHeight: "95vh", minWidth: "85%" }}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -794,13 +1275,12 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             Bulk Lead Upload
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Upload a CSV file to add multiple leads. Category and source will be
-            applied to all leads. Stage and status will be auto-assigned if not
-            provided in CSV.
+            Upload a CSV file to add multiple leads. Configure settings and
+            review uploaded data before processing.
           </p>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6 h-[600px]">
+        <div className="grid grid-cols-3 gap-6 h-[700px]">
           {/* Left Side - Configuration */}
           <div className="space-y-6">
             {/* Lead Configuration */}
@@ -811,7 +1291,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   Applied to all leads in this batch
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4 flex gap-5">
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Lead Category</Label>
                   {categoriesLoading ? (
@@ -872,12 +1352,12 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               </CardContent>
             </Card>
 
-            {/* Stage Information */}
+            {/* Stage & Status Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  Auto-Assignment Configuration
+                  Default Values
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -910,7 +1390,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Auto Assignment Toggle */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Auto-assign leads</Label>
@@ -928,7 +1407,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   </Button>
                 </div>
 
-                {/* Assignment Method */}
                 {autoAssign && (
                   <div className="space-y-3 pl-4 border-l-2 border-gray-200">
                     <div className="space-y-2">
@@ -961,7 +1439,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       </Select>
                     </div>
 
-                    {/* Counselor Selection */}
                     {assignmentMethod === "selected_users" && (
                       <div className="space-y-2">
                         <Label>Select Counselors</Label>
@@ -976,7 +1453,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                           error={errors.counselorSelection}
                         />
 
-                        {/* Assignment Preview */}
                         {selectedCounselors.length > 0 && (
                           <div className="text-xs text-muted-foreground p-2 bg-blue-50 rounded">
                             Leads will be distributed among{" "}
@@ -987,7 +1463,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       </div>
                     )}
 
-                    {/* Assignment Preview for All Users */}
                     {assignmentMethod === "all_users" && (
                       <div className="text-xs text-muted-foreground p-2 bg-blue-50 rounded">
                         Leads will be distributed among all{" "}
@@ -999,29 +1474,12 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 )}
               </CardContent>
             </Card>
-
-            {/* Template Download */}
-            <Card>
-              <CardContent className="p-4">
-                <Button
-                  onClick={downloadTemplate}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download CSV Template
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Download a sample CSV file with the correct format
-                </p>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Right Side - File Upload & Preview */}
+          {/* Middle - File Upload & Preview */}
           <div className="space-y-4">
             {/* File Upload */}
-            <Card className="flex-1">
+            <Card>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="text-center">
@@ -1030,7 +1488,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       Upload CSV File
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Drag and drop your CSV file here, or click to browse
+                      Click to choose your CSV file
                     </p>
 
                     <input
@@ -1074,11 +1532,35 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               </CardContent>
             </Card>
 
-            {/* Preview Section */}
-            <div className="space-y-4 border rounded-lg p-4 h-full flex flex-col">
+            {/* Summary Cards */}
+            {parsedLeads.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-green-50 rounded-lg border">
+                  <div className="text-2xl font-bold text-green-600">
+                    {validLeads.length}
+                  </div>
+                  <div className="text-sm text-green-800">Valid</div>
+                </div>
+                <div className="text-center p-3 bg-yellow-50 rounded-lg border">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {duplicateLeads.length}
+                  </div>
+                  <div className="text-sm text-yellow-800">Duplicates</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded-lg border">
+                  <div className="text-2xl font-bold text-red-600">
+                    {invalidLeads.length}
+                  </div>
+                  <div className="text-sm text-red-800">Invalid</div>
+                </div>
+              </div>
+            )}
+
+            {/* Tabbed Preview Section */}
+            <div className="space-y-4 border rounded-lg p-4 flex-1">
               <div>
                 <h3 className="text-lg font-semibold">
-                  Preview ({parsedLeads.length} leads)
+                  Review Leads ({parsedLeads.length} total)
                 </h3>
                 {parsedLeads.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
@@ -1091,181 +1573,875 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Review your leads before uploading. Stage and status
-                    auto-assigned where needed.
-                  </p>
+                  <>
+                    {/* Tab Navigation */}
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      className="w-full"
+                    >
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger
+                          value="valid"
+                          className="flex items-center gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Valid ({validLeads.length})
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="duplicates"
+                          className="flex items-center gap-2"
+                        >
+                          <Copy className="h-4 w-4" />
+                          Duplicates ({duplicateLeads.length})
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="invalid"
+                          className="flex items-center gap-2"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Invalid ({invalidLeads.length})
+                        </TabsTrigger>
+                      </TabsList>
+
+                      {/* Valid Leads Tab */}
+                      <TabsContent value="valid" className="mt-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-green-600">
+                              Ready for Upload ({validLeads.length} leads)
+                            </h4>
+                            {validLeads.length > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="bg-green-50 text-green-700"
+                              >
+                                All requirements met
+                              </Badge>
+                            )}
+                          </div>
+
+                          {validLeads.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <CheckCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                              <p>No valid leads found</p>
+                              <p className="text-sm">
+                                Check other tabs for issues
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+                              <Table>
+                                <TableHeader className="sticky top-0 bg-background">
+                                  <TableRow>
+                                    <TableHead className="w-8">
+                                      Actions
+                                    </TableHead>
+                                    <TableHead className="w-8">#</TableHead>
+                                    <TableHead className="min-w-32">
+                                      Name
+                                    </TableHead>
+                                    <TableHead className="min-w-40">
+                                      Email
+                                    </TableHead>
+                                    <TableHead className="min-w-32">
+                                      Contact
+                                    </TableHead>
+                                    <TableHead className="min-w-24">
+                                      Stage
+                                    </TableHead>
+                                    <TableHead className="min-w-24">
+                                      Status
+                                    </TableHead>
+                                    <TableHead className="min-w-20">
+                                      Score
+                                    </TableHead>
+                                    <TableHead className="min-w-40">
+                                      Notes
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {validLeads.map((lead, leadIndex) => (
+                                    <TableRow
+                                      key={`valid-${lead.index}-${leadIndex}`}
+                                      className="hover:bg-green-50"
+                                    >
+                                      <TableCell className="p-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            // Remove from valid leads completely (poof!)
+                                            const updatedValid =
+                                              validLeads.filter(
+                                                (_, index) =>
+                                                  index !== leadIndex
+                                              );
+                                            setValidLeads(updatedValid);
+
+                                            // Also remove from parsedLeads
+                                            const updatedParsed =
+                                              parsedLeads.filter(
+                                                (parsedLead) =>
+                                                  parsedLead.index !==
+                                                  lead.index
+                                              );
+                                            setParsedLeads(updatedParsed);
+                                          }}
+                                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                                          title="Remove this lead completely"
+                                        >
+                                          <XCircle className="h-4 w-4" />
+                                        </Button>
+                                      </TableCell>
+                                      <TableCell className="text-xs font-mono">
+                                        {lead.index}
+                                      </TableCell>
+                                      <TableCell className="font-medium text-sm">
+                                        {lead.name}
+                                      </TableCell>
+                                      <TableCell className="text-sm">
+                                        {lead.email}
+                                      </TableCell>
+                                      <TableCell className="text-sm font-mono">
+                                        {lead.contact_number}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-blue-50 text-blue-700"
+                                        >
+                                          {lead.stage}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-green-50 text-green-700"
+                                        >
+                                          {lead.status}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          {lead.lead_score}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-sm max-w-40">
+                                        {lead.notes ? (
+                                          <div
+                                            className="truncate"
+                                            title={lead.notes}
+                                          >
+                                            {lead.notes}
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400">
+                                            None
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Duplicates Tab */}
+                      <TabsContent value="duplicates" className="mt-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-yellow-600">
+                              Duplicate Leads ({duplicateLeads.length} leads)
+                            </h4>
+                            {duplicateLeads.length > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="bg-yellow-50 text-yellow-700"
+                              >
+                                Will be skipped
+                              </Badge>
+                            )}
+                          </div>
+
+                          {duplicateLeads.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Copy className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                              <p>No duplicate leads found</p>
+                              <p className="text-sm">
+                                Great! All leads are unique
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  These leads already exist in the database and
+                                  will be skipped during upload.
+                                </AlertDescription>
+                              </Alert>
+
+                              <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+                                <Table>
+                                  <TableHeader className="sticky top-0 bg-background">
+                                    <TableRow>
+                                      <TableHead className="w-8">#</TableHead>
+                                      <TableHead className="min-w-32">
+                                        Name
+                                      </TableHead>
+                                      <TableHead className="min-w-40">
+                                        Email
+                                      </TableHead>
+                                      <TableHead className="min-w-32">
+                                        Contact
+                                      </TableHead>
+                                      <TableHead className="min-w-32">
+                                        Duplicate Reason
+                                      </TableHead>
+                                      <TableHead className="min-w-40">
+                                        Notes
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {duplicateLeads.map((lead, leadIndex) => (
+                                      <TableRow
+                                        key={`duplicate-${lead.index}-${leadIndex}`}
+                                        className="hover:bg-yellow-50"
+                                      >
+                                        <TableCell className="text-xs font-mono">
+                                          {lead.index}
+                                        </TableCell>
+                                        <TableCell className="font-medium text-sm">
+                                          {lead.name}
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                          {lead.email}
+                                        </TableCell>
+                                        <TableCell className="text-sm font-mono">
+                                          {lead.contact_number}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge
+                                            variant="destructive"
+                                            className="text-xs"
+                                          >
+                                            {lead.errors[
+                                              lead.errors.length - 1
+                                            ] || "Duplicate detected"}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-sm max-w-40">
+                                          {lead.notes ? (
+                                            <div
+                                              className="truncate"
+                                              title={lead.notes}
+                                            >
+                                              {lead.notes}
+                                            </div>
+                                          ) : (
+                                            <span className="text-gray-400">
+                                              None
+                                            </span>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      {/* Invalid Leads Tab */}
+                      <TabsContent value="invalid" className="mt-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-red-600">
+                              Invalid Leads ({invalidLeads.length} leads)
+                            </h4>
+                            {invalidLeads.length > 0 && (
+                              <Badge variant="destructive" className="text-xs">
+                                Click cells to edit
+                              </Badge>
+                            )}
+                          </div>
+
+                          {invalidLeads.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <XCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                              <p>No invalid leads found</p>
+                              <p className="text-sm">
+                                All data meets requirements
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  <div className="font-medium text-orange-800 mb-1">
+                                    Edit Invalid Fields
+                                  </div>
+                                  <div className="text-orange-700 text-sm">
+                                    Click on red fields to edit them. Fixed
+                                    leads will automatically move to the Valid
+                                    tab.
+                                  </div>
+                                </AlertDescription>
+                              </Alert>
+
+                              <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+                                <Table>
+                                  <TableHeader className="sticky top-0 bg-background">
+                                    <TableRow>
+                                      <TableHead className="w-8">
+                                        Actions
+                                      </TableHead>
+                                      <TableHead className="w-8">#</TableHead>
+                                      <TableHead className="min-w-32">
+                                        Name *
+                                      </TableHead>
+                                      <TableHead className="min-w-40">
+                                        Email *
+                                      </TableHead>
+                                      <TableHead className="min-w-32">
+                                        Contact *
+                                      </TableHead>
+                                      <TableHead className="min-w-20">
+                                        Lead Score
+                                      </TableHead>
+                                      <TableHead className="min-w-32">
+                                        Errors
+                                      </TableHead>
+                                      <TableHead className="min-w-40">
+                                        Notes
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {invalidLeads.map((lead, leadIndex) => (
+                                      <TableRow
+                                        key={`invalid-${lead.index}-${leadIndex}`}
+                                        className="hover:bg-red-50"
+                                      >
+                                        <TableCell className="p-2">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              // Remove from invalid leads completely (poof!)
+                                              const updatedInvalid =
+                                                invalidLeads.filter(
+                                                  (_, index) =>
+                                                    index !== leadIndex
+                                                );
+                                              setInvalidLeads(updatedInvalid);
+
+                                              // Also remove from parsedLeads
+                                              const updatedParsed =
+                                                parsedLeads.filter(
+                                                  (parsedLead) =>
+                                                    parsedLead.index !==
+                                                    lead.index
+                                                );
+                                              setParsedLeads(updatedParsed);
+                                            }}
+                                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                                            title="Remove this lead completely"
+                                          >
+                                            <XCircle className="h-4 w-4" />
+                                          </Button>
+                                        </TableCell>
+                                        <TableCell className="text-xs font-mono">
+                                          {lead.index}
+                                        </TableCell>
+
+                                        {/* Editable Name Field */}
+                                        <TableCell className="p-1">
+                                          <EditableField
+                                            value={lead.name}
+                                            placeholder="Enter name"
+                                            hasError={
+                                              !lead.name ||
+                                              lead.name.trim() === ""
+                                            }
+                                            onSave={(newValue) =>
+                                              handleFieldEdit(
+                                                leadIndex,
+                                                "name",
+                                                newValue
+                                              )
+                                            }
+                                            type="text"
+                                          />
+                                        </TableCell>
+
+                                        {/* Editable Email Field */}
+                                        <TableCell className="p-1">
+                                          <EditableField
+                                            value={lead.email}
+                                            placeholder="Enter email"
+                                            hasError={
+                                              !lead.email ||
+                                              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                                                lead.email
+                                              )
+                                            }
+                                            onSave={(newValue) =>
+                                              handleFieldEdit(
+                                                leadIndex,
+                                                "email",
+                                                newValue
+                                              )
+                                            }
+                                            type="email"
+                                          />
+                                        </TableCell>
+
+                                        {/* Editable Contact Field */}
+                                        <TableCell className="p-1">
+                                          <EditableField
+                                            value={lead.contact_number}
+                                            placeholder="Enter phone"
+                                            hasError={
+                                              !lead.contact_number ||
+                                              !/^\d{10,15}$/.test(
+                                                lead.contact_number.replace(
+                                                  /[\s\-\(\)\+]/g,
+                                                  ""
+                                                )
+                                              )
+                                            }
+                                            onSave={(newValue) =>
+                                              handleFieldEdit(
+                                                leadIndex,
+                                                "contact_number",
+                                                newValue
+                                              )
+                                            }
+                                            type="tel"
+                                          />
+                                        </TableCell>
+
+                                        {/* Editable Lead Score Field */}
+                                        <TableCell className="p-1">
+                                          <EditableField
+                                            value={
+                                              lead.lead_score?.toString() || "0"
+                                            }
+                                            placeholder="0-100"
+                                            hasError={lead.errors.some(
+                                              (error) =>
+                                                error.includes("lead score")
+                                            )}
+                                            onSave={(newValue) =>
+                                              handleFieldEdit(
+                                                leadIndex,
+                                                "lead_score",
+                                                parseInt(newValue) || 0
+                                              )
+                                            }
+                                            type="number"
+                                          />
+                                        </TableCell>
+
+                                        <TableCell>
+                                          <div className="space-y-1">
+                                            {lead.errors
+                                              .slice(0, 2)
+                                              .map((error, idx) => (
+                                                <Badge
+                                                  key={idx}
+                                                  variant="destructive"
+                                                  className="text-xs block"
+                                                >
+                                                  {error}
+                                                </Badge>
+                                              ))}
+                                            {lead.errors.length > 2 && (
+                                              <Badge
+                                                variant="outline"
+                                                className="text-xs"
+                                                title={lead.errors
+                                                  .slice(2)
+                                                  .join(", ")}
+                                              >
+                                                +{lead.errors.length - 2} more
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="text-sm max-w-40">
+                                          {lead.notes ? (
+                                            <div
+                                              className="truncate"
+                                              title={lead.notes}
+                                            >
+                                              {lead.notes}
+                                            </div>
+                                          ) : (
+                                            <span className="text-gray-400">
+                                              None
+                                            </span>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+
+                    {/* Upload Progress */}
+                    {isUploading && (
+                      <div className="space-y-2 mt-4">
+                        <div className="flex justify-between text-sm">
+                          <span>Uploading leads...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <Progress value={uploadProgress} />
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    <Button
+                      onClick={handleUpload}
+                      disabled={
+                        validLeads.length === 0 ||
+                        isUploading ||
+                        !selectedCategory ||
+                        stagesLoading ||
+                        statusesLoading
+                      }
+                      className="w-full mt-4"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading {validLeads.length} leads...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload {validLeads.length} Valid Leads
+                        </>
+                      )}
+                    </Button>
+
+                    {errors.upload && (
+                      <Alert variant="destructive" className="mt-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{errors.upload}</AlertDescription>
+                      </Alert>
+                    )}
+                  </>
                 )}
               </div>
-
-              {parsedLeads.length > 0 && (
-                <>
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-green-50 rounded-lg border">
-                      <div className="text-2xl font-bold text-green-600">
-                        {validLeads.length}
-                      </div>
-                      <div className="text-sm text-green-800">Valid</div>
-                    </div>
-                    <div className="text-center p-3 bg-red-50 rounded-lg border">
-                      <div className="text-2xl font-bold text-red-600">
-                        {invalidLeads.length}
-                      </div>
-                      <div className="text-sm text-red-800">Invalid</div>
-                    </div>
-                  </div>
-
-                  {/* Preview Table */}
-                  <div className="flex-1 border rounded-lg overflow-hidden">
-                    <div className="h-full overflow-auto">
-                      <Table>
-                        <TableHeader className="sticky top-0 bg-background">
-                          <TableRow>
-                            <TableHead className="w-8">#</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Stage</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Validity</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {parsedLeads.map((lead) => (
-                            <TableRow
-                              key={lead.index}
-                              className={!lead.isValid ? "bg-red-50" : ""}
-                            >
-                              <TableCell className="text-xs">
-                                {lead.index}
-                              </TableCell>
-                              <TableCell className="font-medium text-sm">
-                                {lead.name}
-                              </TableCell>
-                              <TableCell className="text-sm">
-                                {lead.email}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">
-                                  {lead.stage}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {lead.isValid ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-green-700 border-green-300"
-                                  >
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Valid
-                                  </Badge>
-                                ) : (
-                                  <div className="space-y-1">
-                                    <Badge variant="destructive">
-                                      <XCircle className="h-3 w-3 mr-1" />
-                                      Invalid
-                                    </Badge>
-                                    {lead.errors.length > 0 && (
-                                      <div className="text-xs text-red-600">
-                                        {lead.errors
-                                          .slice(0, 2)
-                                          .map((error, idx) => (
-                                            <div key={idx}>• {error}</div>
-                                          ))}
-                                        {lead.errors.length > 2 && (
-                                          <div>
-                                            • +{lead.errors.length - 2} more
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-
-                  {/* Upload Progress */}
-                  {isUploading && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Uploading leads...</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <Progress value={uploadProgress} />
-                    </div>
-                  )}
-
-                  {/* Upload Button */}
-                  <Button
-                    onClick={handleUpload}
-                    disabled={
-                      validLeads.length === 0 ||
-                      isUploading ||
-                      !selectedCategory ||
-                      stagesLoading ||
-                      statusesLoading
-                    }
-                    className="w-full"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Uploading {validLeads.length} leads...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload {validLeads.length} Valid Leads
-                      </>
-                    )}
-                  </Button>
-
-                  {errors.upload && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{errors.upload}</AlertDescription>
-                    </Alert>
-                  )}
-                </>
-              )}
             </div>
+          </div>
+
+          {/* Right Side - Rules & Guidelines */}
+          <div className="space-y-4">
+            {/* CSV Format Rules */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Info className="h-4 w-4 text-blue-500" />
+                  CSV Upload Rules
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Required Columns */}
+                <div>
+                  <h4 className="font-semibold text-sm text-red-600 mb-2">
+                    🔴 Required Columns (Must Include):
+                  </h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive" className="text-xs">
+                        name
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        Lead's full name
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive" className="text-xs">
+                        email
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        Valid email address
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive" className="text-xs">
+                        contact_number
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        Phone number
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Optional Columns */}
+                <div>
+                  <h4 className="font-semibold text-sm text-green-600 mb-2">
+                    🟢 Optional Columns:
+                  </h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        age
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        nationality
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        current_location
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        experience
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        country_of_interest
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        course_level
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        stage
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        status
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        notes
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        tags
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        lead_score
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Header Mapping Rules */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileType className="h-4 w-4 text-purple-500" />
+                  Header Mapping Guide
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  System automatically maps these column names
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Name Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">📝 Name Field:</h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ name, full name, fullname</div>
+                    <div>✓ lead name, customer name, student name</div>
+                    <div>✓ CANDIDATE NAME, Name</div>
+                  </div>
+                </div>
+
+                {/* Email Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">📧 Email Field:</h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ email, email address, e-mail</div>
+                    <div>✓ mail, email id, Mail ID, Mail id</div>
+                  </div>
+                </div>
+
+                {/* Phone Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">
+                    📞 Contact Field:
+                  </h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ contact_number, contact number</div>
+                    <div>✓ phone, phone number, mobile</div>
+                    <div>✓ mobile number, telephone, tel</div>
+                    <div>✓ PHONE NUMBER, Phone Number</div>
+                  </div>
+                </div>
+
+                {/* Country Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">
+                    🌍 Country Field:
+                  </h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ country_of_interest, country of interest</div>
+                    <div>✓ preferred country, destination country</div>
+                    <div>✓ target country, country, Interested Country</div>
+                  </div>
+                </div>
+
+                {/* Course Level Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">🎓 Course Level:</h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ course_level, course level</div>
+                    <div>✓ education level, degree level, study level</div>
+                  </div>
+                </div>
+
+                {/* Stage & Status Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">
+                    📊 Stage & Status:
+                  </h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ stage, lead stage, current stage</div>
+                    <div>✓ opportunity stage, sales stage, pipeline stage</div>
+                    <div>✓ status, lead status, current status</div>
+                    <div>✓ Status, STATUS</div>
+                  </div>
+                </div>
+
+                {/* Experience Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">💼 Experience:</h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ experience, years of experience</div>
+                    <div>✓ total experience</div>
+                    <div className="text-blue-600 font-medium">
+                      Valid values: fresher, 1_to_3_years, 3_to_5_years,
+                      5_to_10_years, 10+_years
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes Mappings */}
+                <div>
+                  <h5 className="font-medium text-xs mb-1">📝 Notes Field:</h5>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>✓ notes, note, comment, comments</div>
+                    <div>✓ remarks, description, areas of interest</div>
+                    <div>✓ other details</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Important Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                  Auto-Generation Rules
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs">
+                <div className="p-2 bg-green-50 border border-green-200 rounded">
+                  <div className="font-medium text-green-800">
+                    ✅ Smart Email Generation:
+                  </div>
+                  <div className="text-green-700">
+                    Missing or invalid emails will be auto-generated as
+                    "notvalidxx123@gmail.com" to prevent validation errors.
+                    Original values are saved in notes.
+                  </div>
+                </div>
+
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+                  <div className="font-medium text-blue-800">
+                    📱 Smart Phone Generation:
+                  </div>
+                  <div className="text-blue-700">
+                    Missing or invalid phone numbers will be auto-generated as
+                    unique 10-digit numbers starting with "9". Original values
+                    are preserved in notes.
+                  </div>
+                </div>
+
+                <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                  <div className="font-medium text-yellow-800">
+                    ⚠️ Auto-Assignment:
+                  </div>
+                  <div className="text-yellow-700">
+                    If stage/status columns are missing or contain invalid
+                    values, default values will be automatically assigned.
+                  </div>
+                </div>
+
+                <div className="p-2 bg-purple-50 border border-purple-200 rounded">
+                  <div className="font-medium text-purple-800">
+                    💡 Data Processing:
+                  </div>
+                  <div className="text-purple-700">
+                    Unmapped columns will be added to the notes field for
+                    reference. Invalid age/experience values are moved to notes
+                    instead of causing errors.
+                  </div>
+                </div>
+
+                <div className="p-2 bg-indigo-50 border border-indigo-200 rounded">
+                  <div className="font-medium text-indigo-800">
+                    ✅ Tags Format:
+                  </div>
+                  <div className="text-indigo-700">
+                    Separate multiple tags with semicolons (;). Example:
+                    urgent;qualified;follow-up
+                  </div>
+                </div>
+
+                <div className="p-2 bg-pink-50 border border-pink-200 rounded">
+                  <div className="font-medium text-pink-800">
+                    📊 Lead Score:
+                  </div>
+                  <div className="text-pink-700">
+                    Must be a number between 0-100. Invalid scores will cause
+                    validation errors.
+                  </div>
+                </div>
+
+                <div className="p-2 bg-gray-50 border border-gray-200 rounded">
+                  <div className="font-medium text-gray-800">
+                    🔍 Duplicate Detection:
+                  </div>
+                  <div className="text-gray-700">
+                    Backend detects duplicates based on email and phone number.
+                    Auto-generated values ensure unique entries while preserving
+                    original data.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Upload Results - Show on successful upload */}
-        {uploadResults && (
-          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <h3 className="font-semibold text-green-800">
-                Upload Successful!
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Successfully created:</span>{" "}
-                {uploadResults.created_count || validLeads.length} leads
-              </div>
-              <div>
-                <span className="font-medium">Assignment method:</span>{" "}
-                {autoAssign ? assignmentMethod : "Manual assignment"}
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button onClick={resetUpload} variant="outline" size="sm">
-                Upload More
-              </Button>
-              <Button onClick={onClose} size="sm">
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Remove the Upload Results section completely since we're closing immediately */}
       </DialogContent>
     </Dialog>
   );
