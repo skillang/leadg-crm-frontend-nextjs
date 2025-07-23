@@ -77,7 +77,7 @@ export const useAuth = () => {
     dispatch(clearAuthState());
 
     // Redirect to login
-    router.push("/login");
+    // router.push("/login");
   };
 
   // Force logout (skip API call)

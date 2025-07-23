@@ -160,29 +160,31 @@ interface ApiError {
   status?: number;
 }
 
-// Lead update data interface - Fixed typing for API calls
+// 🔥 FIXED: Updated interface to match UpdateLeadRequest from leadsApi.ts
 interface LeadUpdateData {
   lead_id: string;
   name: string;
-  email: string;
-  contact_number: string;
-  country_of_interest: string;
-  source: string;
+  email?: string;
+  contact_number?: string;
+  source?: string;
   category: string;
   stage: string;
   status: string;
-  current_location?: string;
   lead_score: number;
-  tags: string[];
-  notes: string;
+  tags?: string[];
+  notes?: string;
+  country_of_interest?: string;
   course_level?: string;
   age?: number;
   experience?: string;
   nationality?: string;
   date_of_birth?: string;
+  current_location?: string;
   assigned_to?: string;
   assigned_to_name?: string;
   assignment_method?: string;
+  // 🔥 FIXED: Add index signature to allow dynamic assignment
+  [key: string]: unknown;
 }
 
 // Multi-assignment request interface
@@ -407,7 +409,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
     if (!validateForm() || !lead) return;
 
     try {
-      // Fixed: Properly typed update data object
+      // 🔥 FIXED: Create properly typed update data object that matches UpdateLeadRequest
       const updateData: LeadUpdateData = {
         lead_id: lead.leadId || lead.id,
         name: formData.name,
@@ -457,7 +459,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
       console.log("Sending update data:", updateData);
 
-      // Fixed: Properly typed API call
+      // 🔥 FIXED: The updateData now properly matches UpdateLeadRequest interface
       await updateLead(updateData).unwrap();
       onClose();
     } catch (error) {

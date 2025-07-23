@@ -247,18 +247,7 @@ interface UpdateLeadRequest {
   date_of_birth?: string;
 
   // Add index signature to allow dynamic assignment
-  [key: string]: any;
-}
-
-// Multi-assignment specific requests
-interface MultiAssignRequest {
-  reason: string;
-  user_emails: string[];
-}
-
-interface RemoveUserFromAssignmentRequest {
-  reason: string;
-  user_email: string;
+  [key: string]: unknown;
 }
 
 interface BulkAssignSelectiveRequest {
@@ -288,6 +277,71 @@ interface PaginatedResponse<T> {
   limit?: number;
   has_next?: boolean;
   has_prev?: boolean;
+}
+
+// API Response interfaces
+interface CreateLeadResponse {
+  success: boolean;
+  message: string;
+  lead: ApiLead;
+}
+
+interface BulkCreateResponse {
+  success: boolean;
+  message: string;
+  created_count: number;
+  failed_count: number;
+  failed_leads?: unknown[];
+  successful_creates: number;
+  duplicates_skipped: number;
+  failed_creates: number;
+  total_attempted: number;
+}
+
+interface MultiAssignResponse {
+  success: boolean;
+  message: string;
+  assignment_details: {
+    lead_id: string;
+    newly_assigned_users: string[];
+    previously_assigned: string[];
+  };
+}
+
+interface RemoveUserResponse {
+  success: boolean;
+  message: string;
+  remaining_assignees: string[];
+}
+
+interface BulkAssignResponse {
+  success: boolean;
+  message: string;
+  assignments_created: number;
+  failed_assignments: number;
+}
+
+interface RoundRobinTestResponse {
+  success: boolean;
+  message: string;
+  next_user: string;
+  user_load_distribution: Record<string, number>;
+}
+
+interface RoundRobinPreviewResponse {
+  success: boolean;
+  available_users: UserWithDetails[];
+  next_user_in_rotation: string;
+  user_load_distribution: Record<string, number>;
+}
+
+interface AssignmentDetailsResponse {
+  success: boolean;
+  assignment_details: {
+    current_assignees: string[];
+    assignment_history: AssignmentHistory[];
+    is_multi_assigned: boolean;
+  };
 }
 
 export interface BulkLeadData {
@@ -449,12 +503,34 @@ export const leadsApi = createApi({
         console.log("🔍 Cache key:", cacheKey);
         return cacheKey;
       },
-      transformResponse: (response: any) => {
+      transformResponse: (response: unknown) => {
         console.log("🔍 Raw API Response in transformResponse:", response);
 
-        if (response?.leads && Array.isArray(response.leads)) {
+        // Type guard to check if response has the expected structure
+        const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
+          return (
+            typeof obj === "object" &&
+            obj !== null &&
+            "leads" in obj &&
+            Array.isArray((obj as { leads: unknown }).leads)
+          );
+        };
+
+        const isPaginatedResponse = (
+          obj: unknown
+        ): obj is PaginatedResponse<ApiLead> => {
+          return (
+            typeof obj === "object" &&
+            obj !== null &&
+            "leads" in obj &&
+            Array.isArray((obj as { leads: unknown }).leads) &&
+            "total" in obj
+          );
+        };
+
+        if (isPaginatedResponse(response)) {
           const result = {
-            leads: response.leads.map(transformApiLead),
+            leads: response.leads!.map(transformApiLead),
             total: response.total,
             page: response.page,
             limit: response.limit,
@@ -463,7 +539,7 @@ export const leadsApi = createApi({
           };
           console.log("🔍 Transformed paginated response:", result);
           return result;
-        } else if (Array.isArray(response?.leads)) {
+        } else if (isValidResponse(response)) {
           const result = response.leads.map(transformApiLead);
           console.log("🔍 Transformed array response:", result.length, "leads");
           return result;
@@ -518,12 +594,34 @@ export const leadsApi = createApi({
         console.log("🔍 My Leads Cache key:", cacheKey);
         return cacheKey;
       },
-      transformResponse: (response: any) => {
+      transformResponse: (response: unknown) => {
         console.log("🔍 My Leads Raw API Response:", response);
 
-        if (response?.leads && Array.isArray(response.leads)) {
+        // Type guard functions
+        const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
+          return (
+            typeof obj === "object" &&
+            obj !== null &&
+            "leads" in obj &&
+            Array.isArray((obj as { leads: unknown }).leads)
+          );
+        };
+
+        const isPaginatedResponse = (
+          obj: unknown
+        ): obj is PaginatedResponse<ApiLead> => {
+          return (
+            typeof obj === "object" &&
+            obj !== null &&
+            "leads" in obj &&
+            Array.isArray((obj as { leads: unknown }).leads) &&
+            "total" in obj
+          );
+        };
+
+        if (isPaginatedResponse(response)) {
           const result = {
-            leads: response.leads.map(transformApiLead),
+            leads: response.leads!.map(transformApiLead),
             total: response.total,
             page: response.page,
             limit: response.limit,
@@ -532,7 +630,7 @@ export const leadsApi = createApi({
           };
           console.log("🔍 My Leads Transformed paginated response:", result);
           return result;
-        } else if (Array.isArray(response?.leads)) {
+        } else if (isValidResponse(response)) {
           const result = response.leads.map(transformApiLead);
           console.log(
             "🔍 My Leads Transformed array response:",
@@ -641,7 +739,7 @@ export const leadsApi = createApi({
 
     // Create lead with selective round robin support
     createLead: builder.mutation<
-      any,
+      CreateLeadResponse,
       CreateLeadApiRequest & {
         force_create?: boolean;
         selected_user_emails?: string;
@@ -669,7 +767,7 @@ export const leadsApi = createApi({
 
     // Enhanced bulk create with assignment options
     bulkCreateLeadsFlat: builder.mutation<
-      any,
+      BulkCreateResponse,
       {
         leads: FlatBulkLeadData[];
         force_create?: boolean;
@@ -762,7 +860,7 @@ export const leadsApi = createApi({
 
     // Multi-assignment endpoints
     assignLeadToMultipleUsers: builder.mutation<
-      any,
+      MultiAssignResponse,
       {
         leadId: string;
         userEmails: string[];
@@ -787,7 +885,7 @@ export const leadsApi = createApi({
     }),
 
     removeUserFromAssignment: builder.mutation<
-      any,
+      RemoveUserResponse,
       {
         leadId: string;
         userEmail: string;
@@ -811,7 +909,10 @@ export const leadsApi = createApi({
       ],
     }),
 
-    bulkAssignSelective: builder.mutation<any, BulkAssignSelectiveRequest>({
+    bulkAssignSelective: builder.mutation<
+      BulkAssignResponse,
+      BulkAssignSelectiveRequest
+    >({
       query: (body) => ({
         url: "/leads/assignment/bulk-assign-selective",
         method: "POST",
@@ -825,7 +926,7 @@ export const leadsApi = createApi({
     }),
 
     testSelectiveRoundRobin: builder.mutation<
-      any,
+      RoundRobinTestResponse,
       SelectiveRoundRobinTestRequest
     >({
       query: (body) => ({
@@ -836,7 +937,7 @@ export const leadsApi = createApi({
     }),
 
     previewRoundRobinAssignment: builder.query<
-      any,
+      RoundRobinPreviewResponse,
       { selected_users?: string }
     >({
       query: (params = {}) => {
@@ -848,7 +949,7 @@ export const leadsApi = createApi({
       },
     }),
 
-    getLeadAssignmentDetails: builder.query<any, string>({
+    getLeadAssignmentDetails: builder.query<AssignmentDetailsResponse, string>({
       query: (leadId) => `/leads/leads/${leadId}/assignments`,
       providesTags: (result, error, leadId) => [
         { type: "LeadDetails", id: leadId },

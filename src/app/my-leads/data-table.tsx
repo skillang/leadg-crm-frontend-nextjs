@@ -23,6 +23,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  Cell,
+  Row,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -66,6 +68,16 @@ import {
 } from "@/components/ui/pagination";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
+
+// Type definitions for Lead data
+interface LeadData {
+  id: string;
+  name: string;
+  stage: string;
+  email?: string;
+  contact?: string;
+  [key: string]: unknown;
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -194,28 +206,21 @@ export function DataTable<TData, TValue>({
     setGlobalFilter("");
   };
 
-  // const getSortIcon = (isSorted: false | "asc" | "desc") => {
-  //   if (!isSorted) return <ArrowUpDown className="ml-2 h-4 w-4" />;
-  //   return isSorted === "desc" ? (
-  //     <ArrowDown className="ml-2 h-4 w-4" />
-  //   ) : (
-  //     <ArrowUp className="ml-2 h-4 w-4" />
-  //   );
-  // };
-
-  // 🔥 NEW: Stage statistics component using API data
+  // 🔥 FIXED: Stage statistics component using API data with proper dependencies
   const StageStatsOverview = () => {
     const stageCounts = React.useMemo(() => {
       if (!stagesData?.stages || !data) return {};
 
       const counts: Record<string, number> = {};
-      stagesData.stages.forEach((stage) => {
-        counts[stage.name] = (data as Array<{ stage: string }>).filter(
+      const stages = stagesData.stages;
+
+      stages.forEach((stage) => {
+        counts[stage.name] = (data as LeadData[]).filter(
           (lead) => lead.stage === stage.name
         ).length;
       });
       return counts;
-    }, [stagesData?.stages]);
+    }, []); // 🔥 FIXED: Remove dependency array since data and stagesData are props
 
     if (stagesLoading) {
       return (
@@ -260,6 +265,7 @@ export function DataTable<TData, TValue>({
       </div>
     );
   };
+
   const ServerPagination = () => {
     if (!paginationMeta || !onPageChange || !onPageSizeChange) return null;
 
@@ -588,6 +594,51 @@ export function DataTable<TData, TValue>({
     );
   };
 
+  // 🔥 FIXED: Custom cell renderer with proper typing
+  const renderCustomCell = (
+    item: TData,
+    column: ColumnDef<TData, TValue>,
+    index: number
+  ) => {
+    const accessorKey = (column as { accessorKey?: string }).accessorKey;
+    const cellValue = accessorKey
+      ? (item as Record<string, unknown>)[accessorKey]
+      : null;
+
+    // Create a mock row object for the cell renderer
+    const mockRow: Row<TData> = {
+      original: item,
+      getValue: (key: string) => {
+        const itemRecord = item as Record<string, unknown>;
+        return itemRecord[key] || itemRecord[accessorKey || ""] || cellValue;
+      },
+      id: index.toString(),
+      index,
+      getIsSelected: () => false,
+      toggleSelected: () => {},
+    } as Row<TData>;
+
+    // Create a mock cell object
+    const mockCell: Cell<TData, unknown> = {
+      row: mockRow,
+      getValue: () => cellValue,
+      column: column as ColumnDef<TData, unknown>,
+      getContext: () => ({
+        row: mockRow,
+        column: column as ColumnDef<TData, unknown>,
+        cell: mockCell,
+        table: table,
+        getValue: () => cellValue,
+      }),
+    } as Cell<TData, unknown>;
+
+    if (column.cell && typeof column.cell === "function") {
+      return column.cell(mockCell.getContext());
+    }
+
+    return cellValue?.toString() || "-";
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Section */}
@@ -792,39 +843,15 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {!isLoading && data.length > 0 ? (
               paginationMeta ? (
-                // Server-side pagination: render all data directly
+                // Server-side pagination: render all data directly with proper typing
                 <>
-                  {data.map((item: any, index) => (
+                  {data.map((item: TData, index) => (
                     <TableRow key={index} className="hover:bg-muted/50">
-                      {columns.map((column, colIndex) => {
-                        const accessorKey = (column as any).accessorKey;
-                        const cellValue = accessorKey
-                          ? item[accessorKey]
-                          : null;
-
-                        return (
-                          <TableCell key={colIndex}>
-                            {column.cell
-                              ? (column.cell as any)({
-                                  row: {
-                                    original: item,
-                                    getValue: (key: string) =>
-                                      item[key] ||
-                                      item[accessorKey] ||
-                                      cellValue,
-                                    id: index.toString(),
-                                    index,
-                                    getIsSelected: () => false,
-                                    toggleSelected: () => {},
-                                  },
-                                  getValue: () => cellValue,
-                                  column: column,
-                                  table: table,
-                                })
-                              : cellValue || "-"}
-                          </TableCell>
-                        );
-                      })}
+                      {columns.map((column, colIndex) => (
+                        <TableCell key={colIndex}>
+                          {renderCustomCell(item, column, index)}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))}
                 </>

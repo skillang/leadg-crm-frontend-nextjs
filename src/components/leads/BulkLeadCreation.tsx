@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Edit2, Check, X } from "lucide-react";
 import { useGetLeadsQuery } from "@/redux/slices/leadsApi";
@@ -53,7 +53,6 @@ import MultiSelect, {
   transformUsersToOptions,
 } from "@/components/common/MultiSelect";
 import { useNotifications } from "../common/NotificationSystem";
-import { ApiError } from "next/dist/server/api-utils";
 import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
 
 // Interface for the flat bulk lead data structure as required by backend
@@ -80,7 +79,7 @@ interface FlatBulkLeadData {
 interface BulkUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (result: any) => void;
+  onSuccess?: (result: UploadResult) => void; // Instead of any
 }
 
 interface ParsedLead {
@@ -104,6 +103,49 @@ interface ParsedLead {
   course_level?: string;
   errors: string[];
   isValid: boolean;
+}
+
+// Add these interfaces at the top of the file
+interface UploadResult {
+  success: boolean;
+  created_count: number;
+  duplicates_count: number;
+  failed_count: number;
+  total_attempted: number;
+  message?: string;
+  results?: unknown[];
+  summary?: {
+    successful_creates: number;
+    duplicates_skipped: number;
+    failed_creates: number;
+    total_attempted: number;
+  };
+}
+
+interface ExistingLead {
+  id: string;
+  email?: string;
+  contact?: string;
+  contact_number?: string;
+  phoneNumber?: string;
+  basic_info?: {
+    email?: string;
+    contact_number?: string;
+  };
+}
+
+// First, add this interface at the top of your file with other interfaces
+interface BulkUploadError {
+  data?: {
+    detail?: string | Array<{ msg: string }>;
+    message?: string;
+    summary?: {
+      successful_creates: number;
+      duplicates_skipped: number;
+      failed_creates: number;
+    };
+  };
+  message?: string;
 }
 
 const HEADER_MAPPING: Record<string, string> = {
@@ -349,7 +391,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [duplicateLeads, setDuplicateLeads] = useState<ParsedLead[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadResults, setUploadResults] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_uploadResults, setUploadResults] = useState<UploadResult | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState("valid");
 
   // Form configuration
@@ -365,7 +410,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   // API hooks
   const { data: assignableUsersResponse } =
     useGetAssignableUsersWithDetailsQuery();
@@ -387,11 +431,12 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   // Get existing leads for duplicate checking
   const { data: existingLeadsResponse } = useGetLeadsQuery({});
 
-  const [bulkCreateLeads, { isLoading: isCreatingLeads }] =
-    useBulkCreateLeadsFlatMutation();
+  const [bulkCreateLeads] = useBulkCreateLeadsFlatMutation();
 
   const assignableUsers = assignableUsersResponse?.users || [];
-  const categories = categoriesResponse?.categories || [];
+  const categories = useMemo(() => {
+    return categoriesResponse?.categories || [];
+  }, [categoriesResponse]);
   const stages = stagesResponse?.stages || [];
   const statuses = statusesResponse?.statuses || [];
   const defaultStage =
@@ -405,30 +450,32 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
   const { showSuccess, showError } = useNotifications();
 
-  // Set default category when categories are loaded
+  const defaultCategory = useMemo(() => {
+    if (!categories || categories.length === 0) return "";
+    return categories[0].name;
+  }, [categories]);
+
+  // Update the useEffect
   React.useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].name);
+    if (defaultCategory && !selectedCategory) {
+      setSelectedCategory(defaultCategory);
     }
-  }, [categories, selectedCategory]);
+  }, [defaultCategory, selectedCategory]);
 
   // Transform users to MultiSelect options
   const counselorOptions = transformUsersToOptions(
     assignableUsers.filter((user) => user.is_active)
   );
 
-  const handleFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file && file.type === "text/csv") {
-        setCsvFile(file);
-        parseCSV(file);
-      } else {
-        setErrors({ file: "Please select a valid CSV file" });
-      }
-    },
-    []
-  );
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === "text/csv") {
+      setCsvFile(file);
+      parseCSV(file);
+    } else {
+      setErrors({ file: "Please select a valid CSV file" });
+    }
+  };
 
   const normalizeHeader = (header: string): string => {
     const trimmed = header.trim();
@@ -475,8 +522,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
         // Parse data rows
         const leads: ParsedLead[] = [];
-        const valid: ParsedLead[] = [];
-        const invalid: ParsedLead[] = [];
         const duplicateChecks: Array<{
           email: string;
           contact_number: string;
@@ -930,8 +975,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const checkForDuplicates = (
     leads: Array<{ email: string; contact_number: string }>
   ) => {
-    // Handle both array and paginated response formats
-    let existingLeads: any[] = [];
+    let existingLeads: ExistingLead[] = [];
 
     if (existingLeadsResponse) {
       if (Array.isArray(existingLeadsResponse)) {
@@ -959,8 +1003,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
     for (const lead of leads) {
       // Check for email duplicates (case insensitive)
-      const isDuplicateEmail = existingLeads.some((existing: any) => {
-        // Handle multiple possible field names from API response
+      const isDuplicateEmail = existingLeads.some((existing: ExistingLead) => {
         const existingEmail = existing.email || existing.basic_info?.email;
         return (
           existingEmail &&
@@ -969,8 +1012,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       });
 
       // Check for phone number duplicates
-      const isDuplicatePhone = existingLeads.some((existing: any) => {
-        // Handle multiple possible field names from API response
+      const isDuplicatePhone = existingLeads.some((existing: ExistingLead) => {
         const existingPhone =
           existing.contact ||
           existing.contact_number ||
@@ -1062,7 +1104,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
       const result = await bulkCreateLeads({
         leads: leadsToCreate,
-        force_create: false, // Set to false to respect duplicate detection
+        force_create: false,
         assignment_method: autoAssign ? assignmentMethod : undefined,
         selected_user_emails:
           autoAssign && assignmentMethod === "selected_users"
@@ -1075,10 +1117,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
       const processedResult = {
         ...result,
-        created_count: result?.summary?.successful_creates || 0,
-        duplicates_count: result?.summary?.duplicates_skipped || 0,
-        failed_count: result?.summary?.failed_creates || 0,
-        total_attempted: result?.summary?.total_attempted || validLeads.length,
+        created_count: result?.successful_creates || 0,
+        duplicates_count: result?.duplicates_skipped || 0,
+        failed_count: result?.failed_creates || 0,
+        total_attempted: result?.total_attempted || validLeads.length,
       };
 
       setUploadResults(processedResult);
@@ -1099,16 +1141,17 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           created_count: processedResult.created_count,
           duplicates_count: processedResult.duplicates_count,
           failed_count: processedResult.failed_count,
+          total_attempted: processedResult.total_attempted, // ✅ This was missing
           message: result?.message || "Leads processed successfully",
-          results: result?.results || [],
+          // results: result?.results || [],
         });
       }
 
       // Close modal immediately
       setTimeout(() => {
         handleModalClose();
-      }, 500); // Small delay to ensure notification is visible
-    } catch (error: any) {
+      }, 500);
+    } catch (error: unknown) {
       setUploadProgress(0);
 
       console.error("Bulk upload error:", error);
@@ -1116,30 +1159,40 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       let errorMessage = "Failed to upload leads";
       let duplicateInfo = "";
 
+      // ✅ FIXED: Type the error properly and use consistent variable naming
+      const typedError = error as BulkUploadError;
+
       // Enhanced error handling for different error types
-      if (error?.data) {
+      if (typedError?.data) {
         // Handle RTK Query errors
-        if (error.data?.detail) {
-          if (Array.isArray(error.data.detail)) {
-            errorMessage = error.data.detail.map((e: any) => e.msg).join(", ");
-          } else if (typeof error.data.detail === "string") {
-            errorMessage = error.data.detail;
+        if (typedError.data?.detail) {
+          if (Array.isArray(typedError.data.detail)) {
+            // ✅ FIXED: Use typedError consistently and proper typing
+            errorMessage = typedError.data.detail
+              .map((e: { msg: string }) => e.msg)
+              .join(", ");
+          } else if (typeof typedError.data.detail === "string") {
+            // ✅ FIXED: Use typedError consistently
+            errorMessage = typedError.data.detail;
           }
-        } else if (error.data?.message) {
-          errorMessage = error.data.message;
+        } else if (typedError.data?.message) {
+          // ✅ FIXED: Use typedError consistently
+          errorMessage = typedError.data.message;
         }
 
         // Check for bulk operation results in error response
-        if (error.data?.summary) {
-          const summary = error.data.summary;
+        if (typedError.data?.summary) {
+          // ✅ FIXED: Use typedError consistently
+          const summary = typedError.data.summary;
           duplicateInfo = `Created: ${
             summary.successful_creates || 0
           }, Duplicates: ${summary.duplicates_skipped || 0}, Failed: ${
             summary.failed_creates || 0
           }`;
         }
-      } else if (error?.message) {
-        errorMessage = error.message;
+      } else if (typedError?.message) {
+        // ✅ FIXED: Use typedError consistently
+        errorMessage = typedError.message;
       }
 
       // Show appropriate error message
@@ -1184,7 +1237,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const handleFieldEdit = (
     leadIndex: number,
     fieldName: string,
-    newValue: any
+    newValue: string | number
   ) => {
     const updatedInvalidLeads = [...invalidLeads];
     const lead = updatedInvalidLeads[leadIndex];
@@ -1199,7 +1252,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       const cleanedPhone = newValue.toString().replace(/[\s\-\(\)\+]/g, "");
       lead.contact_number = cleanedPhone;
     } else if (fieldName === "lead_score") {
-      const score = parseInt(newValue) || 0;
+      const score = 0;
       lead.lead_score = Math.max(0, Math.min(100, score)); // Clamp between 0-100
     }
 
@@ -2175,29 +2228,16 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     🔴 Required Columns (Must Include):
                   </h4>
                   <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1">
                       <Badge variant="destructive" className="text-xs">
                         name
                       </Badge>
-                      <span className="text-muted-foreground">
-                        Lead's full name
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Badge variant="destructive" className="text-xs">
                         email
                       </Badge>
-                      <span className="text-muted-foreground">
-                        Valid email address
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Badge variant="destructive" className="text-xs">
                         contact_number
                       </Badge>
-                      <span className="text-muted-foreground">
-                        Phone number
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -2208,7 +2248,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     🟢 Optional Columns:
                   </h4>
                   <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1">
                       <Badge variant="outline" className="text-xs">
                         age
                       </Badge>
@@ -2221,16 +2261,12 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       <Badge variant="outline" className="text-xs">
                         experience
                       </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         country_of_interest
                       </Badge>
                       <Badge variant="outline" className="text-xs">
                         course_level
                       </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         stage
                       </Badge>
@@ -2240,8 +2276,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       <Badge variant="outline" className="text-xs">
                         notes
                       </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         tags
                       </Badge>
@@ -2372,7 +2406,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   </div>
                   <div className="text-green-700">
                     Missing or invalid emails will be auto-generated as
-                    "notvalidxx123@gmail.com" to prevent validation errors.
+                    notvalidxx123@gmail.com to prevent validation errors.
                     Original values are saved in notes.
                   </div>
                 </div>
@@ -2383,8 +2417,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   </div>
                   <div className="text-blue-700">
                     Missing or invalid phone numbers will be auto-generated as
-                    unique 10-digit numbers starting with "9". Original values
-                    are preserved in notes.
+                    unique 10-digit numbers starting with 9. Original values are
+                    preserved in notes.
                   </div>
                 </div>
 

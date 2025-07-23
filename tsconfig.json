@@ -27,7 +27,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/all-pages/LoginPage.jsx"
+    "src/all-pages/LoginPage.tsx"
   ],
   "exclude": ["node_modules"]
 }
