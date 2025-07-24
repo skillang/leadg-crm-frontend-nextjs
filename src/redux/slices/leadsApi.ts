@@ -697,7 +697,7 @@ export const leadsApi = createApi({
     ),
 
     getUserLeadStats: builder.query<UserLeadStatsResponse, void>({
-      query: () => "/leads/admin/user-lead-stats/",
+      query: () => "/leads/admin/user-lead-stats",
       transformResponse: (response: UserLeadStatsResponse) => response,
       providesTags: ["AssignableUsers"],
     }),
