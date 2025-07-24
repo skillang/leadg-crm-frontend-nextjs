@@ -43,6 +43,19 @@ import {
   Users,
   Hash,
 } from "lucide-react";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+
+// Define proper error types based on your API structure
+interface ApiErrorData {
+  detail?: string;
+  message?: string;
+}
+
+// Type for RTK Query errors with proper API error data
+type RTKQueryError = FetchBaseQueryError & {
+  status?: number;
+  data?: ApiErrorData;
+};
 
 const SourcesManagementPage = () => {
   // State for forms and dialogs
@@ -83,14 +96,12 @@ const SourcesManagementPage = () => {
     error: inactiveError,
   } = useGetInactiveSourcesQuery({ include_lead_count: true });
 
-  // Mutations
+  // Mutations - removed unused loading states
   const [createSource, { isLoading: isCreating }] = useCreateSourceMutation();
   const [updateSource, { isLoading: isUpdating }] = useUpdateSourceMutation();
-  const [deleteSource, { isLoading: isDeleting }] = useDeleteSourceMutation();
-  const [activateSource, { isLoading: isActivating }] =
-    useActivateSourceMutation();
-  const [deactivateSource, { isLoading: isDeactivating }] =
-    useDeactivateSourceMutation();
+  const [deleteSource] = useDeleteSourceMutation();
+  const [activateSource] = useActivateSourceMutation();
+  const [deactivateSource] = useDeactivateSourceMutation();
 
   // Check admin access
   if (!hasAccess) {
@@ -126,8 +137,13 @@ const SourcesManagementPage = () => {
         is_active: true,
         is_default: false,
       });
-    } catch (error: any) {
-      showError(error?.data?.message || "Failed to create source");
+    } catch (error: unknown) {
+      const rtkError = error as RTKQueryError;
+      const errorMessage =
+        rtkError?.data?.message ||
+        rtkError?.data?.detail ||
+        "Failed to create source";
+      showError(errorMessage);
     }
   };
 
@@ -144,8 +160,13 @@ const SourcesManagementPage = () => {
       setIsEditDialogOpen(false);
       setEditingSource(null);
       setEditFormData({});
-    } catch (error: any) {
-      showError(error?.data?.message || "Failed to update source");
+    } catch (error: unknown) {
+      const rtkError = error as RTKQueryError;
+      const errorMessage =
+        rtkError?.data?.message ||
+        rtkError?.data?.detail ||
+        "Failed to update source";
+      showError(errorMessage);
     }
   };
 
@@ -160,8 +181,13 @@ const SourcesManagementPage = () => {
         try {
           await deleteSource(source.id).unwrap();
           showSuccess("Source deleted successfully");
-        } catch (error: any) {
-          showError(error?.data?.message || "Failed to delete source");
+        } catch (error: unknown) {
+          const rtkError = error as RTKQueryError;
+          const errorMessage =
+            rtkError?.data?.message ||
+            rtkError?.data?.detail ||
+            "Failed to delete source";
+          showError(errorMessage);
         }
       },
     });
@@ -177,8 +203,13 @@ const SourcesManagementPage = () => {
         await activateSource(source.id).unwrap();
         showSuccess("Source activated successfully");
       }
-    } catch (error: any) {
-      showError(error?.data?.message || "Failed to update source status");
+    } catch (error: unknown) {
+      const rtkError = error as RTKQueryError;
+      const errorMessage =
+        rtkError?.data?.message ||
+        rtkError?.data?.detail ||
+        "Failed to update source status";
+      showError(errorMessage);
     }
   };
 
