@@ -1,4 +1,4 @@
-// pages/LoginPage.tsx (TypeScript with Zod validation)
+// pages/LoginPage.tsx (TypeScript with Zod validation + shadcn/ui + Light Blue Theme)
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,6 +8,15 @@ import { setAuthState, clearError, setError } from "@/redux/slices/authSlice";
 import { z } from "zod";
 import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import Image from "next/image";
+
+// 🔥 shadcn/ui imports
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Define proper error types based on your API structure
 interface ApiErrorData {
@@ -37,10 +46,11 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+// ✅ CORRECT: Error messages are always strings, even for boolean fields
 interface LoginFormErrors {
   email?: string;
   password?: string;
-  remember_me?: string;
+  remember_me?: string; // ✅ Keep as string - error messages are strings
   general?: string;
 }
 
@@ -54,7 +64,7 @@ const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
-    remember_me: false,
+    remember_me: false, // ✅ Boolean value for form data
   });
 
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -122,6 +132,27 @@ const LoginPage: React.FC = () => {
           [fieldName]: fieldError,
         }));
       }
+    }
+  };
+
+  // Handle shadcn checkbox change (different API)
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      remember_me: checked,
+    }));
+
+    // Clear error
+    if (error) {
+      dispatch(clearError());
+    }
+
+    // Clear validation error for checkbox
+    if (validationErrors.remember_me) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        remember_me: undefined,
+      }));
     }
   };
 
@@ -263,8 +294,9 @@ const LoginPage: React.FC = () => {
 
       // console.log("Login successful:", result); // Debug log
 
-      // Store in localStorage for persistence
+      // 🔥 UPDATED: Store both access and refresh tokens in localStorage for persistence
       localStorage.setItem("access_token", result.access_token);
+      localStorage.setItem("refresh_token", result.refresh_token);
       localStorage.setItem("user_data", JSON.stringify(result.user));
 
       // Update Redux state with the API response
@@ -300,155 +332,167 @@ const LoginPage: React.FC = () => {
   const isFormDisabled = loginLoading || isSubmitting;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-gray-600">
-            Sign in to your LeadG CRM account
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* API Error Display */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-start space-x-2">
-              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Login Failed</p>
-                <p className="text-sm">{getErrorMessage(error)}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="w-full max-w-xl">
+        {/* Login Card */}
+        <Card className="bg-white border-blue-200 shadow-xl">
+          <CardContent className="p-8">
+            {/* Logo Section */}
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-6">
+                <div className="bg-white rounded-lg p-4 shadow-lg border border-blue-100">
+                  <Image
+                    src="/logo.png"
+                    alt="LeadG CRM"
+                    width={200}
+                    height={60}
+                    className="object-contain"
+                    priority
+                  />
+                </div>
               </div>
+              <h1 className="text-3xl font-bold text-blue-900 mb-2">
+                Welcome to LeadG!
+              </h1>
+              <p className="text-blue-700">Log in to your LeadG CRM account</p>
             </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                className={`mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
-                  validationErrors.email
-                    ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                    : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                }`}
-                placeholder="Enter your email"
-                disabled={isFormDisabled}
-                aria-describedby={
-                  validationErrors.email ? "email-error" : undefined
-                }
-              />
-              {validationErrors.email && (
-                <p
-                  id="email-error"
-                  className="mt-1 text-sm text-red-600 flex items-center"
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* API Error Display */}
+              {error && (
+                <Alert
+                  variant="destructive"
+                  className="bg-red-50 border-red-300 text-red-700"
                 >
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {validationErrors.email}
-                </p>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium">Login Failed</div>
+                    <div className="text-sm">{getErrorMessage(error)}</div>
+                  </AlertDescription>
+                </Alert>
               )}
-            </div>
 
-            {/* Password Field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`mt-1 w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
-                    validationErrors.password
-                      ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                      : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                  }`}
-                  placeholder="Enter your password"
-                  disabled={isFormDisabled}
-                  aria-describedby={
-                    validationErrors.password ? "password-error" : undefined
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                  disabled={isFormDisabled}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
+              <div className="space-y-4">
+                {/* Email Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-blue-900 font-medium">
+                    Email <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={isFormDisabled}
+                    className={`bg-blue-50 border-blue-300 text-blue-900 placeholder:text-blue-500 focus:border-blue-500 focus:ring-blue-500 ${
+                      validationErrors.email
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-500 bg-red-50"
+                        : ""
+                    }`}
+                  />
+                  {validationErrors.email && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {validationErrors.email}
+                    </p>
                   )}
-                </button>
-              </div>
-              {validationErrors.password && (
-                <p
-                  id="password-error"
-                  className="mt-1 text-sm text-red-600 flex items-center"
-                >
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {validationErrors.password}
-                </p>
-              )}
-            </div>
+                </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center">
-              <input
-                id="remember_me"
-                name="remember_me"
-                type="checkbox"
-                checked={formData.remember_me}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                {/* Password Field */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="password"
+                    className="text-blue-900 font-medium"
+                  >
+                    Password <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      disabled={isFormDisabled}
+                      className={`bg-blue-50 border-blue-300 text-blue-900 placeholder:text-blue-500 focus:border-blue-500 focus:ring-blue-500 pr-10 ${
+                        validationErrors.password
+                          ? "border-red-400 focus:border-red-500 focus:ring-red-500 bg-red-50"
+                          : ""
+                      }`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-blue-100 text-blue-600 hover:text-blue-800"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isFormDisabled}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {validationErrors.password && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {validationErrors.password}
+                    </p>
+                  )}
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="remember_me"
+                    checked={formData.remember_me}
+                    onCheckedChange={handleCheckboxChange}
+                    disabled={isFormDisabled}
+                    className="border-blue-400 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                  />
+                  <Label
+                    htmlFor="remember_me"
+                    className="text-blue-700 text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Remember me for 30 days
+                  </Label>
+                </div>
+                {validationErrors.remember_me && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {validationErrors.remember_me}
+                  </p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white font-medium py-3 mt-6 shadow-md"
                 disabled={isFormDisabled}
-              />
-              <label
-                htmlFor="remember_me"
-                className="ml-2 block text-sm text-gray-700"
+                size="lg"
               >
-                Remember me for 7 days
-              </label>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isFormDisabled}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isFormDisabled ? (
-              <div className="flex items-center">
-                <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                {isSubmitting ? "Signing in..." : "Please wait..."}
-              </div>
-            ) : (
-              "Sign In"
-            )}
-          </button>
-        </form>
+                {isFormDisabled ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isSubmitting ? "Signing in..." : "Please wait..."}
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -371,9 +371,8 @@ export interface BulkLeadData {
   };
 }
 
-// 🔥 FIXED: Updated base query to work with https://leadg.in/api base URL
 const baseQuery = fetchBaseQuery({
-  baseUrl: `${API_BASE_URL}`, // Uses https://leadg.in/api directly
+  baseUrl: `${API_BASE_URL}`,
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
@@ -683,7 +682,7 @@ export const leadsApi = createApi({
             params.include_multi_assignment_stats.toString()
           );
         }
-        return `/leads/stats/?${searchParams.toString()}`;
+        return `leads/stats?${searchParams.toString()}`;
       },
       transformResponse: (response: LeadStatsResponse) => response,
       providesTags: ["LeadStats"],
@@ -767,7 +766,7 @@ export const leadsApi = createApi({
 
     updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
       query: (body) => ({
-        url: "/leads/update/",
+        url: "leads/update", // ✅ Remove leading slash and trailing slash
         method: "PUT",
         body,
       }),
@@ -790,7 +789,7 @@ export const leadsApi = createApi({
       }
     >({
       query: ({ leadId, stage, currentLead }) => ({
-        url: "/leads/update/",
+        url: "leads/update",
         method: "PUT",
         body: {
           lead_id: leadId,

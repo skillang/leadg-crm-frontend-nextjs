@@ -7,7 +7,6 @@ import { X, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -38,6 +37,7 @@ import MultiSelect, {
 } from "@/components/common/MultiSelect";
 import CourseLevelDropdown from "../common/CourseLevelDropdown";
 import ExperienceLevelDropdown from "../common/ExperienceLevelDropdown";
+import SourceDropdown from "../common/SourceDropdown";
 
 // ✅ FIXED: Helper function to convert countries array to string for backend
 const formatCountriesForBackend = (countries: string[]): string => {
@@ -705,24 +705,14 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="source">Source</Label>
-                    <Select
+                    <SourceDropdown
                       value={formData.source}
                       onValueChange={(value) =>
                         handleInputChange("source", value)
                       }
                       disabled={isCreating}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select source" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SOURCE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select source"
+                    />
                   </div>
 
                   <div className="space-y-2">

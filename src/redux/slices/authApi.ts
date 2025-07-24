@@ -8,7 +8,7 @@ import type {
 } from "@reduxjs/toolkit/query";
 import type { BaseQueryApi } from "@reduxjs/toolkit/query/react";
 import { RootState } from "@/redux/store";
-import { setError, clearAuthState } from "./authSlice";
+import { setError, clearAuthState, updateTokens } from "./authSlice";
 
 // API Base URL
 const API_BASE_URL =
@@ -182,6 +182,16 @@ interface DeleteUserResponse {
   };
 }
 
+interface RefreshTokenRequest {
+  refresh_token: string;
+}
+
+interface RefreshTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
 // Base query with headers
 const baseQuery = fetchBaseQuery({
   baseUrl: `${API_BASE_URL}/auth`,
@@ -249,6 +259,32 @@ export const authApi = createApi({
         }
       },
       invalidatesTags: ["Auth", "User"],
+    }),
+
+    // Add this endpoint in your authApi endpoints section
+    refreshToken: builder.mutation<RefreshTokenResponse, RefreshTokenRequest>({
+      query: (refreshData) => ({
+        url: "/auth/refresh",
+        method: "POST",
+        body: refreshData,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          // Update tokens automatically
+          dispatch(
+            updateTokens({
+              access_token: data.access_token,
+              refresh_token: arg.refresh_token, // Keep same refresh token
+              expires_in: data.expires_in,
+            })
+          );
+          dispatch(setError(null));
+        } catch (error) {
+          console.error("Token refresh failed:", error);
+        }
+      },
+      invalidatesTags: ["Auth"],
     }),
 
     register: builder.mutation<RegisterResponse, RegisterRequest>({
@@ -393,6 +429,7 @@ export const authApi = createApi({
 
 export const {
   useLoginMutation,
+  useRefreshTokenMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
   useLogoutMutation,

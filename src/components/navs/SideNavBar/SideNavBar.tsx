@@ -20,6 +20,7 @@ import {
   ArrowsUpFromLine,
   UserRoundCog,
   ChevronUp,
+  Globe,
 } from "lucide-react";
 import {
   Sidebar,
@@ -126,6 +127,12 @@ const leadActionItems = [
     title: "Manage Edu Levels",
     url: "/admin/course-levels",
     icon: NotebookText,
+  },
+  {
+    title: "Manage Sources",
+    url: "/admin/lead-sources",
+    icon: Globe,
+    adminOnly: true,
   },
 ];
 

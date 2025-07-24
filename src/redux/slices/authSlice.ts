@@ -159,11 +159,12 @@ const authSlice = createSlice({
       state.accessToken = action.payload.access_token;
       state.refreshToken = action.payload.refresh_token;
       state.expiresIn = action.payload.expires_in;
-      state.tokenCreatedAt = now; // Update token creation time
+      state.tokenCreatedAt = now;
 
-      // Update localStorage
+      // Update localStorage - 🔥 ADD refresh_token storage
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", action.payload.access_token);
+        localStorage.setItem("refresh_token", action.payload.refresh_token); // 🔥 ADD THIS LINE
         localStorage.setItem("token_created_at", now.toString());
       }
     },

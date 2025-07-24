@@ -53,7 +53,7 @@ import MultiSelect, {
   transformUsersToOptions,
 } from "@/components/common/MultiSelect";
 import { useNotifications } from "../common/NotificationSystem";
-import { SOURCE_OPTIONS } from "@/constants/sourceConfig";
+import SourceDropdown from "../common/SourceDropdown";
 
 // Interface for the flat bulk lead data structure as required by backend
 interface FlatBulkLeadData {
@@ -1349,7 +1349,9 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Lead Category</Label>
+                  <Label>
+                    Lead Category <span className="text-red-500">*</span>
+                  </Label>
                   {categoriesLoading ? (
                     <div className="flex items-center gap-2 p-2 border rounded">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1388,22 +1390,15 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Source</Label>
-                  <Select
+                  <Label htmlFor="source" className="text-sm font-medium">
+                    Source <span className="text-red-500">*</span>
+                  </Label>
+                  <SourceDropdown
                     value={selectedSource}
                     onValueChange={setSelectedSource}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOURCE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select source for all leads"
+                    required
+                  />
                 </div>
               </CardContent>
             </Card>

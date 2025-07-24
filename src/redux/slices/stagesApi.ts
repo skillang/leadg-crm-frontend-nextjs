@@ -11,7 +11,6 @@ import {
   StageReorderRequest,
 } from "@/models/types/stage";
 
-// 🔥 FIXED: Updated base URL configuration to match auth API pattern
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -82,7 +81,7 @@ export const stagesApi = createApi({
       query: ({ include_lead_count = false } = {}) => {
         const params = new URLSearchParams();
         if (include_lead_count) params.append("include_lead_count", "true");
-        return `/stages/active/?${params.toString()}`; // 🔥 FIXED: Added trailing slash
+        return `/stages/active?${params.toString()}`; // 🔥 FIXED: Added trailing slash
       },
       transformResponse: (response: unknown): StagesResponse => {
         const parsed = response as {
@@ -109,7 +108,7 @@ export const stagesApi = createApi({
       query: ({ include_lead_count = false } = {}) => {
         const params = new URLSearchParams();
         if (include_lead_count) params.append("include_lead_count", "true");
-        return `/stages/inactive/?${params.toString()}`; // 🔥 FIXED: Added trailing slash
+        return `/stages/inactive?${params.toString()}`; // 🔥 FIXED: Added trailing slash
       },
       transformResponse: (response: unknown): StagesResponse => {
         const parsed = response as {

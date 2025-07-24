@@ -177,7 +177,7 @@ export const timelineApi = createApi({
           days: days.toString(),
         });
 
-        return `/timeline/leads/${leadId}/stats?${params.toString()}`;
+        return `/timeline/leads/${leadId}/stats/?${params.toString()}`;
       },
       transformResponse: (response: unknown): TimelineStats => {
         if (typeof response === "string") {
