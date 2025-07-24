@@ -691,7 +691,7 @@ export const leadsApi = createApi({
 
     getAssignableUsersWithDetails: builder.query<AssignableUsersResponse, void>(
       {
-        query: () => "/leads/users/assignable-with-details/",
+        query: () => "/leads/users/assignable-with-details",
         providesTags: ["AssignableUsers"],
       }
     ),

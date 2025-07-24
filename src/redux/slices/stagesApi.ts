@@ -11,6 +11,10 @@ import {
   StageReorderRequest,
 } from "@/models/types/stage";
 
+// 🔥 FIXED: Updated base URL configuration to match auth API pattern
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
 // Transform API response to match our interface
 const transformStage = (stage: Record<string, unknown>): Stage => ({
   id: String(stage.id || ""),
@@ -30,7 +34,7 @@ const transformStage = (stage: Record<string, unknown>): Stage => ({
 export const stagesApi = createApi({
   reducerPath: "stagesApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
+    baseUrl: `${API_BASE_URL}`, // 🔥 FIXED: Uses https://leadg.in/api directly
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.accessToken;
       if (token) {
@@ -51,7 +55,7 @@ export const stagesApi = createApi({
         const params = new URLSearchParams();
         if (include_lead_count) params.append("include_lead_count", "true");
         if (!active_only) params.append("active_only", "false");
-        return `/stages?${params.toString()}`;
+        return `/stages/?${params.toString()}`; // 🔥 FIXED: Added trailing slash
       },
       transformResponse: (response: unknown): StagesResponse => {
         const parsed = response as {
@@ -78,7 +82,7 @@ export const stagesApi = createApi({
       query: ({ include_lead_count = false } = {}) => {
         const params = new URLSearchParams();
         if (include_lead_count) params.append("include_lead_count", "true");
-        return `/stages/active?${params.toString()}`;
+        return `/stages/active/?${params.toString()}`; // 🔥 FIXED: Added trailing slash
       },
       transformResponse: (response: unknown): StagesResponse => {
         const parsed = response as {
@@ -105,7 +109,7 @@ export const stagesApi = createApi({
       query: ({ include_lead_count = false } = {}) => {
         const params = new URLSearchParams();
         if (include_lead_count) params.append("include_lead_count", "true");
-        return `/stages/inactive?${params.toString()}`;
+        return `/stages/inactive/?${params.toString()}`; // 🔥 FIXED: Added trailing slash
       },
       transformResponse: (response: unknown): StagesResponse => {
         const parsed = response as {
@@ -126,7 +130,7 @@ export const stagesApi = createApi({
 
     // Get stage by ID
     getStageById: builder.query<Stage, string>({
-      query: (stageId) => `/stages/${stageId}`,
+      query: (stageId) => `/stages/${stageId}/`, // 🔥 FIXED: Added trailing slash
       transformResponse: (response: unknown): Stage => {
         return transformStage(response as Record<string, unknown>);
       },
@@ -135,7 +139,7 @@ export const stagesApi = createApi({
 
     // Get default stage name
     getDefaultStageName: builder.query<string, void>({
-      query: () => "/stages/default/name",
+      query: () => "/stages/default/name/", // 🔥 FIXED: Added trailing slash
       transformResponse: (response: unknown): string => {
         return String(response || "");
       },
@@ -144,7 +148,7 @@ export const stagesApi = createApi({
     // Create stage (Admin only)
     createStage: builder.mutation<CreateStageResponse, CreateStageRequest>({
       query: (stageData) => ({
-        url: "/stages",
+        url: "/stages/", // 🔥 FIXED: Added trailing slash
         method: "POST",
         body: stageData,
       }),
@@ -160,7 +164,7 @@ export const stagesApi = createApi({
       { stageId: string; stageData: UpdateStageRequest }
     >({
       query: ({ stageId, stageData }) => ({
-        url: `/stages/${stageId}`,
+        url: `/stages/${stageId}/`, // 🔥 FIXED: Added trailing slash
         method: "PUT",
         body: stageData,
       }),
@@ -180,7 +184,7 @@ export const stagesApi = createApi({
         const params = new URLSearchParams();
         if (force) params.append("force", "true");
         return {
-          url: `/stages/${stageId}?${params.toString()}`,
+          url: `/stages/${stageId}/?${params.toString()}`, // 🔥 FIXED: Added trailing slash
           method: "DELETE",
         };
       },
@@ -194,7 +198,7 @@ export const stagesApi = createApi({
     // Activate stage (Admin only)
     activateStage: builder.mutation<{ message: string }, string>({
       query: (stageId) => ({
-        url: `/stages/${stageId}/activate`,
+        url: `/stages/${stageId}/activate/`, // 🔥 FIXED: Added trailing slash
         method: "PATCH",
       }),
       async onQueryStarted(stageId, { queryFulfilled }) {
@@ -216,7 +220,7 @@ export const stagesApi = createApi({
     // Deactivate stage (Admin only)
     deactivateStage: builder.mutation<{ message: string }, string>({
       query: (stageId) => ({
-        url: `/stages/${stageId}/deactivate`,
+        url: `/stages/${stageId}/deactivate/`, // 🔥 FIXED: Added trailing slash
         method: "PATCH",
       }),
       async onQueryStarted(stageId, { queryFulfilled }) {
@@ -239,7 +243,7 @@ export const stagesApi = createApi({
     reorderStages: builder.mutation<{ message: string }, StageReorderRequest[]>(
       {
         query: (reorderData) => ({
-          url: "/stages/reorder",
+          url: "/stages/reorder/", // 🔥 FIXED: Added trailing slash
           method: "PATCH",
           body: reorderData,
         }),
@@ -253,7 +257,7 @@ export const stagesApi = createApi({
     // Setup default stages (Admin only)
     setupDefaultStages: builder.mutation<string, void>({
       query: () => ({
-        url: "/stages/setup/defaults",
+        url: "/stages/setup/defaults/", // 🔥 FIXED: Added trailing slash
         method: "POST",
       }),
       invalidatesTags: [

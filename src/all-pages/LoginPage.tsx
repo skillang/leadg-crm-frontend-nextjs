@@ -428,7 +428,7 @@ const LoginPage: React.FC = () => {
                 htmlFor="remember_me"
                 className="ml-2 block text-sm text-gray-700"
               >
-                Remember me for 30 days
+                Remember me for 7 days
               </label>
             </div>
           </div>
