@@ -2,6 +2,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
 import { Lead } from "@/models/types/lead";
+
+// 🔥 FIXED: Updated base URL configuration to match auth API pattern
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -203,12 +205,12 @@ export interface CreateLeadApiRequest {
     nationality?: string;
     current_location?: string;
     date_of_birth?: string;
-    country_of_interest?: string; // Add if missing
-    course_level?: string; // Add if missing
+    country_of_interest?: string;
+    course_level?: string;
   };
   status_and_tags: {
     stage: string;
-    status: string; // ✅ ADD THIS
+    status: string;
     lead_score: number;
     tags: string[];
   };
@@ -271,7 +273,6 @@ interface LeadStatsResponse {
   my_leads: number;
 }
 
-// 🔥 ADD THIS INTERFACE (just add this near the top with other interfaces)
 interface PaginatedResponse<T> {
   leads?: T[];
   total?: number;
@@ -370,8 +371,9 @@ export interface BulkLeadData {
   };
 }
 
+// 🔥 FIXED: Updated base query to work with https://leadg.in/api base URL
 const baseQuery = fetchBaseQuery({
-  baseUrl: API_BASE_URL,
+  baseUrl: `${API_BASE_URL}`, // Uses https://leadg.in/api directly
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
@@ -386,11 +388,11 @@ const baseQuery = fetchBaseQuery({
 // Enhanced transformation functions
 const transformApiLead = (apiLead: ApiLead): Lead => ({
   id: apiLead.lead_id || apiLead.id || "",
-  leadId: apiLead.lead_id || apiLead.id || "", // Fixed: ensure leadId is always present
+  leadId: apiLead.lead_id || apiLead.id || "",
   name: apiLead.name || "",
   email: apiLead.email || "",
   contact: apiLead.contact_number || apiLead.phone_number || "",
-  phoneNumber: apiLead.contact_number || apiLead.phone_number || "", // Fixed: added phoneNumber
+  phoneNumber: apiLead.contact_number || apiLead.phone_number || "",
   source: apiLead.source || "",
   stage: apiLead.stage || "",
   leadScore: apiLead.lead_score || 0,
@@ -419,8 +421,8 @@ const transformApiLead = (apiLead: ApiLead): Lead => ({
   updatedAt: apiLead.updated_at || "",
   lastContacted: apiLead.last_contacted || null,
   leadCategory: apiLead.category || "",
-  tags: [], // Fixed: provide default empty array instead of never[]
-  priority: "medium", // Fixed: provide default priority
+  tags: [],
+  priority: "medium",
 });
 
 const transformLeadDetailsResponse = (
@@ -490,25 +492,18 @@ export const leadsApi = createApi({
             searchParams.append(key, value.toString());
           }
         });
-        const url = `/leads?${searchParams.toString()}`;
-        // console.log("🔍 API URL being called:", url);
+        const url = `/leads/?${searchParams.toString()}`;
         return url;
       },
-      // 🔥 ADD THIS: Force RTK Query to treat different params as different queries
       serializeQueryArgs: ({ queryArgs }) => {
-        // Create unique cache key including ALL parameters
         const cacheKey = `page=${queryArgs.page || 1}-limit=${
           queryArgs.limit || 20
         }-status=${queryArgs.lead_status || "all"}-search=${
           queryArgs.search || ""
         }`;
-        // console.log("🔍 Cache key:", cacheKey);
         return cacheKey;
       },
       transformResponse: (response: unknown) => {
-        // console.log("🔍 Raw API Response in transformResponse:", response);
-
-        // Type guard to check if response has the expected structure
         const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
           return (
             typeof obj === "object" &&
@@ -531,7 +526,7 @@ export const leadsApi = createApi({
         };
 
         if (isPaginatedResponse(response)) {
-          const result = {
+          return {
             leads: response.leads!.map(transformApiLead),
             total: response.total,
             page: response.page,
@@ -539,18 +534,11 @@ export const leadsApi = createApi({
             has_next: response.has_next,
             has_prev: response.has_prev,
           };
-          // console.log("🔍 Transformed paginated response:", result);
-          return result;
         } else if (isValidResponse(response)) {
-          const result = response.leads.map(transformApiLead);
-          // console.log("🔍 Transformed array response:", result.length, "leads");
-          return result;
+          return response.leads.map(transformApiLead);
         } else if (Array.isArray(response)) {
-          const result = response.map(transformApiLead);
-          // console.log("🔍 Transformed direct array:", result.length, "leads");
-          return result;
+          return response.map(transformApiLead);
         }
-        // console.log("🔍 No valid data found in response");
         return [];
       },
       providesTags: (result) => [
@@ -564,7 +552,6 @@ export const leadsApi = createApi({
       ],
     }),
 
-    // Same for getMyLeads:
     getMyLeads: builder.query<
       Lead[] | PaginatedResponse<Lead>,
       {
@@ -582,24 +569,18 @@ export const leadsApi = createApi({
             searchParams.append(key, value.toString());
           }
         });
-        const url = `/leads/my-leads?${searchParams.toString()}`;
-        // console.log("🔍 My Leads API URL being called:", url);
+        const url = `/leads/my-leads/?${searchParams.toString()}`;
         return url;
       },
-      // 🔥 ADD THIS: Force unique cache keys
       serializeQueryArgs: ({ queryArgs }) => {
         const cacheKey = `myLeads-page=${queryArgs.page || 1}-limit=${
           queryArgs.limit || 20
         }-status=${queryArgs.lead_status || "all"}-search=${
           queryArgs.search || ""
         }`;
-        // console.log("🔍 My Leads Cache key:", cacheKey);
         return cacheKey;
       },
       transformResponse: (response: unknown) => {
-        // console.log("🔍 My Leads Raw API Response:", response);
-
-        // Type guard functions
         const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
           return (
             typeof obj === "object" &&
@@ -622,7 +603,7 @@ export const leadsApi = createApi({
         };
 
         if (isPaginatedResponse(response)) {
-          const result = {
+          return {
             leads: response.leads!.map(transformApiLead),
             total: response.total,
             page: response.page,
@@ -630,26 +611,11 @@ export const leadsApi = createApi({
             has_next: response.has_next,
             has_prev: response.has_prev,
           };
-          // console.log("🔍 My Leads Transformed paginated response:", result);
-          return result;
         } else if (isValidResponse(response)) {
-          const result = response.leads.map(transformApiLead);
-          // console.log(
-          //   "🔍 My Leads Transformed array response:",
-          //   result.length,
-          //   "leads"
-          // );
-          return result;
+          return response.leads.map(transformApiLead);
         } else if (Array.isArray(response)) {
-          // const result = response.map(transformApiLead);
-          // console.log(
-          //   "🔍 My Leads Transformed direct array:",
-          //   result.length,
-          //   "leads"
-          // );
-          // return result;
+          return [];
         }
-        // console.log("🔍 My Leads: No valid data found in response");
         return [];
       },
       providesTags: (result) => [
@@ -663,7 +629,6 @@ export const leadsApi = createApi({
       ],
     }),
 
-    // Enhanced leads with extended assignment info
     getLeadsExtended: builder.query<
       ApiLead[],
       {
@@ -698,7 +663,6 @@ export const leadsApi = createApi({
         success: boolean;
         lead: RawLeadDetails;
       }) => {
-        // ✅ FIX: Extract the lead object from the response wrapper
         return transformLeadDetailsResponse(response.lead);
       },
       providesTags: (result, error, id) => [
@@ -719,27 +683,25 @@ export const leadsApi = createApi({
             params.include_multi_assignment_stats.toString()
           );
         }
-        return `/leads/stats?${searchParams.toString()}`;
+        return `/leads/stats/?${searchParams.toString()}`;
       },
       transformResponse: (response: LeadStatsResponse) => response,
       providesTags: ["LeadStats"],
     }),
 
-    // Enhanced assignable users with details
     getAssignableUsersWithDetails: builder.query<AssignableUsersResponse, void>(
       {
-        query: () => "/leads/users/assignable-with-details",
+        query: () => "/leads/users/assignable-with-details/",
         providesTags: ["AssignableUsers"],
       }
     ),
 
     getUserLeadStats: builder.query<UserLeadStatsResponse, void>({
-      query: () => "/leads/admin/user-lead-stats",
+      query: () => "/leads/admin/user-lead-stats/",
       transformResponse: (response: UserLeadStatsResponse) => response,
       providesTags: ["AssignableUsers"],
     }),
 
-    // Create lead with selective round robin support
     createLead: builder.mutation<
       CreateLeadResponse,
       CreateLeadApiRequest & {
@@ -767,7 +729,6 @@ export const leadsApi = createApi({
       ],
     }),
 
-    // Enhanced bulk create with assignment options
     bulkCreateLeadsFlat: builder.mutation<
       BulkCreateResponse,
       {
@@ -793,7 +754,7 @@ export const leadsApi = createApi({
         return {
           url: `/leads/bulk-create?${searchParams.toString()}`,
           method: "POST",
-          body: leads, // Send flat array directly
+          body: leads,
         };
       },
       invalidatesTags: [
@@ -806,7 +767,7 @@ export const leadsApi = createApi({
 
     updateLead: builder.mutation<ApiLead, UpdateLeadRequest>({
       query: (body) => ({
-        url: "/leads/update",
+        url: "/leads/update/",
         method: "PUT",
         body,
       }),
@@ -829,7 +790,7 @@ export const leadsApi = createApi({
       }
     >({
       query: ({ leadId, stage, currentLead }) => ({
-        url: "/leads/update",
+        url: "/leads/update/",
         method: "PUT",
         body: {
           lead_id: leadId,
@@ -860,7 +821,6 @@ export const leadsApi = createApi({
       },
     }),
 
-    // Multi-assignment endpoints
     assignLeadToMultipleUsers: builder.mutation<
       MultiAssignResponse,
       {
@@ -870,7 +830,7 @@ export const leadsApi = createApi({
       }
     >({
       query: ({ leadId, userEmails, reason }) => ({
-        url: `/leads/leads/${leadId}/assign-multiple`,
+        url: `/leads/leads/${leadId}/assign-multiple/`,
         method: "POST",
         body: {
           user_emails: userEmails,
@@ -895,7 +855,7 @@ export const leadsApi = createApi({
       }
     >({
       query: ({ leadId, userEmail, reason }) => ({
-        url: `/leads/leads/${leadId}/remove-user`,
+        url: `/leads/leads/${leadId}/remove-user/`,
         method: "DELETE",
         body: {
           user_email: userEmail,
@@ -916,7 +876,7 @@ export const leadsApi = createApi({
       BulkAssignSelectiveRequest
     >({
       query: (body) => ({
-        url: "/leads/assignment/bulk-assign-selective",
+        url: "/leads/assignment/bulk-assign-selective/",
         method: "POST",
         body,
       }),
@@ -932,7 +892,7 @@ export const leadsApi = createApi({
       SelectiveRoundRobinTestRequest
     >({
       query: (body) => ({
-        url: "/leads/assignment/selective-round-robin/test",
+        url: "/leads/assignment/selective-round-robin/test/",
         method: "POST",
         body,
       }),
@@ -947,12 +907,12 @@ export const leadsApi = createApi({
         if (params.selected_users) {
           searchParams.append("selected_users", params.selected_users);
         }
-        return `/leads/assignment/round-robin-preview?${searchParams.toString()}`;
+        return `/leads/assignment/round-robin-preview/?${searchParams.toString()}`;
       },
     }),
 
     getLeadAssignmentDetails: builder.query<AssignmentDetailsResponse, string>({
-      query: (leadId) => `/leads/leads/${leadId}/assignments`,
+      query: (leadId) => `/leads/leads/${leadId}/assignments/`,
       providesTags: (result, error, leadId) => [
         { type: "LeadDetails", id: leadId },
       ],
