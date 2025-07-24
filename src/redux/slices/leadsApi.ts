@@ -2,6 +2,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
 import { Lead } from "@/models/types/lead";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 // Updated interfaces to match new backend structure
 interface ApiLead {
@@ -369,7 +371,7 @@ export interface BulkLeadData {
 }
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
+  baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
@@ -489,7 +491,7 @@ export const leadsApi = createApi({
           }
         });
         const url = `/leads?${searchParams.toString()}`;
-        console.log("🔍 API URL being called:", url);
+        // console.log("🔍 API URL being called:", url);
         return url;
       },
       // 🔥 ADD THIS: Force RTK Query to treat different params as different queries
@@ -500,11 +502,11 @@ export const leadsApi = createApi({
         }-status=${queryArgs.lead_status || "all"}-search=${
           queryArgs.search || ""
         }`;
-        console.log("🔍 Cache key:", cacheKey);
+        // console.log("🔍 Cache key:", cacheKey);
         return cacheKey;
       },
       transformResponse: (response: unknown) => {
-        console.log("🔍 Raw API Response in transformResponse:", response);
+        // console.log("🔍 Raw API Response in transformResponse:", response);
 
         // Type guard to check if response has the expected structure
         const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
@@ -537,18 +539,18 @@ export const leadsApi = createApi({
             has_next: response.has_next,
             has_prev: response.has_prev,
           };
-          console.log("🔍 Transformed paginated response:", result);
+          // console.log("🔍 Transformed paginated response:", result);
           return result;
         } else if (isValidResponse(response)) {
           const result = response.leads.map(transformApiLead);
-          console.log("🔍 Transformed array response:", result.length, "leads");
+          // console.log("🔍 Transformed array response:", result.length, "leads");
           return result;
         } else if (Array.isArray(response)) {
           const result = response.map(transformApiLead);
-          console.log("🔍 Transformed direct array:", result.length, "leads");
+          // console.log("🔍 Transformed direct array:", result.length, "leads");
           return result;
         }
-        console.log("🔍 No valid data found in response");
+        // console.log("🔍 No valid data found in response");
         return [];
       },
       providesTags: (result) => [
@@ -581,7 +583,7 @@ export const leadsApi = createApi({
           }
         });
         const url = `/leads/my-leads?${searchParams.toString()}`;
-        console.log("🔍 My Leads API URL being called:", url);
+        // console.log("🔍 My Leads API URL being called:", url);
         return url;
       },
       // 🔥 ADD THIS: Force unique cache keys
@@ -591,11 +593,11 @@ export const leadsApi = createApi({
         }-status=${queryArgs.lead_status || "all"}-search=${
           queryArgs.search || ""
         }`;
-        console.log("🔍 My Leads Cache key:", cacheKey);
+        // console.log("🔍 My Leads Cache key:", cacheKey);
         return cacheKey;
       },
       transformResponse: (response: unknown) => {
-        console.log("🔍 My Leads Raw API Response:", response);
+        // console.log("🔍 My Leads Raw API Response:", response);
 
         // Type guard functions
         const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
@@ -628,26 +630,26 @@ export const leadsApi = createApi({
             has_next: response.has_next,
             has_prev: response.has_prev,
           };
-          console.log("🔍 My Leads Transformed paginated response:", result);
+          // console.log("🔍 My Leads Transformed paginated response:", result);
           return result;
         } else if (isValidResponse(response)) {
           const result = response.leads.map(transformApiLead);
-          console.log(
-            "🔍 My Leads Transformed array response:",
-            result.length,
-            "leads"
-          );
+          // console.log(
+          //   "🔍 My Leads Transformed array response:",
+          //   result.length,
+          //   "leads"
+          // );
           return result;
         } else if (Array.isArray(response)) {
-          const result = response.map(transformApiLead);
-          console.log(
-            "🔍 My Leads Transformed direct array:",
-            result.length,
-            "leads"
-          );
-          return result;
+          // const result = response.map(transformApiLead);
+          // console.log(
+          //   "🔍 My Leads Transformed direct array:",
+          //   result.length,
+          //   "leads"
+          // );
+          // return result;
         }
-        console.log("🔍 My Leads: No valid data found in response");
+        // console.log("🔍 My Leads: No valid data found in response");
         return [];
       },
       providesTags: (result) => [

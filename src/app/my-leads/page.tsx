@@ -33,7 +33,7 @@ export default function DemoPage() {
   // 🔥 ADDED: Create columns with router
   const columns = useMemo(() => createColumns(router), [router]);
 
-  console.log("🔍 Current pagination state:", { currentPage, pageSize });
+  // console.log("🔍 Current pagination state:", { currentPage, pageSize });
 
   // 🔥 MODIFY EXISTING QUERIES TO INCLUDE PAGINATION PARAMS
 
@@ -74,7 +74,7 @@ export default function DemoPage() {
   const error = isAdmin ? adminError : userError;
   const refetch = isAdmin ? refetchAdmin : refetchUser;
 
-  console.log("🔍 Raw API Response:", leadsResponse);
+  // console.log("🔍 Raw API Response:", leadsResponse);
 
   const { leads, paginationMeta } = useMemo(() => {
     let extractedLeads: Lead[] = [];
@@ -84,10 +84,10 @@ export default function DemoPage() {
       if (Array.isArray(leadsResponse)) {
         // Old format: just array of leads
         extractedLeads = leadsResponse;
-        console.log(
-          "🔍 Using old array format, leads count:",
-          extractedLeads.length
-        );
+        // console.log(
+        //   "🔍 Using old array format, leads count:",
+        //   extractedLeads.length
+        // );
       } else if (leadsResponse.leads) {
         // New format: paginated response
         extractedLeads = leadsResponse.leads;
@@ -98,10 +98,10 @@ export default function DemoPage() {
           has_next: leadsResponse.has_next || false,
           has_prev: leadsResponse.has_prev || false,
         };
-        console.log("🔍 Using paginated format:", {
-          leadsCount: extractedLeads.length,
-          paginationMeta: extractedPaginationMeta,
-        });
+        // console.log("🔍 Using paginated format:", {
+        //   leadsCount: extractedLeads.length,
+        //   paginationMeta: extractedPaginationMeta,
+        // });
       }
     }
 
@@ -109,7 +109,7 @@ export default function DemoPage() {
   }, [leadsResponse, currentPage, pageSize]);
 
   // 🔥 ADD: Debug leads BEFORE applying filters
-  console.log("🔍 Leads BEFORE applying filters:", leads.length, leads);
+  // console.log("🔍 Leads BEFORE applying filters:", leads.length, leads);
 
   // Apply filters (KEEP EXISTING BUT ADD DEBUGGING)
   const filteredLeadsSelector = useMemo(
@@ -146,7 +146,7 @@ export default function DemoPage() {
 
     // 🔥 FORCE REFETCH AFTER STATE UPDATE
     setTimeout(() => {
-      console.log("🔄 Force refetching after page change...");
+      // console.log("🔄 Force refetching after page change...");
       refetch();
     }, 100);
   };
@@ -158,7 +158,7 @@ export default function DemoPage() {
 
     // 🔥 FORCE REFETCH AFTER STATE UPDATE
     setTimeout(() => {
-      console.log("🔄 Force refetching after page size change...");
+      // console.log("🔄 Force refetching after page size change...");
       refetch();
     }, 100);
   };

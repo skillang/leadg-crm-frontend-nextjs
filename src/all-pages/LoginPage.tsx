@@ -7,6 +7,20 @@ import { useLoginMutation } from "@/redux/slices/authApi";
 import { setAuthState, clearError, setError } from "@/redux/slices/authSlice";
 import { z } from "zod";
 import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+
+// Define proper error types based on your API structure
+interface ApiErrorData {
+  detail?: string;
+  message?: string;
+  error?: string;
+}
+
+// Type for RTK Query errors with proper API error data
+type RTKQueryError = FetchBaseQueryError & {
+  status?: number;
+  data?: ApiErrorData;
+};
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -111,18 +125,29 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const getErrorMessage = (error: any): string => {
+  const getErrorMessage = (error: RTKQueryError | unknown): string => {
     // Handle different error types
     if (typeof error === "string") {
       return error;
     }
 
-    // Handle RTK Query error structure
-    if (error?.data) {
-      const errorData = error.data;
+    // Type guard to check if error has RTK Query structure
+    const hasRTKQueryStructure = (err: unknown): err is FetchBaseQueryError => {
+      return typeof err === "object" && err !== null && "status" in err;
+    };
+
+    if (!hasRTKQueryStructure(error)) {
+      return "An unexpected error occurred. Please try again.";
+    }
+
+    const rtkError = error as RTKQueryError;
+
+    // Handle RTK Query error structure with status as number
+    if (typeof rtkError.status === "number" && rtkError.data) {
+      const errorData = rtkError.data as ApiErrorData;
 
       // Handle FastAPI validation errors (422)
-      if (error.status === 422 && errorData?.detail) {
+      if (rtkError.status === 422 && errorData?.detail) {
         if (Array.isArray(errorData.detail)) {
           // Field validation errors
           return "Please check your email and password format.";
@@ -132,7 +157,7 @@ const LoginPage: React.FC = () => {
       }
 
       // Handle authentication errors (401)
-      if (error.status === 401) {
+      if (rtkError.status === 401) {
         return "Wrong email or password. Please try again.";
       }
 
@@ -177,8 +202,8 @@ const LoginPage: React.FC = () => {
     }
 
     // Handle different HTTP status codes
-    if (error?.status) {
-      switch (error.status) {
+    if (typeof rtkError.status === "number") {
+      switch (rtkError.status) {
         case 400:
           return "Invalid request. Please check your input.";
         case 401:
@@ -202,12 +227,18 @@ const LoginPage: React.FC = () => {
       }
     }
 
-    // Handle network errors
-    if (error?.message) {
-      if (error.message.includes("fetch")) {
-        return "Connection error. Please check your internet connection.";
+    // Handle non-numeric status codes (like "FETCH_ERROR", "TIMEOUT_ERROR")
+    if (typeof rtkError.status === "string") {
+      switch (rtkError.status) {
+        case "FETCH_ERROR":
+          return "Connection error. Please check your internet connection.";
+        case "TIMEOUT_ERROR":
+          return "Request timed out. Please try again.";
+        case "PARSING_ERROR":
+          return "Server response error. Please try again.";
+        default:
+          return "Network error. Please try again.";
       }
-      return error.message;
     }
 
     // Fallback for unknown errors
@@ -225,12 +256,12 @@ const LoginPage: React.FC = () => {
       // Clear any existing validation errors
       setValidationErrors({});
 
-      console.log("Attempting login with:", { email: validatedData.email }); // Debug log
+      // console.log("Attempting login with:", { email: validatedData.email }); // Debug log
 
       // Use RTK Query mutation
       const result = await login(validatedData).unwrap();
 
-      console.log("Login successful:", result); // Debug log
+      // console.log("Login successful:", result); // Debug log
 
       // Store in localStorage for persistence
       localStorage.setItem("access_token", result.access_token);
@@ -240,8 +271,8 @@ const LoginPage: React.FC = () => {
       dispatch(setAuthState(result));
 
       // Success feedback could be added here if needed
-      console.log("Login completed successfully");
-    } catch (err: any) {
+      // console.log("Login completed successfully");
+    } catch (err: unknown) {
       if (err instanceof z.ZodError) {
         // Handle Zod validation errors
         const errors: LoginFormErrors = {};
@@ -266,7 +297,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const hasValidationErrors = Object.keys(validationErrors).length > 0;
   const isFormDisabled = loginLoading || isSubmitting;
 
   return (

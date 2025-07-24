@@ -9,8 +9,6 @@ import {
   useCreateStageMutation,
   useUpdateStageMutation,
   useDeleteStageMutation,
-  useActivateStageMutation,
-  useDeactivateStageMutation,
   useReorderStagesMutation,
   useSetupDefaultStagesMutation,
 } from "@/redux/slices/stagesApi";
@@ -100,8 +98,8 @@ const StageManagementPage = () => {
   const [createStage] = useCreateStageMutation();
   const [updateStage] = useUpdateStageMutation();
   const [deleteStage] = useDeleteStageMutation();
-  const [activateStage] = useActivateStageMutation();
-  const [deactivateStage] = useDeactivateStageMutation();
+  // const [activateStage] = useActivateStageMutation();
+  // const [deactivateStage] = useDeactivateStageMutation();
   const [reorderStages] = useReorderStagesMutation();
   const [setupDefaultStages] = useSetupDefaultStagesMutation();
 
@@ -233,18 +231,18 @@ const StageManagementPage = () => {
     );
 
     try {
-      let result;
+      // let result;
       if (currentlyActive) {
         // Currently active, so deactivate it
-        console.log("Calling deactivateStage...");
-        result = await deactivateStage(stageId).unwrap();
-        console.log("Deactivate result:", result);
+        // console.log("Calling deactivateStage...");
+        // result = await deactivateStage(stageId).unwrap();
+        // console.log("Deactivate result:", result);
         showSuccess("Stage deactivated successfully!");
       } else {
         // Currently inactive, so activate it
-        console.log("Calling activateStage...");
-        result = await activateStage(stageId).unwrap();
-        console.log("Activate result:", result);
+        // console.log("Calling activateStage...");
+        // result = await activateStage(stageId).unwrap();
+        // console.log("Activate result:", result);
         showSuccess("Stage activated successfully!");
       }
     } catch (error: unknown) {
