@@ -21,6 +21,7 @@ import {
   UserRoundCog,
   ChevronUp,
   Globe,
+  Mail,
 } from "lucide-react";
 import {
   Sidebar,
@@ -84,6 +85,11 @@ const mainMenuItems = [
     title: "Settings",
     url: "#",
     icon: Settings,
+  },
+  {
+    title: "Bulk Email",
+    url: "/bulk/emails",
+    icon: Mail,
   },
 ];
 

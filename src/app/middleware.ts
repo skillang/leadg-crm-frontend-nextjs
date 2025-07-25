@@ -1,4 +1,4 @@
-// src/app/middleware.ts (UPDATED with stages route)
+// src/app/middleware.ts - Updated with email routes
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Admin routes that require admin privileges - UPDATED to include stages
+  // Admin routes that require admin privileges
   const adminRoutes = [
     "/admin/register-user",
     "/admin/users",
@@ -23,7 +23,8 @@ export function middleware(request: NextRequest) {
     "/admin/reports",
     "/admin/departments",
     "/admin/lead-categories",
-    "/admin/stages", // ADDED: New stages admin route
+    "/admin/stages",
+    "/admin/email-settings", // Admin email settings
   ];
 
   // Protected routes that require authentication
@@ -34,6 +35,9 @@ export function middleware(request: NextRequest) {
     "/tasks",
     "/reports",
     "/profile",
+    "/bulk", // ✅ Added bulk email route
+    "/emails", // ✅ Added email management routes
+    "/bulk/emails",
     ...adminRoutes,
   ];
 

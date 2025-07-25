@@ -1,5 +1,6 @@
 // src/redux/store/index.ts (UPDATED with StatusesApi)
 import { configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/query";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import { combineReducers } from "@reduxjs/toolkit";
@@ -20,6 +21,8 @@ import { whatsappApi } from "../slices/whatsappApi";
 import { courseLevelsApi } from "../slices/courseLevelsApi";
 import { experienceLevelsApi } from "../slices/experienceLevelsApi";
 import { sourcesApi } from "../slices/sourcesApi";
+import emailReducer from "../slices/emailSlice";
+import { emailApi } from "../slices/emailApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -50,6 +53,8 @@ const rootReducer = combineReducers({
   // UI state
   leads: leadsReducer,
   auth: authReducer,
+  email: emailReducer,
+  emailApi: emailApi.reducer,
 });
 
 // Create persisted reducer
@@ -84,11 +89,13 @@ export const store = configureStore({
       courseLevelsApi.middleware,
       experienceLevelsApi.middleware,
       whatsappApi.middleware,
-      sourcesApi.middleware
+      sourcesApi.middleware,
+      emailApi.middleware // Add email API middleware
     ),
 });
 
 export const persistor = persistStore(store);
+setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

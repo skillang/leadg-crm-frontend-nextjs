@@ -1,4 +1,4 @@
-// src/app/my-leads/[leadId]/page.tsx - Updated with Original UI Design
+// src/app/my-leads/[leadId]/page.tsx - Updated with constants
 
 "use client";
 
@@ -8,13 +8,7 @@ import { ArrowLeft, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useGetLeadDetailsQuery,
   useUpdateLeadStageMutation,
@@ -22,95 +16,31 @@ import {
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { StageDisplay, useStageUtils } from "@/components/common/StageDisplay";
-// import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Lead } from "@/models/types/lead";
 import WhatsAppButton from "@/components/whatsapp/WhatsAppButton";
 import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
-
-// Import tab components
+import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
+import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
 import NotesContainer from "@/components/notes/NotesContainer";
 import TasksContainer from "@/components/tasks/TasksContainer";
 import DocumentsContainer from "@/components/documents/DocumentsContainer";
 import TimelineContainer from "@/components/timeline/TimelineContainer";
 import ContactsContainer from "@/components/contacts/ContactsContainer";
 import { formatDate } from "@/utils/formatDate";
-
-// Simple Card components
-const Card = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className={`rounded-lg border bg-white shadow-sm ${className}`}>
-    {children}
-  </div>
-);
-
-const CardHeader = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
-);
-
-const CardTitle = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <h3
-    className={`text-lg font-semibold leading-none tracking-tight ${className}`}
-  >
-    {children}
-  </h3>
-);
-
-const CardContent = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
-
-// Priority badge colors
-const getPriorityColor = (priority: string) => {
-  switch (priority.toLowerCase()) {
-    case "high":
-      return "bg-red-100 text-red-800";
-    case "medium":
-      return "bg-yellow-100 text-yellow-800";
-    case "low":
-      return "bg-green-100 text-green-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
-
-// Tab definitions
-const tabs = [
-  { id: "tasks", label: "Tasks & reminders" },
-  { id: "notes", label: "Notes" },
-  { id: "timeline", label: "Timeline" },
-  { id: "documents", label: "Documents" },
-  { id: "activity", label: "Activity log" },
-  { id: "contacts", label: "Contacts" },
-];
-
-// Format date
+import { StatusSelect } from "@/components/common/StatusSelect";
+import { StageSelect } from "@/components/common/StageSelect";
+import {
+  getPriorityColor,
+  LEAD_DETAIL_TABS,
+  type TabDefinition,
+} from "@/constants/leadDetailsConfig";
 
 export default function LeadDetailsPage() {
   const [activeTab, setActiveTab] = useState("tasks");
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const params = useParams();
   const router = useRouter();
@@ -126,6 +56,9 @@ export default function LeadDetailsPage() {
     useGetActiveStagesQuery({});
   const [updateStage] = useUpdateLeadStageMutation();
   const { getStageDisplayName } = useStageUtils();
+  const { data: statusesData, isLoading: statusesLoading } =
+    useGetActiveStatusesQuery({});
+  const [updateLead] = useUpdateLeadMutation();
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const { showSuccess, showError, showWarning } = useNotifications();
@@ -153,14 +86,53 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // WhatsApp handler with notification instead of alert
-  // const handleWhatsApp = () => {
-  //   if (!leadDetails?.phoneNumber) {
-  //     showError("No phone number available for this lead");
-  //     return;
-  //   }
-  //   showWarning("WhatsApp chat is not available yet", "Feature Coming soon");
-  // };
+  const handleStatusChange = async (newStatus: string) => {
+    if (!leadDetails || newStatus === leadDetails.status) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      await updateLead({
+        lead_id: leadDetails.leadId,
+        leadData: {
+          status: newStatus,
+        },
+      }).unwrap();
+
+      const selectedStatus = statusesData?.statuses.find(
+        (s) => s.name === newStatus
+      );
+      const statusDisplayName = selectedStatus?.display_name || newStatus;
+
+      showSuccess(
+        `${leadDetails.name}'s status updated to "${statusDisplayName}"`,
+        "Lead Status updated successfully!"
+      );
+
+      refetch();
+    } catch (err: unknown) {
+      const error = err as {
+        message?: string;
+        data?: { detail?: { msg: string }[] | string };
+      };
+
+      let errorMessage = "Failed to update status";
+      if (error?.data?.detail) {
+        if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail
+            .map((e: { msg: string }) => e.msg)
+            .join(", ");
+        } else if (typeof error.data.detail === "string") {
+          errorMessage = error.data.detail;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showError(`Failed to update status: ${errorMessage}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   // Create data for WhatsApp components
   const whatsappLeadData = leadDetails
@@ -262,7 +234,7 @@ export default function LeadDetailsPage() {
   };
 
   // Loading state
-  if (isLoading || stagesLoading) {
+  if (isLoading || stagesLoading || statusesLoading) {
     return (
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-center h-64">
@@ -363,7 +335,7 @@ export default function LeadDetailsPage() {
 
         {/* Lead Header - Top Bar */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex items justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
@@ -380,60 +352,41 @@ export default function LeadDetailsPage() {
                     Priority
                   </Badge>
                 )}
-
-                {/* Tags */}
-                {/* {leadDetails.tags &&
-                  leadDetails.tags.map((tag, index) => (
-                    <Badge
-                      key={index}
-                      className="bg-blue-100 text-blue-800 text-sm"
-                    >
-                      {tag}
-                    </Badge>
-                  ))} */}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-end gap-2">
               {/* Stage Dropdown using Select with StageDisplay */}
               <div className="relative">
-                {stagesData?.stages?.length ? (
-                  <Select
-                    value={leadDetails.stage}
-                    onValueChange={handleStageChange}
-                    disabled={isUpdatingStage}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue>
-                        <StageDisplay
-                          stageName={leadDetails.stage}
-                          size="sm"
-                          showColor={true}
-                        />
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stagesData.stages.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.name}>
-                          <StageDisplay
-                            stageName={stage.name}
-                            size="sm"
-                            showColor={true}
-                          />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex items-center justify-center w-[160px] h-8">
-                    <span className="text-sm text-gray-500">
-                      Loading stages...
-                    </span>
-                  </div>
-                )}
+                <StageSelect
+                  value={leadDetails.stage}
+                  onValueChange={handleStageChange}
+                  stages={stagesData?.stages || []}
+                  disabled={isUpdatingStage}
+                  isLoading={stagesLoading}
+                  placeholder="Select stage"
+                  className="w-[160px]"
+                />
                 {isUpdatingStage && (
                   <div className="absolute top-full left-0 mt-1 p-2 bg-blue-100 border border-blue-200 rounded text-xs text-blue-600 z-10">
                     Updating stage...
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <StatusSelect
+                  value={leadDetails.status || "active"}
+                  onValueChange={handleStatusChange}
+                  statuses={statusesData?.statuses || []}
+                  disabled={isUpdatingStatus}
+                  isLoading={statusesLoading}
+                  placeholder="Select status"
+                  className="w-[160px]"
+                />
+                {isUpdatingStatus && (
+                  <div className="absolute top-full left-0 mt-1 p-2 bg-green-100 border border-green-200 rounded text-xs text-green-600 z-10">
+                    Updating status...
                   </div>
                 )}
               </div>
@@ -657,27 +610,6 @@ export default function LeadDetailsPage() {
                       </TableCell>
                     </TableRow>
 
-                    {/* <TableRow className="border-b">
-                      <TableCell className="font-medium text-gray-500 py-3 px-6">
-                        Lead Score:
-                      </TableCell>
-                      <TableCell className="py-3 px-6">
-                        <Badge
-                          className={`${
-                            leadDetails.leadScore >= 80
-                              ? "bg-green-100 text-green-800"
-                              : leadDetails.leadScore >= 60
-                              ? "bg-yellow-100 text-yellow-800"
-                              : leadDetails.leadScore >= 40
-                              ? "bg-orange-100 text-orange-800"
-                              : "bg-red-100 text-red-800"
-                          } text-lg px-3 py-1`}
-                        >
-                          {leadDetails.leadScore}
-                        </Badge>
-                      </TableCell>
-                    </TableRow> */}
-
                     <TableRow className="border-b">
                       <TableCell className="font-medium text-gray-500 py-3 px-6">
                         Created on:
@@ -689,7 +621,7 @@ export default function LeadDetailsPage() {
                       </TableCell>
                     </TableRow>
 
-                    <TableRow className="border-b">
+                    <TableRow>
                       <TableCell className="font-medium text-gray-500 py-3 px-6">
                         Last contacted:
                       </TableCell>
@@ -755,7 +687,7 @@ export default function LeadDetailsPage() {
               {/* Tab Navigation */}
               <div className="border-b">
                 <div className="flex space-x-8 px-6">
-                  {tabs.map((tab) => (
+                  {LEAD_DETAIL_TABS.map((tab: TabDefinition) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}

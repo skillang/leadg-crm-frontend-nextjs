@@ -1,13 +1,7 @@
 // src/app/my-leads/columns.tsx - FIXED: Function Factory Pattern
 
 import { ColumnDef, Row } from "@tanstack/react-table";
-import {
-  ArrowUpDown,
-  MoreHorizontal,
-  Loader2,
-  Mail,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,12 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useState } from "react";
 import { Lead } from "@/models/types/lead";
@@ -34,71 +22,12 @@ import {
 } from "@/redux/slices/leadsApi";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
-import { StageDisplay } from "@/components/common/StageDisplay";
 import EditLeadModal from "@/components/leads/EditLeadModal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// Email cell component (UNCHANGED)
-const EmailCell = ({ email }: { email?: string }) => {
-  const [isCopied, setIsCopied] = useState(false);
-
-  const handleEmailClick = async () => {
-    if (!email) return;
-
-    try {
-      await navigator.clipboard.writeText(email);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy email:", error);
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-600 truncate max-w-[150px]">
-        {email || "No email"}
-      </span>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleEmailClick}
-              className="p-1 h-6 w-6"
-            >
-              <Mail
-                className={`h-3 w-3 ${
-                  email
-                    ? isCopied
-                      ? "text-green-600"
-                      : "text-blue-600 hover:text-blue-700"
-                    : "text-gray-300"
-                }`}
-              />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>
-              {isCopied
-                ? "Copied!"
-                : email
-                ? `Email ${email}`
-                : "No email address"}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
-};
+import Image from "next/image";
+import { StageSelect } from "@/components/common/StageSelect";
+import { StatusSelect } from "@/components/common/StatusSelect";
+import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
+import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 
 // StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
@@ -167,28 +96,16 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 
   return (
     <div className="relative">
-      <Select
+      <StageSelect
         value={stage}
         onValueChange={handleStageChange}
+        stages={stagesData?.stages || []}
         disabled={isLoading}
-      >
-        <SelectTrigger className="w-[140px]">
-          <SelectValue>
-            <StageDisplay stageName={stage} size="sm" showColor={true} />
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {stagesData?.stages.map((apiStage) => (
-            <SelectItem key={apiStage.id} value={apiStage.name}>
-              <StageDisplay
-                stageName={apiStage.name}
-                size="sm"
-                showColor={true}
-              />
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        isLoading={stagesLoading}
+        placeholder="Select stage"
+        className="w-[140px]"
+        showLabel={false}
+      />
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded">
@@ -318,10 +235,95 @@ const ViewDetailsCell = ({
       variant="ghost"
       size="sm"
       onClick={() => router.push(`/my-leads/${leadId}`)}
-      className="p-2 hover:bg-blue-50"
+      className="p-2 hover:bg-gray-50 border-2 cursor-pointer"
     >
-      <ArrowRight className="h-4 w-4 text-blue-600" />
+      <ArrowRight className="h-4 w-4 text-gray-600 " />
     </Button>
+  );
+};
+
+// Add this component before createColumns function
+const StatusSelectCell = ({ row }: { row: Row<Lead> }) => {
+  const [updateLeadStatus, { isLoading }] = useUpdateLeadMutation(); // You'll need to create this
+  const { showSuccess, showError } = useNotifications();
+
+  const { data: statusesData, isLoading: statusesLoading } =
+    useGetActiveStatusesQuery({}); // You'll need to create this
+
+  const status = row.getValue("status") as string;
+  const currentLead = row.original;
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === status) return;
+
+    try {
+      await updateLeadStatus({
+        lead_id: currentLead.id,
+        status: newStatus,
+        currentLead,
+      }).unwrap();
+
+      const selectedStatus = statusesData?.statuses.find(
+        (s) => s.name === newStatus
+      );
+      const statusDisplayName = selectedStatus?.display_name || newStatus;
+
+      showSuccess(
+        `${currentLead.name}'s status updated to "${statusDisplayName}"`,
+        "Lead Status updated successfully!"
+      );
+    } catch (err: unknown) {
+      const error = err as {
+        message?: string;
+        data?: { detail?: { msg: string }[] | string };
+      };
+
+      let errorMessage = "Failed to update status";
+      if (error?.data?.detail) {
+        if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail
+            .map((e: { msg: string }) => e.msg)
+            .join(", ");
+        } else if (typeof error.data.detail === "string") {
+          errorMessage = error.data.detail;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showError(
+        `Failed to update ${currentLead.name}'s status: ${errorMessage}`
+      );
+    }
+  };
+
+  if (statusesLoading) {
+    return (
+      <div className="flex items-center justify-center w-[120px] h-8">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <StatusSelect
+        value={status}
+        onValueChange={handleStatusChange}
+        statuses={statusesData?.statuses || []}
+        disabled={isLoading}
+        isLoading={statusesLoading}
+        placeholder="Select status"
+        className="w-[140px]"
+        showLabel={false}
+      />
+
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -380,15 +382,47 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
   {
     accessorKey: "contact",
     header: "Contact",
+    // enableResizing: true,
+    minSize: 100,
+    maxSize: 200,
     cell: ({ row }) => (
-      <div className="font-mono text-sm">{row.getValue("contact")}</div>
+      // <div className="font-mono text-sm">{row.getValue("contact")}</div>
+      <div className="flex flex-column gap-2">
+        <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer">
+          <Image
+            src="/assets/icons/call-icon.svg"
+            alt="WhatsApp Icon"
+            width={16}
+            height={16}
+          />
+        </Badge>
+        <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer">
+          <Image
+            src="/assets/icons/email-icon.svg"
+            alt="WhatsApp Icon"
+            width={16}
+            height={16}
+          />
+        </Badge>
+        <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer">
+          <Image
+            src="/assets/icons/whatsapp-icon.svg"
+            alt="WhatsApp Icon"
+            width={16}
+            height={16}
+          />
+        </Badge>
+      </div>
     ),
+    meta: {
+      className: "w-auto", // This helps with auto-sizing
+    },
   },
-  {
-    accessorKey: "email",
-    header: "Email",
-    cell: ({ row }) => <EmailCell email={row.getValue("email")} />,
-  },
+  // {
+  //   accessorKey: "email",
+  //   header: "Email",
+  //   cell: ({ row }) => <EmailCell email={row.getValue("email")} />,
+  // },
   {
     accessorKey: "source",
     header: "Source",
@@ -399,6 +433,9 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
           {source}
         </Badge>
       );
+    },
+    meta: {
+      className: "w-auto", // This helps with auto-sizing
     },
   },
   {
@@ -414,6 +451,20 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     ),
     cell: ({ row }) => <StageSelectCell row={row} />,
   },
+  {
+    accessorKey: "status",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Status
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <StatusSelectCell row={row} />,
+  },
+
   {
     id: "view_details",
     header: "View More",
@@ -505,7 +556,7 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
 ];
 
 // DEPRECATED: Keep this for backward compatibility but mark as deprecated
-export const columns: ColumnDef<Lead>[] = [];
-console.warn(
-  "Using deprecated 'columns' export. Use 'createColumns(router)' instead."
-);
+// export const columns: ColumnDef<Lead>[] = [];
+// console.warn(
+//   "Using deprecated 'columns' export. Use 'createColumns(router)' instead."
+// );

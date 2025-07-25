@@ -38,6 +38,8 @@ import MultiSelect, {
 import CourseLevelDropdown from "../common/CourseLevelDropdown";
 import ExperienceLevelDropdown from "../common/ExperienceLevelDropdown";
 import SourceDropdown from "../common/SourceDropdown";
+import { StageSelect } from "../common/StageSelect";
+import { StatusSelect } from "../common/StatusSelect";
 
 // ✅ FIXED: Helper function to convert countries array to string for backend
 const formatCountriesForBackend = (countries: string[]): string => {
@@ -767,66 +769,27 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
               {/* Status & Tags Tab */}
               <TabsContent value="status" className="space-y-4 mt-0">
                 <div className="grid grid-cols-2 gap-4">
+                  <StageSelect
+                    value={formData.stage}
+                    onValueChange={(value) => handleInputChange("stage", value)}
+                    stages={stages}
+                    disabled={isCreating}
+                    isLoading={isLoadingStages}
+                    required={true}
+                    error={errors.stage}
+                  />
+
                   <div className="space-y-2">
-                    <Label htmlFor="stage">
-                      Stage <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={formData.stage}
-                      onValueChange={(value) =>
-                        handleInputChange("stage", value)
-                      }
-                      disabled={isCreating || isLoadingStages}
-                    >
-                      <SelectTrigger
-                        className={errors.stage ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select stage" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stages.map((stage) => (
-                          <SelectItem key={stage.id} value={stage.name}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: stage.color }}
-                              />
-                              {stage.display_name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.stage && (
-                      <p className="text-sm text-red-500">{errors.stage}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
+                    <StatusSelect
                       value={formData.status}
                       onValueChange={(value) =>
                         handleInputChange("status", value)
                       }
-                      disabled={isCreating || isLoadingStatuses}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statuses.map((status) => (
-                          <SelectItem key={status.id} value={status.name}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: status.color }}
-                              />
-                              {status.display_name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      statuses={statuses}
+                      disabled={isCreating}
+                      isLoading={isLoadingStatuses}
+                      error={errors.status}
+                    />
                   </div>
 
                   <div className="space-y-2">

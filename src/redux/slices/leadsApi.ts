@@ -227,9 +227,10 @@ export interface CreateLeadApiRequest {
 // Enhanced update lead request with multi-assignment
 interface UpdateLeadRequest {
   lead_id: string;
-  name: string;
-  lead_score: number;
-  stage: string;
+  name?: string;
+  lead_score?: number;
+  stage?: string;
+  status?: string;
   email?: string;
   contact_number?: string;
   source?: string;

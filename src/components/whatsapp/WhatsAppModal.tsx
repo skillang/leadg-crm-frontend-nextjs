@@ -217,8 +217,8 @@ const WhatsAppModal: React.FC = () => {
                     Contact validation required
                   </p>
                   <p className="text-xs text-red-600 dark:text-red-400">
-                    Please check the "Basic Info" tab to wait for contact before
-                    sending messages.
+                    Please check the &quot;Basic Info&quot; tab to wait for
+                    contact before sending messages.
                   </p>
                 </div>
               ) : (

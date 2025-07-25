@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/table";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
@@ -51,7 +50,6 @@ import {
   DownloadIcon,
   Grid2X2PlusIcon,
   SlidersHorizontalIcon,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -69,16 +67,6 @@ import {
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
 import MultiSelect from "@/components/common/MultiSelect";
-
-// Type definitions for Lead data
-interface LeadData {
-  id: string;
-  name: string;
-  stage: string;
-  email?: string;
-  contact?: string;
-  [key: string]: unknown;
-}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
