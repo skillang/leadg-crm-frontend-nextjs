@@ -172,25 +172,6 @@ const WhatsAppTemplateMessage: React.FC = () => {
       )
     : true; // If no parameters required, consider it filled
 
-  // Debug logging to help troubleshoot
-  React.useEffect(() => {
-    console.log("Template Debug Info:", {
-      selectedTemplate,
-      selectedTemplateData,
-      templateParameters,
-      allParametersFilled,
-      hasParameters: selectedTemplateData?.parameters?.length,
-      parameters: selectedTemplateData?.parameters,
-      currentLead: currentLead?.phoneNumber,
-    });
-  }, [
-    selectedTemplate,
-    selectedTemplateData,
-    templateParameters,
-    allParametersFilled,
-    currentLead,
-  ]);
-
   // Render loading state
   if (isLoadingTemplates) {
     return (

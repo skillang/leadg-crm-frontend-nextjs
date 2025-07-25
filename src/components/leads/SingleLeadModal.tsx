@@ -480,10 +480,10 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         payload.basic_info.current_location = formData.current_location;
       }
 
-      console.log(
-        "🚀 Creating lead with payload:",
-        JSON.stringify(payload, null, 2)
-      );
+      // console.log(
+      //   "🚀 Creating lead with payload:",
+      //   JSON.stringify(payload, null, 2)
+      // );
 
       // ✅ FIXED: Handle different assignment modes properly
       let result;

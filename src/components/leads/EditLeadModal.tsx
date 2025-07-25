@@ -457,7 +457,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
         updateData.assignment_method = "manual by admin";
       }
 
-      console.log("Sending update data:", updateData);
+      // console.log("Sending update data:", updateData);
 
       // 🔥 FIXED: The updateData now properly matches UpdateLeadRequest interface
       await updateLead(updateData).unwrap();

@@ -67,8 +67,6 @@ const baseQueryWithLogging: BaseQueryFn<
       status: result.error.status,
       data: result.error.data,
     });
-  } else {
-    console.log("✅ API Success:", result.data);
   }
 
   return result;

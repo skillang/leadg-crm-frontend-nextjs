@@ -226,9 +226,9 @@ const StageManagementPage = () => {
     stageId: string,
     currentlyActive: boolean
   ) => {
-    console.log(
-      `Toggling stage ${stageId}, currently active: ${currentlyActive}`
-    );
+    // console.log(
+    //   `Toggling stage ${stageId}, currently active: ${currentlyActive}`
+    // );
 
     try {
       // let result;

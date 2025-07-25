@@ -363,7 +363,7 @@ export default function LeadDetailsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-end gap-2">
               {/* Stage Dropdown using Select with StageDisplay */}
               <div className="relative">
                 <StageSelect
