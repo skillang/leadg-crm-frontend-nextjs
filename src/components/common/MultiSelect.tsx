@@ -40,6 +40,12 @@ interface MultiSelectProps {
   maxDisplayItems?: number; // How many items to show before "X more"
   showCheckbox?: boolean; // Whether to show checkboxes
   allowSingleSelect?: boolean; // If true, acts as single select
+  showSelectedBadges?: boolean;
+  alwaysShowPlaceholder?: boolean; // New prop
+  showIcon?: boolean;
+  icon?: React.ReactNode;
+  buttonVariant?: "outline" | "default" | "ghost";
+  buttonSize?: "sm" | "default" | "lg";
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -55,6 +61,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   maxDisplayItems = 3,
   showCheckbox = true,
   allowSingleSelect = false,
+  showSelectedBadges = true,
+  alwaysShowPlaceholder = false,
+  showIcon = false,
+  icon = null,
+  buttonVariant = "outline",
+  buttonSize = "default",
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -83,6 +95,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const getTriggerText = () => {
     const selectedOptions = getSelectedOptions();
 
+    if (alwaysShowPlaceholder) {
+      return placeholder;
+    }
+
     if (selectedOptions.length === 0) return placeholder;
 
     if (selectedOptions.length === 1) {
@@ -103,16 +119,20 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            variant={buttonVariant}
+            size={buttonSize}
             role="combobox"
             aria-expanded={open}
-            className={`w-full justify-between ${
-              error ? "border-red-500" : ""
+            className={`justify-between ${error ? "border-red-500" : ""} ${
+              showIcon ? "gap-2" : ""
             }`}
             disabled={disabled}
           >
-            <span className="truncate text-left">{getTriggerText()}</span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <div className="flex items-center gap-2">
+              {showIcon && icon && <span>{icon}</span>}
+              <span className="truncate text-left">{getTriggerText()}</span>
+            </div>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
@@ -170,8 +190,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       {/* Error Display */}
       {error && <p className="text-xs text-red-500">{error}</p>}
 
-      {/* Selected Items Display (for multi-select) */}
-      {!allowSingleSelect && value.length > 0 && (
+      {showSelectedBadges && !allowSingleSelect && value.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {getSelectedOptions().map((option) => (
             <Badge
@@ -194,8 +213,8 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         </div>
       )}
 
-      {/* Show selected count */}
-      {!allowSingleSelect && value.length > 0 && (
+      {/* Show selected count - 🔥 ALSO MAKE THIS CONDITIONAL */}
+      {showSelectedBadges && !allowSingleSelect && value.length > 0 && (
         <p className="text-xs text-gray-500">
           {value.length} {value.length === 1 ? "item" : "items"} selected
         </p>

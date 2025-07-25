@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/pagination";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
+import MultiSelect from "@/components/common/MultiSelect";
 
 // Type definitions for Lead data
 interface LeadData {
@@ -204,66 +205,6 @@ export function DataTable<TData, TValue>({
     setDepartmentFilter("all");
     setStatusFilter([]);
     setGlobalFilter("");
-  };
-
-  // 🔥 FIXED: Stage statistics component using API data with proper dependencies
-  const StageStatsOverview = () => {
-    const stageCounts = React.useMemo(() => {
-      if (!stagesData?.stages || !data) return {};
-
-      const counts: Record<string, number> = {};
-      const stages = stagesData.stages;
-
-      stages.forEach((stage) => {
-        counts[stage.name] = (data as LeadData[]).filter(
-          (lead) => lead.stage === stage.name
-        ).length;
-      });
-      return counts;
-    }, []); // 🔥 FIXED: Remove dependency array since data and stagesData are props
-
-    if (stagesLoading) {
-      return (
-        <div className="flex gap-2 mb-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="h-6 w-16 bg-gray-200 rounded animate-pulse"
-            />
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-wrap gap-2 mb-4">
-        {stagesData?.stages.map((stage) => (
-          <button
-            key={stage.id}
-            onClick={() => setStageFilter(stage.name)}
-            className={`
-              transition-all duration-200 hover:scale-105
-              ${
-                stageFilter === stage.name
-                  ? "ring-2 ring-blue-500 ring-offset-1"
-                  : ""
-              }
-            `}
-          >
-            <Badge
-              className="cursor-pointer border-2"
-              style={{
-                backgroundColor: `${stage.color}20`,
-                borderColor: stage.color,
-                color: stage.color,
-              }}
-            >
-              {stage.display_name}: {stageCounts[stage.name] || 0}
-            </Badge>
-          </button>
-        ))}
-      </div>
-    );
   };
 
   const ServerPagination = () => {
@@ -642,136 +583,183 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* Header Section */}
+      {/* Header Section */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center justify-between gap-4">
-          {" "}
-          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>{" "}
-          {/* Column Visibility */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Grid2X2PlusIcon className="mr-2 h-4 w-4" />
-                Customize
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {table
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+
+          {/* Column Visibility MultiSelect - MOVED HERE */}
+          <div className="w-48">
+            <MultiSelect
+              options={table
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
                 .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
+                  // Smart function to extract column display name
+                  const getColumnDisplayName = (col: any) => {
+                    const columnDef = col.columnDef;
+
+                    // If header is a simple string, use it
+                    if (typeof columnDef.header === "string") {
+                      return columnDef.header;
+                    }
+
+                    // If header is a function (like your sorting buttons),
+                    // try to extract the text from your column definitions
+                    if (typeof columnDef.header === "function") {
+                      // Based on your columns file, extract the button text
+                      switch (col.id) {
+                        case "name":
+                          return "Lead Name";
+                        case "stage":
+                          return "Stage";
+                        case "assignedTo":
+                          return "Assigned To";
+                        // Add other sortable columns as needed
+                        default:
+                          // Fallback: convert camelCase to Title Case
+                          return col.id
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str: string) => str.toUpperCase())
+                            .trim();
                       }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
+                    }
+
+                    // Final fallback
+                    return col.id
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (str: string) => str.toUpperCase())
+                      .trim();
+                  };
+
+                  return {
+                    value: column.id,
+                    label: getColumnDisplayName(column),
+                    subtitle: column.getIsVisible() ? "Visible" : "Hidden",
+                  };
                 })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              value={table
+                .getAllColumns()
+                .filter(
+                  (column) => column.getCanHide() && column.getIsVisible()
+                )
+                .map((column) => column.id)}
+              onChange={(selectedColumnIds) => {
+                table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .forEach((column) => {
+                    column.toggleVisibility(
+                      selectedColumnIds.includes(column.id)
+                    );
+                  });
+              }}
+              placeholder="Customize"
+              searchPlaceholder="Search columns..."
+              emptyMessage="No columns found."
+              maxDisplayItems={2}
+              showCheckbox={true}
+              allowSingleSelect={false}
+              showSelectedBadges={false}
+              alwaysShowPlaceholder={true}
+              showIcon={true}
+              icon={<Grid2X2PlusIcon className="h-4 w-4" />}
+              buttonVariant="outline"
+              buttonSize="default"
+            />
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className="flex items-center justify-between">
-            {/* Filters and Search */}
-            <div className="flex items-center space-x-2">
-              {/* Global Search */}
-              <div className="relative w-54">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search leads..."
-                  value={globalFilter ?? ""}
-                  onChange={(event) =>
-                    setGlobalFilter(String(event.target.value))
-                  }
-                  className="pl-8"
-                />
-                {globalFilter && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1 h-6 w-6 p-0"
-                    onClick={() => setGlobalFilter("")}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Department Filter */}
-              <Select
-                value={departmentFilter}
-                onValueChange={setDepartmentFilter}
+          {/* Global Search */}
+          <div className="relative w-54">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search leads..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(String(event.target.value))}
+              className="pl-8"
+            />
+            {globalFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1 h-6 w-6 p-0"
+                onClick={() => setGlobalFilter("")}
               >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Advanced Filters */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
-                    Filters
-                    {hasActiveFilters && (
-                      <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
-                        {activeFiltersCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={clearAllFilters}>
-                    Clear all filters
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup
-                    value={dateRange}
-                    onValueChange={setDateRange}
-                  >
-                    <DropdownMenuRadioItem value="today">
-                      Today
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="last-7-days">
-                      Last 7 days
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="last-30-days">
-                      Last 30 days
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="all">
-                      All time
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
+
+          {/* Department Filter */}
+          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              <SelectItem value="sales">Sales</SelectItem>
+              <SelectItem value="marketing">Marketing</SelectItem>
+              <SelectItem value="support">Support</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Advanced Filters */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
+                Filters
+                {hasActiveFilters && (
+                  <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={clearAllFilters}>
+                Clear all filters
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup
+                value={dateRange}
+                onValueChange={setDateRange}
+              >
+                <DropdownMenuRadioItem value="today">
+                  Today
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="last-7-days">
+                  Last 7 days
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="last-30-days">
+                  Last 30 days
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all">
+                  All time
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <StageFilterSelect />
+
           {onExportCsv && (
             <Button variant="outline" size="sm" onClick={onExportCsv}>
-              <DownloadIcon className="mr-2 h-4 w-4" />. csv
+              <DownloadIcon className="mr-2 h-4 w-4" />
+              .csv
             </Button>
           )}
+
           <NewLeadDropdown />
         </div>
       </div>
+
       {description && <p className="text-muted-foreground">{description}</p>}
 
       {/* Stage Statistics Overview */}
-      <StageStatsOverview />
+      {/* <StageStatsOverview /> */}
 
       {/* Active Filters Display */}
       {hasActiveFilters && (
@@ -847,11 +835,14 @@ export function DataTable<TData, TValue>({
                 <>
                   {data.map((item: TData, index) => (
                     <TableRow key={index} className="hover:bg-muted/50">
-                      {columns.map((column, colIndex) => (
-                        <TableCell key={colIndex}>
-                          {renderCustomCell(item, column, index)}
-                        </TableCell>
-                      ))}
+                      {table
+                        .getAllLeafColumns()
+                        .filter((column) => column.getIsVisible())
+                        .map((column, colIndex) => (
+                          <TableCell key={colIndex}>
+                            {renderCustomCell(item, column.columnDef, index)}
+                          </TableCell>
+                        ))}
                     </TableRow>
                   ))}
                 </>
@@ -879,7 +870,7 @@ export function DataTable<TData, TValue>({
             ) : !isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getLeftVisibleLeafColumns().length}
                   className="h-24 text-center"
                 >
                   {hasActiveFilters
