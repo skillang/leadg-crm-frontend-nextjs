@@ -108,7 +108,6 @@ const ContactValidator: React.FC = () => {
         </div>
       );
     }
-
     return null;
   };
 

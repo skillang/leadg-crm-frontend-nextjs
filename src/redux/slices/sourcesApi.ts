@@ -9,6 +9,7 @@ export interface Source {
   name: string;
   display_name: string;
   description: string;
+  short_form: string;
   sort_order: number;
   is_active: boolean;
   is_default: boolean;
@@ -29,6 +30,7 @@ export interface CreateSourceRequest {
   name: string;
   display_name: string;
   description?: string;
+  short_form?: string;
   sort_order?: number;
   is_active?: boolean;
   is_default?: boolean;
@@ -38,6 +40,7 @@ export interface UpdateSourceRequest {
   name?: string;
   display_name?: string;
   description?: string;
+  short_form?: string;
   sort_order?: number;
   is_active?: boolean;
   is_default?: boolean;

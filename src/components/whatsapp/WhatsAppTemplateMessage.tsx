@@ -332,7 +332,7 @@ const WhatsAppTemplateMessage: React.FC = () => {
       {selectedTemplateData && (
         <div className="flex flex-col gap-4 pt-4 border-t">
           {/* Debug Info - Remove this in production */}
-          {process.env.NODE_ENV === "development" && (
+          {/* {process.env.NODE_ENV === "development" && (
             <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
               <div>Selected Template: {selectedTemplate}</div>
               <div>Has Phone: {!!currentLead?.phoneNumber}</div>
@@ -344,7 +344,7 @@ const WhatsAppTemplateMessage: React.FC = () => {
                 {JSON.stringify(selectedTemplateData.parameters)}
               </div>
             </div>
-          )}
+          )} */}
 
           <div className="flex justify-end">
             <Button

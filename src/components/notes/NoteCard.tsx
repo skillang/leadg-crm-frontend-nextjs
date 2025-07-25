@@ -185,6 +185,11 @@ const NoteCard: React.FC<NoteCardProps> = ({
           )}
         </div>
 
+        <div className="flex gap-2">
+          <span className="text-sm">Created By:</span>
+          <Badge>{note.created_by_name}</Badge>
+        </div>
+
         {/* Tags section - Now below the content */}
         {note.tags && note.tags.length > 0 && (
           <div className="space-y-2">

@@ -568,7 +568,7 @@ export const leadsApi = createApi({
             searchParams.append(key, value.toString());
           }
         });
-        const url = `/leads/my-leads/?${searchParams.toString()}`;
+        const url = `/leads/my-leads?${searchParams.toString()}`;
         return url;
       },
       serializeQueryArgs: ({ queryArgs }) => {

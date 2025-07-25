@@ -1,87 +1,50 @@
 // src/app/admin/sources/page.tsx
+
 "use client";
 
 import React, { useState } from "react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Eye,
+  EyeOff,
+  Users,
+  Hash,
+  Calendar,
+  User,
+  TrendingUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   useGetSourcesQuery,
   useGetInactiveSourcesQuery,
   useCreateSourceMutation,
   useUpdateSourceMutation,
-  useDeleteSourceMutation,
-  useActivateSourceMutation,
-  useDeactivateSourceMutation,
   Source,
-  CreateSourceRequest,
-  UpdateSourceRequest,
 } from "@/redux/slices/sourcesApi";
-import { useNotifications } from "@/components/common/NotificationSystem";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Eye,
-  EyeOff,
-  Search,
-  Users,
-  Hash,
-} from "lucide-react";
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import CreateSourceModal from "@/components/leads/CreateSourceModal";
+import EditSourceModal from "@/components/leads/EditSourceModal";
 
-// Define proper error types based on your API structure
-interface ApiErrorData {
-  detail?: string;
-  message?: string;
-}
-
-// Type for RTK Query errors with proper API error data
-type RTKQueryError = FetchBaseQueryError & {
-  status?: number;
-  data?: ApiErrorData;
-};
-
-const SourcesManagementPage = () => {
-  // State for forms and dialogs
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingSource, setEditingSource] = useState<Source | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("active");
-
-  const [createFormData, setCreateFormData] = useState<CreateSourceRequest>({
-    name: "",
-    display_name: "",
-    description: "",
-    sort_order: 0,
-    is_active: true,
-    is_default: false,
-  });
-
-  const [editFormData, setEditFormData] = useState<UpdateSourceRequest>({});
-
-  // Hooks
-  const { showSuccess, showError, showConfirm } = useNotifications();
-  const { hasAccess } = useAdminAccess({
+const SourcesPage = () => {
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
+  const { showSuccess, showError } = useNotifications();
+  const { hasAccess, AccessDeniedComponent } = useAdminAccess({
     title: "Admin Access Required",
-    description: "You need admin privileges to manage sources.",
+    description: "You need admin privileges to manage lead sources.",
   });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<Source | null>(null);
 
   // RTK Query hooks
   const {
@@ -96,495 +59,344 @@ const SourcesManagementPage = () => {
     error: inactiveError,
   } = useGetInactiveSourcesQuery({ include_lead_count: true });
 
-  // Mutations - removed unused loading states
   const [createSource, { isLoading: isCreating }] = useCreateSourceMutation();
   const [updateSource, { isLoading: isUpdating }] = useUpdateSourceMutation();
-  const [deleteSource] = useDeleteSourceMutation();
-  const [activateSource] = useActivateSourceMutation();
-  const [deactivateSource] = useDeactivateSourceMutation();
 
-  // Check admin access
+  // Show error notification for loading errors
+  React.useEffect(() => {
+    if (activeError || inactiveError) {
+      showError("Failed to load sources", "Loading Error");
+    }
+  }, [activeError, inactiveError, showError]);
+
+  // CONDITIONAL ACCESS CHECK AFTER ALL HOOKS
   if (!hasAccess) {
-    return null;
+    return AccessDeniedComponent;
   }
 
-  // Get current data based on active tab
-  const currentData =
-    activeTab === "active" ? activeSourcesData : inactiveSourcesData;
-  const isLoading =
-    activeTab === "active" ? isLoadingActive : isLoadingInactive;
-  const error = activeTab === "active" ? activeError : inactiveError;
+  // Combine and filter sources
+  const allSources = [
+    ...(activeSourcesData?.sources || []),
+    ...(showInactive ? inactiveSourcesData?.sources || [] : []),
+  ];
 
-  // Filter sources based on search
-  const filteredSources =
-    currentData?.sources?.filter(
-      (source) =>
-        source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        source.display_name.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+  const filteredSources = allSources.filter(
+    (source) =>
+      source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      source.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      source.short_form.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (source.description &&
+        source.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  // Handle create source
-  const handleCreateSource = async () => {
+  // Calculate summary stats
+  const totalSources =
+    (activeSourcesData?.total || 0) + (inactiveSourcesData?.total || 0);
+  const activeSources = activeSourcesData?.total || 0;
+  const inactiveSources = inactiveSourcesData?.total || 0;
+
+  const isLoading = isLoadingActive || isLoadingInactive;
+
+  const handleCreateSource = async (sourceData: {
+    name: string;
+    display_name: string;
+    short_form: string;
+    description?: string;
+    sort_order: number;
+    is_active: boolean;
+    is_default: boolean;
+  }) => {
     try {
-      await createSource(createFormData).unwrap();
-      showSuccess("Source created successfully");
-      setIsCreateDialogOpen(false);
-      setCreateFormData({
-        name: "",
-        display_name: "",
-        description: "",
-        sort_order: 0,
-        is_active: true,
-        is_default: false,
-      });
-    } catch (error: unknown) {
-      const rtkError = error as RTKQueryError;
-      const errorMessage =
-        rtkError?.data?.message ||
-        rtkError?.data?.detail ||
-        "Failed to create source";
-      showError(errorMessage);
+      await createSource(sourceData).unwrap();
+      setIsCreateModalOpen(false);
+      showSuccess(
+        `Source "${sourceData.display_name}" created successfully!`,
+        "Source Created"
+      );
+    } catch (error) {
+      console.error("Failed to create source:", error);
+      showError(
+        "Failed to create source. Please try again.",
+        "Creation Failed"
+      );
     }
   };
 
-  // Handle edit source
-  const handleEditSource = async () => {
+  const handleUpdateSource = async (sourceData: {
+    display_name: string;
+    description?: string;
+    sort_order: number;
+    is_active: boolean;
+    is_default: boolean;
+  }) => {
     if (!editingSource) return;
 
     try {
+      // Generate internal name from display name
+      const generateInternalName = (displayName: string): string => {
+        return displayName
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+      };
+
       await updateSource({
         sourceId: editingSource.id,
-        data: editFormData,
+        data: {
+          ...sourceData,
+          name: generateInternalName(sourceData.display_name),
+          // Keep existing short_form - don't allow editing to maintain lead ID consistency
+          short_form: editingSource.short_form,
+        },
       }).unwrap();
-      showSuccess("Source updated successfully");
-      setIsEditDialogOpen(false);
       setEditingSource(null);
-      setEditFormData({});
-    } catch (error: unknown) {
-      const rtkError = error as RTKQueryError;
-      const errorMessage =
-        rtkError?.data?.message ||
-        rtkError?.data?.detail ||
-        "Failed to update source";
-      showError(errorMessage);
+      showSuccess(
+        `Source "${sourceData.display_name}" updated successfully!`,
+        "Source Updated"
+      );
+    } catch (error) {
+      console.error("Failed to update source:", error);
+      showError("Failed to update source. Please try again.", "Update Failed");
     }
   };
 
-  // Handle delete source
-  const handleDeleteSource = async (source: Source) => {
-    showConfirm({
-      title: "Delete Source",
-      description: `Are you sure you want to delete "${source.display_name}"? This action cannot be undone.`,
-      confirmText: "Delete",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await deleteSource(source.id).unwrap();
-          showSuccess("Source deleted successfully");
-        } catch (error: unknown) {
-          const rtkError = error as RTKQueryError;
-          const errorMessage =
-            rtkError?.data?.message ||
-            rtkError?.data?.detail ||
-            "Failed to delete source";
-          showError(errorMessage);
-        }
-      },
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
-  // Handle activate/deactivate
-  const handleToggleSourceStatus = async (source: Source) => {
-    try {
-      if (source.is_active) {
-        await deactivateSource(source.id).unwrap();
-        showSuccess("Source deactivated successfully");
-      } else {
-        await activateSource(source.id).unwrap();
-        showSuccess("Source activated successfully");
-      }
-    } catch (error: unknown) {
-      const rtkError = error as RTKQueryError;
-      const errorMessage =
-        rtkError?.data?.message ||
-        rtkError?.data?.detail ||
-        "Failed to update source status";
-      showError(errorMessage);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Source Management</h1>
-          <p className="text-gray-600 mt-1">
-            Manage lead sources and their configurations
+          <h1 className="text-2xl font-bold text-gray-900">Lead Sources</h1>
+          <p className="text-gray-600">
+            Manage source channels for lead acquisition and tracking
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+
+        {/* Since only admins can access this page, always show the button */}
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
           Add Source
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Sources</p>
-                <p className="text-2xl font-bold">
-                  {(activeSourcesData?.total || 0) +
-                    (inactiveSourcesData?.total || 0)}
+                <p className="text-sm font-medium text-gray-600">
+                  Total Sources
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalSources}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Hash className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Sources</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Sources
+                </p>
                 <p className="text-2xl font-bold text-green-600">
-                  {activeSourcesData?.total || 0}
+                  {activeSources}
                 </p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <Eye className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Inactive Sources</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {inactiveSourcesData?.total || 0}
+                <p className="text-sm font-medium text-gray-600">
+                  Inactive Sources
+                </p>
+                <p className="text-2xl font-bold text-gray-500">
+                  {inactiveSources}
                 </p>
               </div>
-              <XCircle className="h-8 w-8 text-red-500" />
+              <EyeOff className="h-8 w-8 text-gray-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Leads</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {allSources.reduce(
+                    (total, source) => total + (source.lead_count || 0),
+                    0
+                  )}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Tabs */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative flex-1 max-w-sm">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search sources..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-10"
           />
         </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="active">Active Sources</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive Sources</TabsTrigger>
-          </TabsList>
-        </Tabs>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="show-inactive"
+            checked={showInactive}
+            onCheckedChange={setShowInactive}
+          />
+          <Label htmlFor="show-inactive">Show inactive</Label>
+        </div>
       </div>
 
-      {/* Sources List */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-8 text-center">Loading sources...</div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-500">
-              Failed to load sources
-            </div>
-          ) : filteredSources.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No sources found
-            </div>
-          ) : (
-            <div className="divide-y">
-              {filteredSources.map((source) => (
-                <div
-                  key={source.id}
-                  className="p-4 flex items-center justify-between hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-                      <Hash className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{source.display_name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {source.name} • {source.description}
-                      </p>
-                      {source.lead_count !== undefined && (
-                        <p className="text-xs text-gray-400">
-                          {source.lead_count} leads
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {source.is_default && (
-                      <Badge variant="secondary">Default</Badge>
-                    )}
-                    <Badge variant={source.is_active ? "default" : "secondary"}>
+      {/* Sources Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredSources.map((source) => (
+          <Card
+            key={source.id}
+            className={`transition-all hover:shadow-md ${
+              !source.is_active ? "opacity-60" : ""
+            }`}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">
+                    {source.display_name}
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">{source.name}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {source.short_form}
+                    </Badge>
+                    <Badge
+                      variant={source.is_active ? "default" : "secondary"}
+                      className="text-xs"
+                    >
                       {source.is_active ? "Active" : "Inactive"}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingSource(source);
-                        setEditFormData({
-                          name: source.name,
-                          display_name: source.display_name,
-                          description: source.description,
-                          sort_order: source.sort_order,
-                          is_active: source.is_active,
-                          is_default: source.is_default,
-                        });
-                        setIsEditDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleSourceStatus(source)}
-                    >
-                      {source.is_active ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSource(source)}
-                      disabled={
-                        source.lead_count !== undefined && source.lead_count > 0
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {source.is_default && (
+                      <Badge variant="outline" className="text-xs">
+                        Default
+                      </Badge>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Since only admins can access this page, always show the edit button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingSource(source)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              {source.description && (
+                <p className="text-sm text-gray-600">{source.description}</p>
+              )}
+
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1 text-gray-600">
+                  <Users className="h-4 w-4" />
+                  <span>{source.lead_count || 0} leads</span>
+                </div>
+                <div className="flex items-center gap-1 text-gray-600">
+                  <Hash className="h-4 w-4" />
+                  <span>Order: {source.sort_order}</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t text-xs text-gray-500">
+                <div className="flex items-center gap-1 mb-1">
+                  <User className="h-3 w-3" />
+                  <span>Created by {source.created_by || "System"}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Created {formatDate(source.created_at)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* No results */}
+      {filteredSources.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No sources found</p>
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              onClick={() => setSearchTerm("")}
+              className="mt-2"
+            >
+              Clear search
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      {/* Create Source Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Source</DialogTitle>
-            <DialogDescription>
-              Add a new source for lead tracking
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Name (Internal)</Label>
-                <Input
-                  value={createFormData.name}
-                  onChange={(e) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  placeholder="website"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Display Name</Label>
-                <Input
-                  value={createFormData.display_name}
-                  onChange={(e) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      display_name: e.target.value,
-                    }))
-                  }
-                  placeholder="Website"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={createFormData.description}
-                onChange={(e) =>
-                  setCreateFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                placeholder="Leads from company website"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Sort Order</Label>
-              <Input
-                type="number"
-                value={createFormData.sort_order}
-                onChange={(e) =>
-                  setCreateFormData((prev) => ({
-                    ...prev,
-                    sort_order: parseInt(e.target.value) || 0,
-                  }))
-                }
-              />
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={createFormData.is_active}
-                  onCheckedChange={(checked) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      is_active: checked,
-                    }))
-                  }
-                />
-                <Label>Active</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={createFormData.is_default}
-                  onCheckedChange={(checked) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      is_default: checked,
-                    }))
-                  }
-                />
-                <Label>Default</Label>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateSource} disabled={isCreating}>
-              {isCreating ? "Creating..." : "Create Source"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Modals */}
+      <CreateSourceModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateSource}
+        isLoading={isCreating}
+      />
 
-      {/* Edit Source Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Source</DialogTitle>
-            <DialogDescription>Update source information</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Name (Internal)</Label>
-                <Input
-                  value={editFormData.name || ""}
-                  onChange={(e) =>
-                    setEditFormData((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Display Name</Label>
-                <Input
-                  value={editFormData.display_name || ""}
-                  onChange={(e) =>
-                    setEditFormData((prev) => ({
-                      ...prev,
-                      display_name: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={editFormData.description || ""}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Sort Order</Label>
-              <Input
-                type="number"
-                value={editFormData.sort_order || 0}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    sort_order: parseInt(e.target.value) || 0,
-                  }))
-                }
-              />
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={editFormData.is_active || false}
-                  onCheckedChange={(checked) =>
-                    setEditFormData((prev) => ({ ...prev, is_active: checked }))
-                  }
-                />
-                <Label>Active</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={editFormData.is_default || false}
-                  onCheckedChange={(checked) =>
-                    setEditFormData((prev) => ({
-                      ...prev,
-                      is_default: checked,
-                    }))
-                  }
-                />
-                <Label>Default</Label>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleEditSource} disabled={isUpdating}>
-              {isUpdating ? "Updating..." : "Update Source"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <EditSourceModal
+        isOpen={!!editingSource}
+        onClose={() => setEditingSource(null)}
+        onSubmit={handleUpdateSource}
+        source={editingSource}
+        isLoading={isUpdating}
+      />
     </div>
   );
 };
 
-export default SourcesManagementPage;
+export default SourcesPage;
