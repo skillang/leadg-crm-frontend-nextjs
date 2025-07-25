@@ -55,6 +55,7 @@ export interface EmailHistoryItem {
   sent_time: string | null;
   created_at: string;
   sender_email: string;
+  created_by_name: string;
 }
 
 export interface EmailHistoryResponse {
@@ -99,6 +100,23 @@ export interface EmailStats {
 export interface EmailStatsResponse {
   success: boolean;
   stats: EmailStats;
+}
+
+// 🔥 NEW: Proper type for scheduler status
+export interface SchedulerStatus {
+  is_running: boolean;
+  last_run: string | null;
+  next_run: string | null;
+  pending_jobs: number;
+  failed_jobs: number;
+  total_processed: number;
+  uptime: string;
+  version: string;
+}
+
+export interface SchedulerStatusResponse {
+  success: boolean;
+  status: SchedulerStatus;
 }
 
 export const emailApi = createApi({
@@ -215,7 +233,7 @@ export const emailApi = createApi({
     }),
 
     // Get scheduler status (Admin only)
-    getSchedulerStatus: builder.query<{ success: boolean; status: any }, void>({
+    getSchedulerStatus: builder.query<SchedulerStatusResponse, void>({
       query: () => "/scheduler/status",
     }),
 

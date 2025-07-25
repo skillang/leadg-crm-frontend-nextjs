@@ -1,4 +1,4 @@
-// src/app/my-leads/[leadId]/page.tsx - Updated with constants
+// src/app/my-leads/[leadId]/page.tsx - Updated with Email Integration
 
 "use client";
 
@@ -15,11 +15,14 @@ import {
 } from "@/redux/slices/leadsApi";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
-import { StageDisplay, useStageUtils } from "@/components/common/StageDisplay";
+import {
+  // StageDisplay,
+  useStageUtils,
+} from "@/components/common/StageDisplay";
 import { Lead } from "@/models/types/lead";
 import WhatsAppButton from "@/components/whatsapp/WhatsAppButton";
 import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
@@ -36,8 +39,12 @@ import {
   LEAD_DETAIL_TABS,
   type TabDefinition,
 } from "@/constants/leadDetailsConfig";
+// ✅ ADD EMAIL IMPORTS
+import { openEmailDialog } from "@/redux/slices/emailSlice";
+import EmailDialog from "@/components/email/EmailDialog";
 
 export default function LeadDetailsPage() {
+  const dispatch = useDispatch(); // ✅ ADD DISPATCH
   const [activeTab, setActiveTab] = useState("tasks");
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -78,11 +85,12 @@ export default function LeadDetailsPage() {
     }
   };
 
+  // ✅ UPDATED EMAIL HANDLER
   const handleEmail = () => {
-    if (leadDetails?.email) {
-      showWarning(`Email feature is not available yet`, "Feature Coming soon");
+    if (leadId) {
+      dispatch(openEmailDialog(leadId));
     } else {
-      showError("No email address available for this lead", "No Email Address");
+      showError("No lead ID available", "Error");
     }
   };
 
@@ -335,7 +343,7 @@ export default function LeadDetailsPage() {
 
         {/* Lead Header - Top Bar */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <div className="flex items justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
@@ -355,7 +363,7 @@ export default function LeadDetailsPage() {
               </div>
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-center gap-2">
               {/* Stage Dropdown using Select with StageDisplay */}
               <div className="relative">
                 <StageSelect
@@ -399,6 +407,7 @@ export default function LeadDetailsPage() {
                 <Phone className="mr-2 h-4 w-4" />
                 Call
               </Button>
+              {/* ✅ UPDATED MAIL BUTTON */}
               <Button
                 onClick={handleEmail}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -710,6 +719,7 @@ export default function LeadDetailsPage() {
         </div>
       </div>
       <WhatsAppModal />
+      <EmailDialog />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Column,
   ColumnDef,
   ColumnFiltersState,
   SortingState,
@@ -67,6 +68,8 @@ import {
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
 import MultiSelect from "@/components/common/MultiSelect";
+import EmailDialog from "@/components/email/EmailDialog";
+import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -568,6 +571,42 @@ export function DataTable<TData, TValue>({
     return cellValue?.toString() || "-";
   };
 
+  const getColumnDisplayName = (col: Column<TData, unknown>) => {
+    const columnDef = col.columnDef;
+
+    // If header is a simple string, use it
+    if (typeof columnDef.header === "string") {
+      return columnDef.header;
+    }
+
+    // If header is a function (like your sorting buttons),
+    // try to extract the text from your column definitions
+    if (typeof columnDef.header === "function") {
+      // Based on your columns file, extract the button text
+      switch (col.id) {
+        case "name":
+          return "Lead Name";
+        case "stage":
+          return "Stage";
+        case "assignedTo":
+          return "Assigned To";
+        // Add other sortable columns as needed
+        default:
+          // Fallback: convert camelCase to Title Case
+          return col.id
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (str: string) => str.toUpperCase())
+            .trim();
+      }
+    }
+
+    // Final fallback
+    return col.id
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str: string) => str.toUpperCase())
+      .trim();
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Section */}
@@ -583,43 +622,6 @@ export function DataTable<TData, TValue>({
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
                 .map((column) => {
-                  // Smart function to extract column display name
-                  const getColumnDisplayName = (col: any) => {
-                    const columnDef = col.columnDef;
-
-                    // If header is a simple string, use it
-                    if (typeof columnDef.header === "string") {
-                      return columnDef.header;
-                    }
-
-                    // If header is a function (like your sorting buttons),
-                    // try to extract the text from your column definitions
-                    if (typeof columnDef.header === "function") {
-                      // Based on your columns file, extract the button text
-                      switch (col.id) {
-                        case "name":
-                          return "Lead Name";
-                        case "stage":
-                          return "Stage";
-                        case "assignedTo":
-                          return "Assigned To";
-                        // Add other sortable columns as needed
-                        default:
-                          // Fallback: convert camelCase to Title Case
-                          return col.id
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str: string) => str.toUpperCase())
-                            .trim();
-                      }
-                    }
-
-                    // Final fallback
-                    return col.id
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str: string) => str.toUpperCase())
-                      .trim();
-                  };
-
                   return {
                     value: column.id,
                     label: getColumnDisplayName(column),
@@ -872,6 +874,8 @@ export function DataTable<TData, TValue>({
 
         {paginationMeta ? <ServerPagination /> : <ImprovedPagination />}
       </div>
+      <EmailDialog />
+      <WhatsAppModal />
     </div>
   );
 }

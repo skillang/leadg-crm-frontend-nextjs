@@ -16,7 +16,7 @@ import {
   useSendEmailToLeadMutation,
   useGetLeadEmailHistoryQuery,
 } from "@/redux/slices/emailApi";
-import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
+import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   Dialog,
@@ -35,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,10 +48,7 @@ import {
   Calendar,
   Phone,
   MapPin,
-  Building,
   AlertCircle,
-  CheckCircle,
-  XCircle,
   Loader2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -73,15 +69,13 @@ const EmailDialog: React.FC = () => {
 
   const [customScheduleDate, setCustomScheduleDate] = useState("");
   const [customScheduleTime, setCustomScheduleTime] = useState("");
-  const [currentLead, setCurrentLead] = useState<any>(null);
 
   const { showSuccess, showError } = useNotifications();
-  const isAdmin = user?.role === "admin";
 
-  // API queries - Get leads to find the specific lead
-  const { data: leadsData } = isAdmin
-    ? useGetLeadsQuery({ limit: 1000 }, { skip: !currentLeadId })
-    : useGetMyLeadsQuery({ limit: 1000 }, { skip: !currentLeadId });
+  // ✅ Use the same query as the lead details page
+  const { data: leadDetails } = useGetLeadDetailsQuery(currentLeadId || "", {
+    skip: !currentLeadId,
+  });
 
   const { data: templates, isLoading: templatesLoading } =
     useGetEmailTemplatesQuery();
@@ -93,19 +87,6 @@ const EmailDialog: React.FC = () => {
 
   // Send email mutation
   const [sendEmail, { isLoading: sendingEmail }] = useSendEmailToLeadMutation();
-
-  // Find current lead from the fetched data
-  React.useEffect(() => {
-    if (currentLeadId && leadsData) {
-      const leads = Array.isArray(leadsData)
-        ? leadsData
-        : leadsData?.leads || [];
-      const lead = leads.find(
-        (l: any) => l.id === currentLeadId || l.leadId === currentLeadId
-      );
-      setCurrentLead(lead);
-    }
-  }, [currentLeadId, leadsData]);
 
   useEffect(() => {
     if (isScheduled && customScheduleDate && customScheduleTime) {
@@ -131,6 +112,7 @@ const EmailDialog: React.FC = () => {
     try {
       const emailData = {
         template_key: selectedTemplateKey,
+        created_by_name: user,
         sender_email_prefix: selectedSenderPrefix,
         ...(isScheduled &&
           scheduledDateTime && { scheduled_time: scheduledDateTime }),
@@ -143,44 +125,52 @@ const EmailDialog: React.FC = () => {
           : "Email sent successfully!"
       );
       handleClose();
-    } catch (error: any) {
-      const errorMessage = error?.data?.detail || "Failed to send email";
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "detail" in error.data
+          ? String(error.data.detail)
+          : "Failed to send email";
       dispatch(setError(errorMessage));
-      showError(errorMessage);
+      showError(errorMessage, "Error");
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "sent":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "failed":
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case "pending":
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case "cancelled":
-        return <XCircle className="h-4 w-4 text-gray-500" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
-    }
-  };
+  // const getStatusIcon = (status: string) => {
+  //   switch (status) {
+  //     case "sent":
+  //       return <CheckCircle className="h-4 w-4 text-green-500" />;
+  //     case "failed":
+  //       return <XCircle className="h-4 w-4 text-red-500" />;
+  //     case "pending":
+  //       return <Clock className="h-4 w-4 text-yellow-500" />;
+  //     case "cancelled":
+  //       return <XCircle className="h-4 w-4 text-gray-500" />;
+  //     default:
+  //       return <AlertCircle className="h-4 w-4 text-gray-500" />;
+  //   }
+  // };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      sent: "bg-green-100 text-green-800",
-      failed: "bg-red-100 text-red-800",
-      pending: "bg-yellow-100 text-yellow-800",
-      cancelled: "bg-gray-100 text-gray-800",
-    };
+  // const getStatusBadge = (status: string) => {
+  //   const variants = {
+  //     sent: "bg-green-100 text-green-800",
+  //     failed: "bg-red-100 text-red-800",
+  //     pending: "bg-yellow-100 text-yellow-800",
+  //     cancelled: "bg-gray-100 text-gray-800",
+  //   };
 
-    return (
-      <Badge
-        className={`${variants[status as keyof typeof variants]} border-0`}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
+  //   return (
+  //     <Badge
+  //       className={`${variants[status as keyof typeof variants]} border-0`}
+  //     >
+  //       {status.charAt(0).toUpperCase() + status.slice(1)}
+  //     </Badge>
+  //   );
+  // };
 
   return (
     <Dialog open={emailDialogOpen} onOpenChange={handleClose}>
@@ -194,7 +184,9 @@ const EmailDialog: React.FC = () => {
 
         <Tabs
           value={activeTab}
-          onValueChange={(value) => dispatch(setActiveTab(value as any))}
+          onValueChange={(value) =>
+            dispatch(setActiveTab(value as "basic" | "send" | "history"))
+          }
         >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic" className="flex items-center gap-2">
@@ -213,7 +205,7 @@ const EmailDialog: React.FC = () => {
 
           {/* Basic Info Tab */}
           <TabsContent value="basic" className="space-y-4">
-            {!currentLead ? (
+            {!leadDetails ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
@@ -231,7 +223,7 @@ const EmailDialog: React.FC = () => {
                       <Label className="text-sm font-medium text-gray-600">
                         Name
                       </Label>
-                      <p className="font-medium">{currentLead.name}</p>
+                      <p className="font-medium">{leadDetails.name}</p>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">
@@ -239,7 +231,7 @@ const EmailDialog: React.FC = () => {
                       </Label>
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-gray-500" />
-                        <p>{currentLead.email}</p>
+                        <p>{leadDetails.email}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -248,11 +240,7 @@ const EmailDialog: React.FC = () => {
                       </Label>
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-gray-500" />
-                        <p>
-                          {currentLead.contact ||
-                            currentLead.phoneNumber ||
-                            "Not provided"}
-                        </p>
+                        <p>{leadDetails.phoneNumber || "Not provided"}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -261,30 +249,30 @@ const EmailDialog: React.FC = () => {
                       </Label>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
-                        <p>{currentLead.current_location || "Not provided"}</p>
+                        <p>{leadDetails.current_location || "Not provided"}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">
                         Stage
                       </Label>
-                      <Badge variant="outline">{currentLead.stage}</Badge>
+                      <Badge variant="outline">{leadDetails.stage}</Badge>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">
                         Status
                       </Label>
-                      <Badge variant="outline">{currentLead.status}</Badge>
+                      <Badge variant="outline">{leadDetails.status}</Badge>
                     </div>
                   </div>
 
-                  {currentLead.lastContacted && (
+                  {leadDetails.lastContacted && (
                     <div className="pt-4 border-t">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock className="h-4 w-4" />
                         Last contacted:{" "}
                         {format(
-                          parseISO(currentLead.lastContacted),
+                          parseISO(leadDetails.lastContacted),
                           "PPP at p"
                         )}
                       </div>
@@ -329,7 +317,10 @@ const EmailDialog: React.FC = () => {
                         </div>
                       ) : (
                         templates?.templates?.map((template, index) => (
-                          <SelectItem key={index} value={template.key}>
+                          <SelectItem
+                            key={`email-template-${index}`}
+                            value={template.key}
+                          >
                             {template.name}
                           </SelectItem>
                         ))
@@ -350,14 +341,9 @@ const EmailDialog: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="noreply">noreply</SelectItem>
                       <SelectItem value="support">support</SelectItem>
-                      <SelectItem value="partnerships">partnerships</SelectItem>
-                      <SelectItem value="school.connect">
-                        school.connect
-                      </SelectItem>
-                      <SelectItem value="outreach">outreach</SelectItem>
+                      <SelectItem value="sales">sales</SelectItem>
                       <SelectItem value="marketing">marketing</SelectItem>
-                      <SelectItem value="admin">admin</SelectItem>
-                      <SelectItem value="nhr">nhr</SelectItem>
+                      <SelectItem value="offers">offers</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -453,15 +439,18 @@ const EmailDialog: React.FC = () => {
                         >
                           <div className="flex items-start justify-between">
                             <div className="space-y-2 flex-1">
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(email.status)}
-                                <span className="font-medium">
-                                  {email.template_name}
-                                </span>
-                                {getStatusBadge(email.status)}
-                              </div>
+                              {/* <div className="flex items-center gap-2">
+                                  {getStatusIcon(email.status)}
+                                  <span className="font-medium">
+                                    {email.template_name}
+                                  </span>
+                                  {getStatusBadge(email.status)}
+                                </div> */}
                               <div className="text-sm text-gray-600">
                                 From: {email.sender_email}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                Template Name: {email.template_name}
                               </div>
                               <div className="text-sm text-gray-500">
                                 Created:{" "}
@@ -485,6 +474,9 @@ const EmailDialog: React.FC = () => {
                                   )}
                                 </div>
                               )}
+                              <div className="text-sm text-gray-600">
+                                Created By: {email.created_by_name}
+                              </div>
                             </div>
                           </div>
                         </div>

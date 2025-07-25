@@ -28,6 +28,11 @@ import { StageSelect } from "@/components/common/StageSelect";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
+import { openEmailDialog } from "@/redux/slices/emailSlice";
+import { useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { openModal } from "@/redux/slices/whatsappSlice";
 
 // StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
@@ -112,6 +117,107 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
         </div>
       )}
+    </div>
+  );
+};
+
+const ContactCell = ({ row }: { row: Row<Lead> }) => {
+  const dispatch = useDispatch();
+  const lead = row.original;
+  const { showError } = useNotifications();
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+
+  // const handleCall = () => {
+  //   if (lead.phoneNumber || lead.contact) {
+  //     showWarning(
+  //       `Phone call feature is not available yet, Tata Tele coming soon`,
+  //       "Feature Coming soon"
+  //     );
+  //   } else {
+  //     showError("No phone number available for this lead", "No Phone Number");
+  //   }
+  // };
+
+  const handleEmail = () => {
+    if (lead.id) {
+      dispatch(openEmailDialog(lead.id));
+    } else {
+      showError("No lead ID available", "Error");
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (!lead.phoneNumber && !lead.contact) {
+      showError("No phone number available for this lead", "No Phone Number");
+      return;
+    }
+
+    // Prepare lead data for WhatsApp modal
+    const whatsappLeadData = {
+      id: lead.id,
+      leadId: lead.id,
+      name: lead.name,
+      phoneNumber: lead.phoneNumber || lead.contact || "",
+      email: lead.email,
+    };
+
+    // Prepare user data for WhatsApp modal
+    const whatsappUserData = currentUser
+      ? {
+          id: currentUser.id,
+          firstName: currentUser.first_name,
+          lastName: currentUser.last_name,
+          email: currentUser.email,
+        }
+      : null;
+
+    if (whatsappUserData) {
+      dispatch(
+        openModal({
+          lead: whatsappLeadData,
+          user: whatsappUserData,
+        })
+      );
+    } else {
+      showError("User data not available", "Error");
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      {/* <Badge
+        className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20"
+        onClick={handleCall}
+      >
+        <Image
+          src="/assets/icons/call-icon.svg"
+          alt="Call Icon"
+          width={16}
+          height={16}
+        />
+      </Badge> */}
+      <Button
+        className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20 h-6 px-2"
+        onClick={handleEmail}
+      >
+        <Image
+          src="/assets/icons/email-icon.svg"
+          alt="Email Icon"
+          width={16}
+          height={16}
+        />
+      </Button>
+      <Badge
+        className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20"
+        onClick={handleWhatsApp}
+      >
+        <Image
+          src="/assets/icons/whatsapp-icon.svg"
+          alt="WhatsApp Icon"
+          width={16}
+          height={16}
+        />
+      </Badge>
     </div>
   );
 };
@@ -382,40 +488,11 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
   {
     accessorKey: "contact",
     header: "Contact",
-    // enableResizing: true,
     minSize: 100,
     maxSize: 200,
-    cell: ({ row }) => (
-      // <div className="font-mono text-sm">{row.getValue("contact")}</div>
-      <div className="flex flex-column gap-2">
-        <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer">
-          <Image
-            src="/assets/icons/call-icon.svg"
-            alt="WhatsApp Icon"
-            width={16}
-            height={16}
-          />
-        </Badge>
-        <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer">
-          <Image
-            src="/assets/icons/email-icon.svg"
-            alt="WhatsApp Icon"
-            width={16}
-            height={16}
-          />
-        </Badge>
-        <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer">
-          <Image
-            src="/assets/icons/whatsapp-icon.svg"
-            alt="WhatsApp Icon"
-            width={16}
-            height={16}
-          />
-        </Badge>
-      </div>
-    ),
+    cell: ({ row }) => <ContactCell row={row} />,
     meta: {
-      className: "w-auto", // This helps with auto-sizing
+      className: "w-auto",
     },
   },
   // {

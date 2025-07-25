@@ -77,42 +77,43 @@ const BulkEmailPage: React.FC = () => {
 
   const [customScheduleDate, setCustomScheduleDate] = useState("");
   const [customScheduleTime, setCustomScheduleTime] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1); // Removed setCurrentPage since it's not used
 
   const { showSuccess, showError } = useNotifications();
   const isAdmin = user?.role === "admin";
 
   // Initialize filters with default values
-  React.useEffect(() => {
+  useEffect(() => {
     if (!bulkEmailFilters.stage) {
       dispatch(setBulkEmailStageFilter("all"));
     }
     if (!bulkEmailFilters.status) {
       dispatch(setBulkEmailStatusFilter("all"));
     }
-  }, []);
+  }, [bulkEmailFilters.stage, bulkEmailFilters.status, dispatch]); // Added missing dependencies
 
-  // API queries
+  // Prepare query parameters
+  const queryParams = {
+    page: currentPage,
+    limit: 50,
+    search: bulkEmailFilters.name,
+    lead_status:
+      bulkEmailFilters.status !== "all" ? bulkEmailFilters.status : undefined,
+  };
+
+  // API queries - moved to unconditional calls
+  const adminLeadsQuery = useGetLeadsQuery(queryParams, {
+    skip: !isAdmin,
+  });
+
+  const userLeadsQuery = useGetMyLeadsQuery(queryParams, {
+    skip: isAdmin,
+  });
+
+  // Select the appropriate query result
   const { data: leadsData, isLoading: leadsLoading } = isAdmin
-    ? useGetLeadsQuery({
-        page: currentPage,
-        limit: 50,
-        search: bulkEmailFilters.name,
-        lead_status:
-          bulkEmailFilters.status !== "all"
-            ? bulkEmailFilters.status
-            : undefined,
-        // Add stage filter when available in API
-      })
-    : useGetMyLeadsQuery({
-        page: currentPage,
-        limit: 50,
-        search: bulkEmailFilters.name,
-        lead_status:
-          bulkEmailFilters.status !== "all"
-            ? bulkEmailFilters.status
-            : undefined,
-      });
+    ? adminLeadsQuery
+    : userLeadsQuery;
 
   const { data: templates, isLoading: templatesLoading } =
     useGetEmailTemplatesQuery();
@@ -170,8 +171,17 @@ const BulkEmailPage: React.FC = () => {
       dispatch(resetBulkEmailForm());
       setCustomScheduleDate("");
       setCustomScheduleTime("");
-    } catch (error: any) {
-      const errorMessage = error?.data?.detail || "Failed to send bulk email";
+    } catch (error: unknown) {
+      // Changed from 'any' to 'unknown'
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "detail" in error.data
+          ? String(error.data.detail)
+          : "Failed to send bulk email";
       dispatch(setError(errorMessage));
       showError(errorMessage);
     }

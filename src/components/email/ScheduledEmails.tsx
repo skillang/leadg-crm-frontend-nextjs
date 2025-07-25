@@ -39,7 +39,7 @@ import {
 import { format, parseISO } from "date-fns";
 
 const ScheduledEmails: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<
     "pending" | "sent" | "failed" | "cancelled"
   >("pending");
@@ -66,8 +66,18 @@ const ScheduledEmails: React.FC = () => {
         try {
           await cancelEmail(emailId).unwrap();
           showSuccess("Email cancelled successfully");
-        } catch (error: any) {
-          showError(error?.data?.detail || "Failed to cancel email");
+        } catch (error: unknown) {
+          // Changed from 'any' to 'unknown'
+          const errorMessage =
+            error &&
+            typeof error === "object" &&
+            "data" in error &&
+            error.data &&
+            typeof error.data === "object" &&
+            "detail" in error.data
+              ? String(error.data.detail)
+              : "Failed to cancel email";
+          showError(errorMessage);
         }
       },
     });
@@ -133,7 +143,9 @@ const ScheduledEmails: React.FC = () => {
             </div>
             <Select
               value={statusFilter}
-              onValueChange={(value: any) => setStatusFilter(value)}
+              onValueChange={(
+                value: "pending" | "sent" | "failed" | "cancelled"
+              ) => setStatusFilter(value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue />
