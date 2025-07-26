@@ -14,7 +14,7 @@ export const useAuth = () => {
       if (!forceLocal) {
         // Get refresh token from localStorage or Redux state
         const refreshToken =
-          localStorage.getItem("refresh_token") || auth.refreshToken;
+          auth.refreshToken || localStorage.getItem("refresh_token");
 
         if (refreshToken) {
           try {
@@ -30,9 +30,13 @@ export const useAuth = () => {
 
               if (
                 errorWithStatus.status === 401 ||
-                errorWithStatus.status === 422
+                errorWithStatus.status === 422 ||
+                errorWithStatus.status === 404 // 🔥 ADD 404 for missing endpoint
               ) {
-                // Token expired - continue with local logout
+                // Token expired or endpoint issue - continue with local logout
+                console.log(
+                  "⚠️ API logout failed (expected), continuing with local logout"
+                );
               } else {
                 console.error(
                   "⚠️ API logout failed with unexpected error, continuing with local logout"
@@ -61,6 +65,7 @@ export const useAuth = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user_data");
+    localStorage.removeItem("token_created_at");
 
     // Clear auth state - AuthLayout will handle navigation automatically
     dispatch(clearAuthState());

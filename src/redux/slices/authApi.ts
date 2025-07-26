@@ -188,6 +188,7 @@ interface RefreshTokenRequest {
 
 interface RefreshTokenResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   expires_in: number;
 }
@@ -264,7 +265,7 @@ export const authApi = createApi({
     // Add this endpoint in your authApi endpoints section
     refreshToken: builder.mutation<RefreshTokenResponse, RefreshTokenRequest>({
       query: (refreshData) => ({
-        url: "/auth/refresh",
+        url: "/refresh",
         method: "POST",
         body: refreshData,
       }),
@@ -275,7 +276,7 @@ export const authApi = createApi({
           dispatch(
             updateTokens({
               access_token: data.access_token,
-              refresh_token: arg.refresh_token, // Keep same refresh token
+              refresh_token: data.refresh_token || arg.refresh_token, // 🔥 Use new one if provided, else keep current
               expires_in: data.expires_in,
             })
           );

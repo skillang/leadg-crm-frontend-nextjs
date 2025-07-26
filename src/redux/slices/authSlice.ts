@@ -1,49 +1,49 @@
-// src/redux/slices/authSlice.ts (CORRECTED - Multiple action types)
+// src/redux/slices/authSlice.ts
 
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-// Updated User interface to match your API response
-interface ApiUser {
+// Define the user interface
+export interface ApiUser {
   id: string;
   email: string;
-  username: string;
+  name: string;
   first_name: string;
   last_name: string;
-  role: "admin" | "user"; // lowercase to match your API
+  role: string;
+  username: string;
   is_active: boolean;
-  phone: string;
   department: string;
   created_at: string;
-  last_login: string;
+  last_login?: string;
 }
 
+// Define the auth state interface
 interface AuthState {
   isAuthenticated: boolean;
-  user: ApiUser | null;
-  token: string | null; // This will store the access token
+  token: string | null;
   accessToken: string | null;
   refreshToken: string | null;
-  tokenType: string;
-  expiresIn: number | null;
-  tokenCreatedAt: number | null; // Track when token was created
+  user: ApiUser | null;
   loading: boolean;
   error: string | null;
+  expiresIn: number | null;
+  tokenCreatedAt: number | null;
 }
 
+// Define the initial state
 const initialState: AuthState = {
   isAuthenticated: false,
-  user: null,
-  token: null, // This will store the access token
+  token: null,
   accessToken: null,
   refreshToken: null,
-  tokenType: "bearer",
-  expiresIn: null,
-  tokenCreatedAt: null,
+  user: null,
   loading: false,
   error: null,
+  expiresIn: null,
+  tokenCreatedAt: null,
 };
 
-// Auth slice for UI state management
+// Create the auth slice
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -53,85 +53,97 @@ const authSlice = createSlice({
       state.loading = action.payload;
     },
 
-    // Set error
+    // Set error message
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
 
-    // Clear error
+    // Clear error message
     clearError: (state) => {
       state.error = null;
     },
 
-    // Set authentication state from API response (after successful login)
+    // Set auth state after successful login (from API response)
     setAuthState: (
       state,
       action: PayloadAction<{
         access_token: string;
         refresh_token: string;
-        token_type: string;
-        expires_in: number;
         user: ApiUser;
+        expires_in: number;
       }>
     ) => {
       const now = Date.now();
 
       state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.token = action.payload.access_token; // For compatibility
+      state.token = action.payload.access_token;
       state.accessToken = action.payload.access_token;
-      state.refreshToken = action.payload.refresh_token;
-      state.tokenType = action.payload.token_type;
+      state.refreshToken = action.payload.refresh_token; // ✅ FIXED
+      state.user = action.payload.user;
       state.expiresIn = action.payload.expires_in;
-      state.tokenCreatedAt = now; // Track token creation time
+      state.tokenCreatedAt = now;
       state.loading = false;
       state.error = null;
 
-      // Store token creation time in localStorage for persistence
+      // Store in localStorage - 🔥 FIXED: Store refresh token too
       if (typeof window !== "undefined") {
+        localStorage.setItem("access_token", action.payload.access_token);
+        localStorage.setItem("refresh_token", action.payload.refresh_token); // ✅ FIXED
+        localStorage.setItem("user_data", JSON.stringify(action.payload.user));
         localStorage.setItem("token_created_at", now.toString());
       }
     },
 
-    // NEW: Set auth state from localStorage (for app initialization)
-    setAuthFromStorage: (
-      state,
-      action: PayloadAction<{
-        token: string;
-        user: ApiUser;
-      }>
-    ) => {
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.token = action.payload.token;
-      state.accessToken = action.payload.token;
-      state.loading = false;
-      state.error = null;
+    // Set auth state from localStorage (for page refresh/reload)
+    setAuthFromStorage: (state) => {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("access_token");
+        const refreshToken = localStorage.getItem("refresh_token"); // ✅ FIXED
+        const userData = localStorage.getItem("user_data");
+        const tokenCreatedAt = localStorage.getItem("token_created_at");
+
+        if (token && userData) {
+          state.isAuthenticated = true;
+          state.token = token;
+          state.accessToken = token;
+          state.refreshToken = refreshToken; // ✅ FIXED
+          state.user = JSON.parse(userData);
+          state.tokenCreatedAt = tokenCreatedAt
+            ? parseInt(tokenCreatedAt)
+            : null;
+          state.loading = false;
+          state.error = null;
+        }
+      }
     },
 
-    // Set user data (after fetching current user)
+    // Set user data
     setUserData: (state, action: PayloadAction<ApiUser>) => {
       state.user = action.payload;
       state.isAuthenticated = true;
-      state.loading = false;
+
+      // Update localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("user_data", JSON.stringify(action.payload));
+      }
     },
 
-    // Clear authentication state (logout)
+    // Clear auth state (logout)
     clearAuthState: (state) => {
       state.isAuthenticated = false;
-      state.user = null;
       state.token = null;
       state.accessToken = null;
-      state.refreshToken = null;
-      state.tokenType = "bearer";
-      state.expiresIn = null;
-      state.tokenCreatedAt = null;
+      state.refreshToken = null; // ✅ FIXED
+      state.user = null;
       state.loading = false;
       state.error = null;
+      state.expiresIn = null;
+      state.tokenCreatedAt = null;
 
-      // Clear localStorage items
+      // Clear localStorage - 🔥 FIXED: Clear refresh token too
       if (typeof window !== "undefined") {
         localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token"); // ✅ FIXED
         localStorage.removeItem("user_data");
         localStorage.removeItem("token_created_at");
       }
@@ -161,10 +173,10 @@ const authSlice = createSlice({
       state.expiresIn = action.payload.expires_in;
       state.tokenCreatedAt = now;
 
-      // Update localStorage - 🔥 ADD refresh_token storage
+      // Update localStorage - 🔥 FIXED: Store refresh token properly
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", action.payload.access_token);
-        localStorage.setItem("refresh_token", action.payload.refresh_token); // 🔥 ADD THIS LINE
+        localStorage.setItem("refresh_token", action.payload.refresh_token); // ✅ ALREADY FIXED
         localStorage.setItem("token_created_at", now.toString());
       }
     },
