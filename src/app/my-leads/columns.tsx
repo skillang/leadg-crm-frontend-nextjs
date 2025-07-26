@@ -124,19 +124,19 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 const ContactCell = ({ row }: { row: Row<Lead> }) => {
   const dispatch = useDispatch();
   const lead = row.original;
-  const { showError } = useNotifications();
+  const { showError, showWarning } = useNotifications();
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  // const handleCall = () => {
-  //   if (lead.phoneNumber || lead.contact) {
-  //     showWarning(
-  //       `Phone call feature is not available yet, Tata Tele coming soon`,
-  //       "Feature Coming soon"
-  //     );
-  //   } else {
-  //     showError("No phone number available for this lead", "No Phone Number");
-  //   }
-  // };
+  const handleCall = () => {
+    if (lead.phoneNumber || lead.contact) {
+      showWarning(
+        `Phone call feature is not available yet, Tata Tele coming soon`,
+        "Feature Coming soon"
+      );
+    } else {
+      showError("No phone number available for this lead", "No Phone Number");
+    }
+  };
 
   const handleEmail = () => {
     if (lead.id) {
@@ -185,7 +185,7 @@ const ContactCell = ({ row }: { row: Row<Lead> }) => {
 
   return (
     <div className="flex gap-2">
-      {/* <Badge
+      <Badge
         className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20"
         onClick={handleCall}
       >
@@ -195,7 +195,7 @@ const ContactCell = ({ row }: { row: Row<Lead> }) => {
           width={16}
           height={16}
         />
-      </Badge> */}
+      </Badge>
       <Button
         className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20 h-6 px-2"
         onClick={handleEmail}
@@ -487,7 +487,7 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
   },
   {
     accessorKey: "contact",
-    header: "Contact",
+    header: "Contact the Lead via",
     minSize: 100,
     maxSize: 200,
     cell: ({ row }) => <ContactCell row={row} />,

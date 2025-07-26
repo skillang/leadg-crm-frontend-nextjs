@@ -30,7 +30,7 @@ interface TemplateApiResponse {
   [key: string]: unknown;
 }
 
-const baseQuery = createBaseQueryWithReauth(API_BASE_URL);
+const baseQuery = createBaseQueryWithReauth(`${API_BASE_URL}/whatsapp`);
 
 export const whatsappApi = createApi({
   reducerPath: "whatsappApi",

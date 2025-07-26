@@ -1,9 +1,8 @@
-// src/hooks/useAdminAccess.tsx
-
 "use client";
 
 import { useAppSelector } from "@/redux/hooks";
 import AccessDeniedCard from "@/components/common/AccessDeniedCard";
+import type { ApiUser } from "@/redux/slices/authSlice"; // ✅ Use your existing ApiUser type
 
 interface UseAdminAccessOptions {
   redirectPath?: string;
@@ -12,25 +11,10 @@ interface UseAdminAccessOptions {
   requiredRole?: "admin" | "user";
 }
 
-// Define proper User interface instead of using 'any'
-interface User {
-  id?: string;
-  email?: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  role?: "admin" | "user";
-  is_active?: boolean;
-  phone?: string;
-  departments?: string | string[];
-  created_at?: string;
-  last_login?: string;
-}
-
 interface UseAdminAccessReturn {
   isAdmin: boolean;
   hasAccess: boolean;
-  user: User | null;
+  user: ApiUser | null;
   AccessDeniedComponent: React.ReactNode | null;
 }
 
@@ -44,7 +28,8 @@ export const useAdminAccess = (
     requiredRole = "admin",
   } = options;
 
-  const { user } = useAppSelector((state) => state.auth);
+  // ✅ Ensure fallback to null for typing
+  const user = useAppSelector((state) => state.auth.user) ?? null;
 
   const isAdmin = user?.role === "admin";
   const hasAccess = requiredRole === "admin" ? isAdmin : true;

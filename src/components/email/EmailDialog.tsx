@@ -340,10 +340,14 @@ const EmailDialog: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="noreply">noreply</SelectItem>
-                      <SelectItem value="support">support</SelectItem>
-                      <SelectItem value="sales">sales</SelectItem>
+                      <SelectItem value="partnerships">partnerships</SelectItem>
+                      <SelectItem value="school.connect">
+                        school.connect
+                      </SelectItem>
+                      <SelectItem value="outreach">outreach</SelectItem>
                       <SelectItem value="marketing">marketing</SelectItem>
-                      <SelectItem value="offers">offers</SelectItem>
+                      <SelectItem value="admin">admin</SelectItem>
+                      <SelectItem value="nhr">nhr</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -1,4 +1,4 @@
-// src/app/my-leads/data-table.tsx - UPDATED TO USE API STAGES FOR FILTERING
+// src/app/my-leads/data-table.tsx - COMPLETE FIXED VERSION WITH PROPER SEARCH & SPINNER LOGIC
 
 "use client";
 import * as React from "react";
@@ -24,8 +24,6 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  Cell,
-  Row,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -51,10 +49,6 @@ import {
   DownloadIcon,
   Grid2X2PlusIcon,
   SlidersHorizontalIcon,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
 } from "lucide-react";
 import {
   Pagination,
@@ -79,7 +73,7 @@ interface DataTableProps<TData, TValue> {
   onAddNew?: () => void;
   onExportCsv?: () => void;
   onCustomize?: () => void;
-  // 🔥 ADD THESE OPTIONAL PROPS
+  // Server-side pagination props
   paginationMeta?: {
     total: number;
     page: number;
@@ -90,6 +84,11 @@ interface DataTableProps<TData, TValue> {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   isLoading?: boolean;
+  // 🔥 Server-side search props
+  searchQuery?: string;
+  onSearchChange?: (search: string) => void;
+  onClearSearch?: () => void;
+  isSearching?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -102,6 +101,11 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onPageSizeChange,
   isLoading = false,
+  // 🔥 Server-side search props
+  searchQuery = "",
+  onSearchChange,
+  onClearSearch,
+  isSearching = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -115,14 +119,13 @@ export function DataTable<TData, TValue>({
     pageSize: 10,
   });
 
-  // Local filter states
-  const [globalFilter, setGlobalFilter] = React.useState("");
+  // 🔥 Local filters (NOT for search - search is handled server-side)
   const [stageFilter, setStageFilter] = React.useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [dateRange, setDateRange] = React.useState("last-7-days");
 
-  // 🔥 NEW: Get stages from API
+  // Get stages from API
   const { data: stagesData, isLoading: stagesLoading } =
     useGetActiveStagesQuery({});
   const { getStageDisplayName } = useStageUtils();
@@ -137,16 +140,13 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: "includesString",
+    // 🔥 Conditional pagination based on server-side or client-side
     ...(paginationMeta
       ? {
-          // Server-side pagination: disable TanStack pagination entirely
           manualPagination: true,
           pageCount: Math.ceil(paginationMeta.total / paginationMeta.limit),
         }
       : {
-          // Client-side pagination: use TanStack pagination
           getPaginationRowModel: getPaginationRowModel(),
           onPaginationChange: setPagination,
         }),
@@ -156,13 +156,11 @@ export function DataTable<TData, TValue>({
       columnFilters,
       columnVisibility,
       rowSelection,
-      globalFilter,
-      // 🔥 FIX: Only include pagination state for client-side pagination
       ...(paginationMeta ? {} : { pagination }),
     },
   });
 
-  // Apply filters to table
+  // Apply LOCAL filters to table (not search - search is server-side)
   React.useEffect(() => {
     const filters: ColumnFiltersState = [];
 
@@ -185,6 +183,7 @@ export function DataTable<TData, TValue>({
     stageFilter !== "all" ||
     departmentFilter !== "all" ||
     statusFilter.length > 0;
+
   const activeFiltersCount = [
     stageFilter !== "all" ? 1 : 0,
     departmentFilter !== "all" ? 1 : 0,
@@ -195,9 +194,13 @@ export function DataTable<TData, TValue>({
     setStageFilter("all");
     setDepartmentFilter("all");
     setStatusFilter([]);
-    setGlobalFilter("");
+    // 🔥 Also clear search when clearing all filters
+    if (onClearSearch) {
+      onClearSearch();
+    }
   };
 
+  // 🔥 Server Pagination Component
   const ServerPagination = () => {
     if (!paginationMeta || !onPageChange || !onPageSizeChange) return null;
 
@@ -208,21 +211,17 @@ export function DataTable<TData, TValue>({
 
     const getVisiblePages = () => {
       if (totalPages <= 3) {
-        // Show all pages if 3 or fewer
         return Array.from({ length: totalPages }, (_, i) => i + 1);
       }
 
       if (page <= 2) {
-        // Show first 3 pages if current page is 1 or 2
         return [1, 2, 3];
       }
 
       if (page >= totalPages - 1) {
-        // Show last 3 pages if current page is near the end
         return [totalPages - 2, totalPages - 1, totalPages];
       }
 
-      // Show current page and one on each side
       return [page - 1, page, page + 1];
     };
 
@@ -232,14 +231,15 @@ export function DataTable<TData, TValue>({
 
     return (
       <div className="flex items-center justify-between w-full px-4 py-4 border-t bg-white">
-        {/* 🔥 LEFT SIDE - Results info and page size selector */}
+        {/* LEFT SIDE - Results info and page size selector */}
         <div className="flex items-center space-x-6">
-          {/* Results info */}
           <div className="text-sm text-muted-foreground whitespace-nowrap">
             Showing {startRecord} to {endRecord} of {total} results
+            {searchQuery && (
+              <span className="text-blue-600"> (search results)</span>
+            )}
           </div>
 
-          {/* Page size selector */}
           <div className="flex items-center space-x-2 whitespace-nowrap">
             <span className="text-sm text-muted-foreground">
               Rows per page:
@@ -265,26 +265,21 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
 
-        {/* 🔥 RIGHT SIDE - Pagination controls */}
+        {/* RIGHT SIDE - Pagination controls */}
         <div className="flex items-center">
           <Pagination>
             <PaginationContent className="flex items-center space-x-1">
-              {/* Previous Button */}
               <PaginationItem>
                 <PaginationPrevious
                   onClick={() => has_prev && onPageChange(page - 1)}
-                  className={`
-                  h-8 px-3 text-sm
-                  ${
+                  className={`h-8 px-3 text-sm ${
                     !has_prev
                       ? "pointer-events-none opacity-50 cursor-not-allowed"
                       : "cursor-pointer hover:bg-accent"
-                  }
-                `}
+                  }`}
                 />
               </PaginationItem>
 
-              {/* First page + ellipsis if needed */}
               {showStartEllipsis && (
                 <>
                   <PaginationItem>
@@ -302,27 +297,22 @@ export function DataTable<TData, TValue>({
                 </>
               )}
 
-              {/* Visible page numbers */}
               {visiblePages.map((pageNum) => (
                 <PaginationItem key={pageNum}>
                   <PaginationLink
                     onClick={() => onPageChange(pageNum)}
                     isActive={page === pageNum}
-                    className={`
-                    h-8 w-8 p-0 text-sm cursor-pointer
-                    ${
+                    className={`h-8 w-8 p-0 text-sm cursor-pointer ${
                       page === pageNum
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "hover:bg-accent"
-                    }
-                  `}
+                    }`}
                   >
                     {pageNum}
                   </PaginationLink>
                 </PaginationItem>
               ))}
 
-              {/* Last page + ellipsis if needed */}
               {showEndEllipsis && (
                 <>
                   <PaginationItem>
@@ -340,18 +330,14 @@ export function DataTable<TData, TValue>({
                 </>
               )}
 
-              {/* Next Button */}
               <PaginationItem>
                 <PaginationNext
                   onClick={() => has_next && onPageChange(page + 1)}
-                  className={`
-                  h-8 px-3 text-sm
-                  ${
+                  className={`h-8 px-3 text-sm ${
                     !has_next
                       ? "pointer-events-none opacity-50 cursor-not-allowed"
                       : "cursor-pointer hover:bg-accent"
-                  }
-                `}
+                  }`}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -361,7 +347,7 @@ export function DataTable<TData, TValue>({
     );
   };
 
-  // 🔥 UPDATED: Stage filter component using API data
+  // 🔥 Stage Filter Component
   const StageFilterSelect = () => {
     if (stagesLoading) {
       return (
@@ -392,197 +378,15 @@ export function DataTable<TData, TValue>({
     );
   };
 
-  // Improved pagination component
-  const ImprovedPagination = () => {
-    const {
-      getState,
-      getCanPreviousPage,
-      getCanNextPage,
-      getPageCount,
-      setPageIndex,
-      previousPage,
-      nextPage,
-      setPageSize,
-      getFilteredRowModel,
-      getFilteredSelectedRowModel,
-    } = table;
-
-    const { pageIndex, pageSize } = getState().pagination;
-    const totalRows = getFilteredRowModel().rows.length;
-    const selectedRows = getFilteredSelectedRowModel().rows.length;
-
-    // Calculate page numbers to show
-    const getPageNumbers = () => {
-      const totalPages = getPageCount();
-      const currentPage = pageIndex + 1;
-      const delta = 2; // Number of pages to show on each side of current page
-
-      let start = Math.max(1, currentPage - delta);
-      let end = Math.min(totalPages, currentPage + delta);
-
-      // Adjust if we're near the beginning or end
-      if (currentPage <= delta + 1) {
-        end = Math.min(totalPages, delta * 2 + 1);
-      }
-      if (currentPage >= totalPages - delta) {
-        start = Math.max(1, totalPages - delta * 2);
-      }
-
-      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-    };
-
-    return (
-      <div className="flex items-center justify-between px-2 py-4">
-        {/* Left side - Selection info */}
-        <div className="flex items-center space-x-4">
-          <div className="text-sm text-muted-foreground">
-            {selectedRows} of {totalRows} row(s) selected
-          </div>
-
-          {/* Page size selector */}
-          <div className="flex items-center space-x-2">
-            <p className="text-sm text-muted-foreground">Rows per page:</p>
-            <Select
-              value={`${pageSize}`}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue placeholder={pageSize} />
-              </SelectTrigger>
-              <SelectContent side="top">
-                {[5, 10, 20, 30, 40, 50, 100].map((size) => (
-                  <SelectItem key={size} value={`${size}`}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Right side - Pagination controls */}
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => setPageIndex(0)}
-              disabled={!getCanPreviousPage()}
-            >
-              <span className="sr-only">Go to first page</span>
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={previousPage}
-              disabled={!getCanPreviousPage()}
-            >
-              <span className="sr-only">Go to previous page</span>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {/* Page numbers */}
-            <div className="flex items-center space-x-1">
-              {getPageNumbers().map((page) => (
-                <Button
-                  key={page}
-                  variant={page === pageIndex + 1 ? "default" : "outline"}
-                  className="h-8 w-8 p-0"
-                  onClick={() => setPageIndex(page - 1)}
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={nextPage}
-              disabled={!getCanNextPage()}
-            >
-              <span className="sr-only">Go to next page</span>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => setPageIndex(getPageCount() - 1)}
-              disabled={!getCanNextPage()}
-            >
-              <span className="sr-only">Go to last page</span>
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="text-sm text-muted-foreground">
-            Page {pageIndex + 1} of {getPageCount()}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // 🔥 FIXED: Custom cell renderer with proper typing
-  const renderCustomCell = (
-    item: TData,
-    column: ColumnDef<TData, TValue>,
-    index: number
-  ) => {
-    const accessorKey = (column as { accessorKey?: string }).accessorKey;
-    const cellValue = accessorKey
-      ? (item as Record<string, unknown>)[accessorKey]
-      : null;
-
-    // Create a mock row object for the cell renderer
-    const mockRow: Row<TData> = {
-      original: item,
-      getValue: (key: string) => {
-        const itemRecord = item as Record<string, unknown>;
-        return itemRecord[key] || itemRecord[accessorKey || ""] || cellValue;
-      },
-      id: index.toString(),
-      index,
-      getIsSelected: () => false,
-      toggleSelected: () => {},
-    } as Row<TData>;
-
-    // Create a mock cell object
-    const mockCell: Cell<TData, unknown> = {
-      row: mockRow,
-      getValue: () => cellValue,
-      column: column as ColumnDef<TData, unknown>,
-      getContext: () => ({
-        row: mockRow,
-        column: column as ColumnDef<TData, unknown>,
-        cell: mockCell,
-        table: table,
-        getValue: () => cellValue,
-      }),
-    } as Cell<TData, unknown>;
-
-    if (column.cell && typeof column.cell === "function") {
-      return column.cell(mockCell.getContext());
-    }
-
-    return cellValue?.toString() || "-";
-  };
-
+  // Get column display name helper
   const getColumnDisplayName = (col: Column<TData, unknown>) => {
     const columnDef = col.columnDef;
 
-    // If header is a simple string, use it
     if (typeof columnDef.header === "string") {
       return columnDef.header;
     }
 
-    // If header is a function (like your sorting buttons),
-    // try to extract the text from your column definitions
     if (typeof columnDef.header === "function") {
-      // Based on your columns file, extract the button text
       switch (col.id) {
         case "name":
           return "Lead Name";
@@ -590,9 +394,17 @@ export function DataTable<TData, TValue>({
           return "Stage";
         case "assignedTo":
           return "Assigned To";
-        // Add other sortable columns as needed
+        case "email":
+          return "Email";
+        case "phone":
+          return "Phone";
+        case "status":
+          return "Status";
+        case "createdAt":
+          return "Created At";
+        case "updatedAt":
+          return "Updated At";
         default:
-          // Fallback: convert camelCase to Title Case
           return col.id
             .replace(/([A-Z])/g, " $1")
             .replace(/^./, (str: string) => str.toUpperCase())
@@ -600,7 +412,6 @@ export function DataTable<TData, TValue>({
       }
     }
 
-    // Final fallback
     return col.id
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (str: string) => str.toUpperCase())
@@ -610,24 +421,21 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* Header Section */}
-      {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
 
-          {/* Column Visibility MultiSelect - MOVED HERE */}
+          {/* Column Visibility MultiSelect */}
           <div className="w-48">
             <MultiSelect
               options={table
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return {
-                    value: column.id,
-                    label: getColumnDisplayName(column),
-                    subtitle: column.getIsVisible() ? "Visible" : "Hidden",
-                  };
-                })}
+                .map((column) => ({
+                  value: column.id,
+                  label: getColumnDisplayName(column),
+                  subtitle: column.getIsVisible() ? "Visible" : "Hidden",
+                }))}
               value={table
                 .getAllColumns()
                 .filter(
@@ -661,21 +469,31 @@ export function DataTable<TData, TValue>({
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* Global Search */}
+          {/* 🔥 FIXED: Server-side search input with proper spinner logic */}
           <div className="relative w-54">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search leads..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="pl-8"
+              value={searchQuery}
+              onChange={(event) => onSearchChange?.(event.target.value)}
+              className="pl-8 pr-16"
+              disabled={!onSearchChange}
             />
-            {globalFilter && (
+
+            {/* 🔥 FIXED: Show spinner only when actively searching */}
+            {isSearching && searchQuery.length > 0 && (
+              <div className="absolute right-8 top-2.5">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            )}
+
+            {/* 🔥 FIXED: Show clear button when there's search query and not actively searching */}
+            {searchQuery && onClearSearch && !isSearching && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="absolute right-1 top-1 h-6 w-6 p-0"
-                onClick={() => setGlobalFilter("")}
+                onClick={onClearSearch}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -701,9 +519,9 @@ export function DataTable<TData, TValue>({
               <Button variant="outline" size="sm">
                 <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
                 Filters
-                {hasActiveFilters && (
+                {(hasActiveFilters || searchQuery) && (
                   <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
-                    {activeFiltersCount}
+                    {activeFiltersCount + (searchQuery ? 1 : 0)}
                   </Badge>
                 )}
               </Button>
@@ -748,13 +566,27 @@ export function DataTable<TData, TValue>({
 
       {description && <p className="text-muted-foreground">{description}</p>}
 
-      {/* Stage Statistics Overview */}
-      {/* <StageStatsOverview /> */}
-
       {/* Active Filters Display */}
-      {hasActiveFilters && (
+      {(hasActiveFilters || searchQuery) && (
         <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
           <span className="text-sm font-medium">Active filters:</span>
+
+          {searchQuery && (
+            <Badge variant="secondary" className="gap-1">
+              Search: &quot;{searchQuery}&quot;
+              {onClearSearch && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 ml-1"
+                  onClick={onClearSearch}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </Badge>
+          )}
+
           {stageFilter !== "all" && (
             <Badge variant="secondary" className="gap-1">
               Stage: {getStageDisplayName(stageFilter)}
@@ -768,6 +600,7 @@ export function DataTable<TData, TValue>({
               </Button>
             </Badge>
           )}
+
           {departmentFilter !== "all" && (
             <Badge variant="secondary" className="gap-1">
               Department: {departmentFilter}
@@ -781,6 +614,7 @@ export function DataTable<TData, TValue>({
               </Button>
             </Badge>
           )}
+
           <Button
             variant="ghost"
             size="sm"
@@ -792,9 +626,10 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
-      {/* Data Table */}
+      {/* 🔥 FIXED: Data Table with proper loading states */}
       <div className="rounded-md border">
-        {isLoading && (
+        {/* 🔥 FIXED: Only show table loading overlay when loading initial data, not when searching */}
+        {isLoading && !isSearching && (
           <div className="p-4 text-center">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
             Loading leads...
@@ -820,60 +655,58 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {!isLoading && data.length > 0 ? (
-              paginationMeta ? (
-                // Server-side pagination: render all data directly with proper typing
-                <>
-                  {data.map((item: TData, index) => (
-                    <TableRow key={index} className="hover:bg-muted/50">
-                      {table
-                        .getAllLeafColumns()
-                        .filter((column) => column.getIsVisible())
-                        .map((column, colIndex) => (
-                          <TableCell key={colIndex}>
-                            {renderCustomCell(item, column.columnDef, index)}
-                          </TableCell>
-                        ))}
-                    </TableRow>
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className="hover:bg-muted/50"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
-                </>
-              ) : (
-                // Client-side pagination: use table rows
-                <>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      className="hover:bg-muted/50"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </>
-              )
+                </TableRow>
+              ))
             ) : !isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={table.getLeftVisibleLeafColumns().length}
+                  colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  {hasActiveFilters
+                  {searchQuery
+                    ? `No leads found matching "${searchQuery}"`
+                    : hasActiveFilters
                     ? "No leads match your filters."
                     : "No leads found."}
                 </TableCell>
               </TableRow>
-            ) : null}
+            ) : (
+              /* Show loading rows while searching */
+              isSearching && (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Searching...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            )}
           </TableBody>
         </Table>
 
-        {paginationMeta ? <ServerPagination /> : <ImprovedPagination />}
+        {/* Pagination */}
+        {paginationMeta && <ServerPagination />}
       </div>
+
       <EmailDialog />
       <WhatsAppModal />
     </div>

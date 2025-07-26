@@ -38,14 +38,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         const userData = localStorage.getItem("user_data");
 
         if (token && userData) {
-          // Initialize Redux with stored data using the correct action
-          const user = JSON.parse(userData);
-          dispatch(
-            setAuthFromStorage({
-              token: token,
-              user: user,
-            })
-          );
+          dispatch(setAuthFromStorage());
         } else {
           // No valid auth data found
           dispatch(clearAuthState());

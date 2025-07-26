@@ -1,18 +1,33 @@
-// src/app/sample-table/page.tsx - MINIMAL CHANGES TO YOUR EXISTING FILE
-
+// 🔥 CORRECTED PAGE.TSX
 "use client";
-import { useMemo, useState } from "react"; // 🔥 ADD useState
-import { createColumns } from "./columns"; // 🔥 CHANGED: Import createColumns instead of columns
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { createColumns } from "./columns";
 import { DataTable } from "./data-table";
 import { useAppSelector } from "@/redux/hooks";
 import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
 import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
-import { useRouter } from "next/navigation"; // 🔥 ADDED: Import useRouter
+import { useRouter } from "next/navigation";
 import { Lead } from "@/models/types/lead";
 
-// Type for RTK Query error (KEEP EXISTING)
+// Create a simple debounce hook
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 interface RTKQueryError {
   data?: {
     detail?: string;
@@ -23,20 +38,24 @@ interface RTKQueryError {
 }
 
 export default function DemoPage() {
-  const router = useRouter(); // 🔥 ADDED: Add router at component level
+  const router = useRouter();
 
-  // 🔥 ADD PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const isAdmin = useAppSelector(selectIsAdmin);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // 🔥 ADDED: Create columns with router
+  const isAdmin = useAppSelector(selectIsAdmin);
   const columns = useMemo(() => createColumns(router), [router]);
 
-  // console.log("🔍 Current pagination state:", { currentPage, pageSize });
+  // 🔥 FIXED: Debounced search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // 🔥 MODIFY EXISTING QUERIES TO INCLUDE PAGINATION PARAMS
+  // 🔥 FIXED: Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
 
+  // API calls with proper search parameters
   const {
     data: adminLeadsResponse,
     isLoading: adminLoading,
@@ -46,10 +65,11 @@ export default function DemoPage() {
     {
       page: currentPage,
       limit: pageSize,
+      search: debouncedSearchQuery.trim() || undefined,
     },
     {
       skip: !isAdmin,
-      refetchOnMountOrArgChange: true, // Always refetch when args change
+      refetchOnMountOrArgChange: true,
     }
   );
 
@@ -62,10 +82,11 @@ export default function DemoPage() {
     {
       page: currentPage,
       limit: pageSize,
+      search: debouncedSearchQuery.trim() || undefined,
     },
     {
       skip: isAdmin,
-      refetchOnMountOrArgChange: true, // Always refetch when args change
+      refetchOnMountOrArgChange: true,
     }
   );
 
@@ -74,22 +95,19 @@ export default function DemoPage() {
   const error = isAdmin ? adminError : userError;
   const refetch = isAdmin ? refetchAdmin : refetchUser;
 
-  // console.log("🔍 Raw API Response:", leadsResponse);
+  // 🔥 FIXED: Proper search state management
+  const isSearching = searchQuery !== debouncedSearchQuery;
+  const isActuallyLoading = isLoading && !isSearching; // Don't show full page loader while searching
 
+  // Extract leads and pagination data
   const { leads, paginationMeta } = useMemo(() => {
     let extractedLeads: Lead[] = [];
     let extractedPaginationMeta = undefined;
 
     if (leadsResponse) {
       if (Array.isArray(leadsResponse)) {
-        // Old format: just array of leads
         extractedLeads = leadsResponse;
-        // console.log(
-        //   "🔍 Using old array format, leads count:",
-        //   extractedLeads.length
-        // );
       } else if (leadsResponse.leads) {
-        // New format: paginated response
         extractedLeads = leadsResponse.leads;
         extractedPaginationMeta = {
           total: leadsResponse.total || 0,
@@ -98,76 +116,39 @@ export default function DemoPage() {
           has_next: leadsResponse.has_next || false,
           has_prev: leadsResponse.has_prev || false,
         };
-        // console.log("🔍 Using paginated format:", {
-        //   leadsCount: extractedLeads.length,
-        //   paginationMeta: extractedPaginationMeta,
-        // });
       }
     }
 
     return { leads: extractedLeads, paginationMeta: extractedPaginationMeta };
   }, [leadsResponse, currentPage, pageSize]);
 
-  // 🔥 ADD: Debug leads BEFORE applying filters
-  // console.log("🔍 Leads BEFORE applying filters:", leads.length, leads);
-
-  // Apply filters (KEEP EXISTING BUT ADD DEBUGGING)
+  // Smart data selection: server search vs Redux filters
   const filteredLeadsSelector = useMemo(
     () => createFilteredLeadsSelector(leads),
     [leads]
   );
+  const reduxFilteredLeads = useAppSelector(filteredLeadsSelector);
+  const finalLeads = debouncedSearchQuery.trim() ? leads : reduxFilteredLeads;
 
-  // console.log("🔍 Selector created with leads:", leads.length);
-
-  const filteredLeads = useAppSelector(filteredLeadsSelector);
-
-  // 🔥 ADD: Debug leads AFTER applying filters
-  // console.log(
-  //   "🔍 Leads AFTER applying filters:",
-  //   filteredLeads.length,
-  //   filteredLeads
-  // );
-
-  // 🔥 ADD: Check if there are any other selectors or filters being applied
-  // console.log("🔍 Final data being passed to table:", {
-  //   originalLeads: leads.length,
-  //   filteredLeads: filteredLeads.length,
-  //   paginationMeta,
-  //   // 🔥 ADD: Show actual data being passed
-  //   firstFewLeads: filteredLeads
-  //     .slice(0, 3)
-  //     .map((lead) => ({ id: lead.id, name: lead.name })),
-  // });
-
-  // 🔥 SIMPLIFIED PAGINATION HANDLERS
-  const handlePageChange = (newPage: number) => {
-    // console.log("📄 Page change:", currentPage, "→", newPage);
+  // Event handlers
+  const handlePageChange = useCallback((newPage: number) => {
     setCurrentPage(newPage);
+  }, []);
 
-    // 🔥 FORCE REFETCH AFTER STATE UPDATE
-    setTimeout(() => {
-      // console.log("🔄 Force refetching after page change...");
-      refetch();
-    }, 100);
-  };
-
-  const handlePageSizeChange = (newSize: number) => {
-    // console.log("📊 Page size change:", pageSize, "→", newSize);
+  const handlePageSizeChange = useCallback((newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1);
+  }, []);
 
-    // 🔥 FORCE REFETCH AFTER STATE UPDATE
-    setTimeout(() => {
-      // console.log("🔄 Force refetching after page size change...");
-      refetch();
-    }, 100);
-  };
+  const handleSearchChange = useCallback((newSearch: string) => {
+    setSearchQuery(newSearch);
+  }, []);
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+  }, []);
 
-  // Helper function to extract error message with proper typing (KEEP EXISTING)
+  // Helper function to extract error message
   const getErrorMessage = (error: unknown): string => {
     if (!error) return "Unknown error occurred";
     const rtkError = error as RTKQueryError;
@@ -177,8 +158,8 @@ export default function DemoPage() {
     return "Failed to load leads";
   };
 
-  // 🔥 ADD LOADING STATE WITH SPINNER
-  if (isLoading) {
+  // 🔥 FIXED: Only show full page loading on initial load, not during search
+  if (isActuallyLoading && !searchQuery) {
     return (
       <div className="container mx-auto">
         <div className="flex items-center justify-center h-64">
@@ -196,7 +177,7 @@ export default function DemoPage() {
     );
   }
 
-  // Error state (KEEP EXISTING)
+  // Error state
   if (error) {
     const errorMessage = getErrorMessage(error);
     return (
@@ -211,17 +192,11 @@ export default function DemoPage() {
           </p>
           <div className="flex gap-2">
             <button
-              onClick={handleRefresh}
+              onClick={() => refetch()}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               <RefreshCw className="h-4 w-4 inline mr-2" />
               Retry
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-            >
-              Refresh Page
             </button>
           </div>
         </div>
@@ -231,8 +206,8 @@ export default function DemoPage() {
 
   return (
     <div className="container mx-auto space-y-6">
-      {/* No Data State (KEEP EXISTING) */}
-      {leads.length === 0 ? (
+      {/* No Data State */}
+      {finalLeads.length === 0 && !debouncedSearchQuery ? (
         <div className="bg-white rounded-lg shadow border p-12 text-center">
           <div className="text-gray-400 mb-4">
             <svg
@@ -267,19 +242,63 @@ export default function DemoPage() {
         /* Data Table */
         <DataTable
           columns={columns}
-          data={filteredLeads}
+          data={finalLeads}
           title={isAdmin ? "All Leads" : "Leads"}
-          description={`${
-            isAdmin
-              ? "Comprehensive view of all leads in the system"
-              : "Your assigned leads with real-time updates"
-          } with sorting, filtering, and actions`}
+          description={
+            debouncedSearchQuery.trim()
+              ? `${
+                  paginationMeta?.total || finalLeads.length
+                } leads found for "${debouncedSearchQuery}"`
+              : `${
+                  isAdmin
+                    ? "Comprehensive view of all leads in the system"
+                    : "Your assigned leads with real-time updates"
+                } with sorting, filtering, and actions`
+          }
           onExportCsv={() => console.log("Export CSV from DataTable")}
           paginationMeta={paginationMeta}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
           isLoading={isLoading}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onClearSearch={handleClearSearch}
+          isSearching={isSearching}
         />
+      )}
+
+      {/* No search results message */}
+      {finalLeads.length === 0 && debouncedSearchQuery && (
+        <div className="bg-white rounded-lg shadow border p-8 text-center">
+          <div className="text-gray-400 mb-4">
+            <svg
+              className="h-8 w-8 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No results found
+          </h3>
+          <p className="text-gray-600 mb-4">
+            No leads match your search for &quot;{debouncedSearchQuery}&quot;.
+            Try different keywords.
+          </p>
+          <button
+            onClick={handleClearSearch}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Clear Search
+          </button>
+        </div>
       )}
     </div>
   );

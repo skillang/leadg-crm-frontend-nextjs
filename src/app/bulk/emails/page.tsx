@@ -474,7 +474,6 @@ const BulkEmailPage: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="noreply">noreply</SelectItem>
-                    <SelectItem value="support">support</SelectItem>
                     <SelectItem value="partnerships">partnerships</SelectItem>
                     <SelectItem value="school.connect">
                       school.connect

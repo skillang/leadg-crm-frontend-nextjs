@@ -120,7 +120,7 @@ export interface SchedulerStatusResponse {
 }
 
 // Base query with authentication and auto-refresh
-const baseQuery = createBaseQueryWithReauth(API_BASE_URL);
+const baseQuery = createBaseQueryWithReauth(`${API_BASE_URL}/emails`);
 
 export const emailApi = createApi({
   reducerPath: "emailApi",

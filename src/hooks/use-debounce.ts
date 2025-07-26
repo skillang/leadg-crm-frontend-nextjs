@@ -1,9 +1,9 @@
-// src/hooks/use-debounce.ts - Debounce Hook for Search
+// src/hooks/useDebounce.ts - Custom hook to debounce search input
 
 import { useState, useEffect } from "react";
 
 /**
- * Custom hook that debounces a value for a specified delay
+ * Custom hook to debounce a value
  * @param value - The value to debounce
  * @param delay - The delay in milliseconds
  * @returns The debounced value
@@ -13,13 +13,13 @@ export function useDebounce<T>(value: T, delay: number): T {
 
   useEffect(() => {
     // Set up a timer to update the debounced value after the delay
-    const timer = setTimeout(() => {
+    const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
 
-    // Clean up the timer if value changes before delay
+    // Clean up the timer if the value changes before the delay
     return () => {
-      clearTimeout(timer);
+      clearTimeout(handler);
     };
   }, [value, delay]);
 
