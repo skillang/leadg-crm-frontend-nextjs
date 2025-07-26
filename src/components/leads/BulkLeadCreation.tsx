@@ -65,7 +65,7 @@ interface FlatBulkLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
-  currentLocation?: string;
+  current_location?: string;
   country_of_interest?: string;
   course_level?: string;
   date_of_birth?: string;
@@ -225,27 +225,32 @@ const HEADER_MAPPING: Record<string, string> = {
   "SPECIALITY EXPERIENCE": "specialty_experience", // Added for your CSV
   "specialty experience": "specialty_experience",
 
+  "speciality experience": "specialty_experience",
+  "SPECIALTY EXPERIENCE": "specialty_experience",
+
   // Age mappings
   age: "age",
   Age: "age",
-  AGE: "age", // Added for your CSV
+  AGE: "age",
 
+  // ✅ FIXED: Date of Birth mappings
   "date of birth": "date_of_birth",
   "Date of Birth": "date_of_birth",
-  "DATE OF BIRTH": "date_of_birth", // Added for your CSV
+  "DATE OF BIRTH": "date_of_birth",
   dob: "date_of_birth",
+  DOB: "date_of_birth",
 
   // ✅ FIXED: Nationality mappings (Added missing variations)
   nationality: "nationality",
   Nationality: "nationality",
-  NATIONALITY: "nationality", // ← This was missing!
+  NATIONALITY: "nationality",
   "nationality country": "nationality",
   "country of nationality": "nationality",
 
   // ✅ FIXED: Current location mappings (Added missing variations)
   current_location: "current_location",
   "current location": "current_location",
-  "CURRENT LOCATION": "current_location", // ← This was missing!
+  "CURRENT LOCATION": "current_location",
   "current address": "current_location",
   "current city": "current_location",
   location: "current_location",
@@ -486,6 +491,28 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     );
   };
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === "," && !inQuotes) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current.trim());
+    return result;
+  };
+
   const parseCSV = (file: File) => {
     const reader = new FileReader();
 
@@ -501,11 +528,14 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           return;
         }
 
-        // Parse header row
-        const rawHeaders = lines[0]
-          .split(",")
-          .map((h) => h.replace(/"/g, "").trim());
+        // ✅ FIXED: Use proper CSV parsing for headers
+        const rawHeaders = parseCSVLine(lines[0]).map((h) =>
+          h.replace(/"/g, "").trim()
+        );
         const headers = rawHeaders.map(normalizeHeader);
+
+        console.log("🔍 DEBUG - Raw Headers:", rawHeaders);
+        console.log("🔍 DEBUG - Normalized Headers:", headers);
 
         // Check for required columns
         const missingColumns = REQUIRED_COLUMNS.filter(
@@ -526,16 +556,23 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           email: string;
           contact_number: string;
         }> = [];
-
-        // Generate unique identifiers based on timestamp
         const baseTimestamp = Date.now();
 
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i]
-            .split(",")
-            .map((v) => v.trim().replace(/"/g, ""));
+          // ✅ FIXED: Use proper CSV parsing for data rows
+          const values = parseCSVLine(lines[i]).map((v) =>
+            v.trim().replace(/"/g, "")
+          );
+
           const errors: string[] = [];
           const notesData: string[] = [];
+
+          // Debug the first few rows
+          if (i <= 3) {
+            console.log(`🔍 Row ${i} Raw Values:`, values);
+            console.log(`🔍 Row ${i} Headers Length:`, headers.length);
+            console.log(`🔍 Row ${i} Values Length:`, values.length);
+          }
 
           // Create unique identifier for this row
           const rowTimestamp = baseTimestamp + i;
@@ -612,15 +649,32 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 break;
 
               case "age":
-                if (
-                  value &&
-                  value.toLowerCase() !== "not defined" &&
-                  value.toLowerCase() !== "undefined" &&
-                  value.toLowerCase() !== "n/a"
-                ) {
-                  const age = parseInt(value);
-                  if (!isNaN(age) && age > 0 && age <= 120) {
-                    lead.age = age;
+                if (value && value.trim()) {
+                  const normalizedAge = value.toLowerCase().trim();
+
+                  // ✅ Skip invalid/undefined values
+                  if (
+                    normalizedAge === "not defined" ||
+                    normalizedAge === "undefined" ||
+                    normalizedAge === "n/a" ||
+                    normalizedAge === "not mentioned"
+                  ) {
+                    break; // Skip processing
+                  }
+
+                  // ✅ Extract number from formats like "25 years", "25", "25 yrs"
+                  const ageMatch = value.match(/(\d+)/);
+                  if (ageMatch) {
+                    const ageNumber = parseInt(ageMatch[1]);
+                    if (
+                      !isNaN(ageNumber) &&
+                      ageNumber > 0 &&
+                      ageNumber <= 120
+                    ) {
+                      lead.age = ageNumber;
+                    } else {
+                      notesData.push(`Age: ${value}`);
+                    }
                   } else {
                     notesData.push(`Age: ${value}`);
                   }
@@ -628,15 +682,37 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 break;
 
               case "date_of_birth":
-                if (value && value.toLowerCase() !== "not defined") {
-                  // notesData.push(`Date of Birth: ${value}`);
-                  lead.date_of_birth = value;
+                if (value && value.trim()) {
+                  const normalizedDob = value.toLowerCase().trim();
+
+                  // ✅ Skip invalid/undefined values
+                  if (
+                    normalizedDob === "not defined" ||
+                    normalizedDob === "undefined" ||
+                    normalizedDob === "n/a" ||
+                    normalizedDob === "not mentioned"
+                  ) {
+                    break; // Skip processing
+                  }
+
+                  lead.date_of_birth = value.trim();
                 }
                 break;
 
               case "experience":
                 if (value && value.trim()) {
                   const normalizedExp = value.toLowerCase().trim();
+
+                  // ✅ Skip invalid/undefined values
+                  if (
+                    normalizedExp === "not defined" ||
+                    normalizedExp === "undefined" ||
+                    normalizedExp === "n/a" ||
+                    normalizedExp === "not mentioned"
+                  ) {
+                    break; // Skip processing
+                  }
+
                   const validExperience = [
                     "fresher",
                     "less_than_1_year",
@@ -647,16 +723,41 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   ];
 
                   let mappedExp = normalizedExp;
+
+                  // ✅ Enhanced pattern matching for your CSV format
                   if (
                     normalizedExp.includes("fresher") ||
                     normalizedExp.includes("fresh")
                   ) {
                     mappedExp = "fresher";
                   } else if (
-                    normalizedExp.includes("1") &&
-                    (normalizedExp.includes("2") || normalizedExp.includes("3"))
+                    normalizedExp.includes("1 year") &&
+                    !normalizedExp.includes("2") &&
+                    !normalizedExp.includes("3")
                   ) {
-                    mappedExp = "1_to_3_years";
+                    mappedExp = "less_than_1_year";
+                  } else if (
+                    (normalizedExp.includes("1") &&
+                      normalizedExp.includes("year")) ||
+                    (normalizedExp.includes("2") &&
+                      normalizedExp.includes("year")) ||
+                    (normalizedExp.includes("3") &&
+                      normalizedExp.includes("year"))
+                  ) {
+                    // Handle formats like "2 years 0 months", "1 year 6 months"
+                    const yearMatch = normalizedExp.match(/(\d+)\s*year/);
+                    if (yearMatch) {
+                      const years = parseInt(yearMatch[1]);
+                      if (years >= 1 && years <= 3) {
+                        mappedExp = "1_to_3_years";
+                      } else if (years > 3 && years <= 5) {
+                        mappedExp = "3_to_5_years";
+                      } else if (years > 5 && years <= 10) {
+                        mappedExp = "5_to_10_years";
+                      } else if (years > 10) {
+                        mappedExp = "more_than_10_years";
+                      }
+                    }
                   } else if (
                     normalizedExp.includes("3") &&
                     normalizedExp.includes("5")
@@ -678,6 +779,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   if (validExperience.includes(mappedExp)) {
                     lead.experience = mappedExp;
                   } else {
+                    // ✅ Put full experience details in notes for complex descriptions
                     notesData.push(`Experience: ${value}`);
                   }
                 }
@@ -692,8 +794,21 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               // ✅ FIXED: Nationality processing
               case "nationality":
                 if (value && value.trim()) {
+                  const normalizedNationality = value.toLowerCase().trim();
+
+                  // ✅ Skip invalid/undefined values
+                  if (
+                    normalizedNationality === "not defined" ||
+                    normalizedNationality === "undefined" ||
+                    normalizedNationality === "n/a" ||
+                    normalizedNationality === "not mentioned"
+                  ) {
+                    break; // Skip processing
+                  }
+
                   // Clean and validate nationality
                   const cleanedNationality = value.trim();
+
                   // List of valid nationalities - you can expand this
                   const validNationalities = [
                     "Indian",
@@ -733,19 +848,17 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               // ✅ FIXED: Current location processing (was missing break statement)
               case "current_location":
                 if (value && value.trim()) {
+                  const normalizedLocation = value.toLowerCase().trim();
+                  if (
+                    normalizedLocation === "not defined" ||
+                    normalizedLocation === "undefined" ||
+                    normalizedLocation === "n/a" ||
+                    normalizedLocation === "not mentioned"
+                  ) {
+                    break; // Skip processing
+                  }
+
                   lead.current_location = value.trim();
-                }
-                break; // ← This break was missing!
-
-              case "country_of_interest":
-                if (value && value.trim()) {
-                  lead.country_of_interest = value.trim();
-                }
-                break;
-
-              case "course_level":
-                if (value && value.trim()) {
-                  lead.course_level = value.trim();
                 }
                 break;
 
@@ -860,6 +973,19 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 }
                 break;
             }
+          });
+
+          console.log(`🔍 Row ${i} Debug:`, {
+            rawValues: values.slice(0, 15), // First 15 columns
+            extractedData: {
+              name: lead.name,
+              email: lead.email,
+              age: lead.age,
+              date_of_birth: lead.date_of_birth,
+              nationality: lead.nationality,
+              current_location: lead.current_location,
+              notes: lead.notes,
+            },
           });
 
           // Combine all notes data
