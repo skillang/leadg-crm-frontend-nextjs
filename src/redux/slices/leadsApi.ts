@@ -1,7 +1,7 @@
 // src/redux/slices/leadsApi.ts
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { Lead } from "@/models/types/lead";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 // 🔥 FIXED: Updated base URL configuration to match auth API pattern
 const API_BASE_URL =
@@ -372,18 +372,9 @@ export interface BulkLeadData {
   };
 }
 
-const baseQuery = fetchBaseQuery({
-  baseUrl: `${API_BASE_URL}`,
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as RootState;
-    const token = state.auth.token;
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-    headers.set("content-type", "application/json");
-    return headers;
-  },
-});
+// const baseQuery = createBaseQueryWithReauth(
+//   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+// );
 
 // Enhanced transformation functions
 const transformApiLead = (apiLead: ApiLead): Lead => ({
@@ -469,7 +460,7 @@ const transformLeadDetailsResponse = (
 
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
-  baseQuery,
+  baseQuery: createBaseQueryWithReauth(`${API_BASE_URL}`),
   tagTypes: ["Lead", "LeadDetails", "LeadStats", "AssignableUsers"],
   endpoints: (builder) => ({
     // Enhanced leads query with multi-assignment support

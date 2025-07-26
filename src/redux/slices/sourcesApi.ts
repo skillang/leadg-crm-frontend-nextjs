@@ -1,7 +1,7 @@
 // src/redux/slices/sourcesApi.ts
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 // Types for Sources API
 export interface Source {
@@ -47,19 +47,9 @@ export interface UpdateSourceRequest {
 }
 
 // Base query with authentication
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as RootState;
-    const token = state.auth.token;
-
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-      headers.set("accept", "application/json");
-    }
-    return headers;
-  },
-});
+const baseQuery = createBaseQueryWithReauth(
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+);
 
 export const sourcesApi = createApi({
   reducerPath: "sourcesApi",

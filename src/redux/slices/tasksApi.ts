@@ -1,7 +1,6 @@
 // src/redux/slices/tasksApi.ts
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   Task,
   CreateTaskRequest,
@@ -10,21 +9,12 @@ import {
   CompleteTaskRequest,
   TaskStats,
 } from "@/models/types/task";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
-// Base query with authentication
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as RootState;
-    const token = state.auth.token;
-
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-      headers.set("accept", "application/json"); // Add this
-    }
-    return headers;
-  },
-});
+// Base query with authentication and auto-refresh
+const baseQuery = createBaseQueryWithReauth(
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+);
 
 // Transform API response to match our frontend types
 const transformTask = (apiTask: Record<string, unknown>): Task => ({

@@ -1,6 +1,5 @@
 // src/redux/slices/whatsappApi.ts
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   WhatsAppTemplate,
   AccountStatusResponse,
@@ -8,6 +7,7 @@ import type {
   SendTemplateResponse,
   SendTextResponse,
 } from "@/models/types/whatsapp";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -30,19 +30,11 @@ interface TemplateApiResponse {
   [key: string]: unknown;
 }
 
+const baseQuery = createBaseQueryWithReauth(API_BASE_URL);
+
 export const whatsappApi = createApi({
   reducerPath: "whatsappApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/whatsapp`,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      headers.set("content-type", "application/json");
-      return headers;
-    },
-  }),
+  baseQuery: baseQuery,
   tagTypes: ["WhatsAppStatus", "Templates"],
   endpoints: (builder) => ({
     // Check WhatsApp account status

@@ -6,7 +6,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export interface ApiUser {
   id: string;
   email: string;
-  name: string;
+  name?: string;
   first_name: string;
   last_name: string;
   role: string;
@@ -23,7 +23,7 @@ interface AuthState {
   token: string | null;
   accessToken: string | null;
   refreshToken: string | null;
-  user: ApiUser | null;
+  user?: ApiUser | null;
   loading: boolean;
   error: string | null;
   expiresIn: number | null;

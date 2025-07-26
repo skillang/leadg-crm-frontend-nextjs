@@ -1,7 +1,7 @@
 // src/redux/slices/experienceLevelsApi.ts
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 // Types for Experience Levels
 export interface ExperienceLevelOption {
@@ -15,21 +15,10 @@ export interface ExperienceLevelsResponse {
   total: number;
 }
 
-// Base query with authentication
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as RootState;
-    const token = state.auth.token;
-
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-    headers.set("content-type", "application/json");
-    headers.set("accept", "application/json");
-    return headers;
-  },
-});
+// Base query with authentication and auto-refresh
+const baseQuery = createBaseQueryWithReauth(
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+);
 
 export const experienceLevelsApi = createApi({
   reducerPath: "experienceLevelsApi",

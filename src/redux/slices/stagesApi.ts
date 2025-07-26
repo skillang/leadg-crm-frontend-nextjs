@@ -1,7 +1,6 @@
 // src/redux/slices/stagesApi.ts
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   Stage,
   StagesResponse,
@@ -10,6 +9,7 @@ import {
   UpdateStageRequest,
   StageReorderRequest,
 } from "@/models/types/stage";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -30,19 +30,11 @@ const transformStage = (stage: Record<string, unknown>): Stage => ({
   updated_at: String(stage.updated_at || ""),
 });
 
+const baseQuery = createBaseQueryWithReauth(API_BASE_URL);
+
 export const stagesApi = createApi({
   reducerPath: "stagesApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}`, // 🔥 FIXED: Uses https://leadg.in/api directly
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.accessToken;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      headers.set("Content-Type", "application/json");
-      return headers;
-    },
-  }),
+  baseQuery: baseQuery,
   tagTypes: ["Stage"],
   endpoints: (builder) => ({
     // Get all stages

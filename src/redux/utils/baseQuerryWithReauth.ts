@@ -10,6 +10,29 @@ import type {
 import { RootState } from "../store";
 import { clearAuthState, updateTokens } from "../slices/authSlice";
 
+// Global notification service - will be set by NotificationProvider
+let globalNotificationService: {
+  showError: (description: string, title?: string) => void;
+  showWarning: (description: string, title?: string) => void;
+  showSuccess: (description: string, title?: string) => void;
+  showConfirm: (options: {
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void | Promise<void>;
+    onCancel?: () => void;
+  }) => void;
+} | null = null;
+
+// Function to set the notification service (called from NotificationProvider)
+export const setNotificationService = (
+  service: typeof globalNotificationService
+) => {
+  globalNotificationService = service;
+};
+
 // Enhanced base query that handles token refresh and automatic logout
 export const createBaseQueryWithReauth = (
   baseUrl: string
@@ -43,10 +66,9 @@ export const createBaseQueryWithReauth = (
 
       if (refreshToken) {
         try {
-          // 🔥 FIX: Change URL from "/auth/refresh" to "/refresh"
           const refreshResult = await baseQuery(
             {
-              url: "/refresh", // ✅ FIXED - Correct endpoint URL
+              url: "/auth/refresh",
               method: "POST",
               body: { refresh_token: refreshToken },
             },
@@ -59,13 +81,12 @@ export const createBaseQueryWithReauth = (
               access_token: string;
               token_type: string;
               expires_in: number;
-              refresh_token?: string; // Optional - backend might not return new refresh token
+              refresh_token?: string;
             };
 
-            // 🔥 FIX: Handle both cases - with or without new refresh token
             const newTokens = {
               access_token: refreshResponseData.access_token,
-              refresh_token: refreshResponseData.refresh_token || refreshToken, // Use new one if provided, else keep current
+              refresh_token: refreshResponseData.refresh_token || refreshToken,
               expires_in: refreshResponseData.expires_in,
             };
 
@@ -78,7 +99,6 @@ export const createBaseQueryWithReauth = (
 
             console.log("✅ Token refreshed successfully");
 
-            // 🔥 FIX: Log whether we got a new refresh token
             if (refreshResponseData.refresh_token) {
               console.log(
                 "🔄 New refresh token received (token rotation enabled)"
@@ -107,7 +127,6 @@ export const createBaseQueryWithReauth = (
   };
 };
 
-// 🔥 ENHANCED: Better logout handling with error management
 const handleForceLogout = async (api: BaseQueryApi) => {
   console.log("🚪 Forcing logout due to token expiration");
 
@@ -121,28 +140,44 @@ const handleForceLogout = async (api: BaseQueryApi) => {
     // Clear auth state
     api.dispatch(clearAuthState());
 
-    // Show user notification (only in browser environment)
-    if (typeof window !== "undefined" && window.location) {
-      // 🔥 FIX: Better user notification
-      const message = "Your session has expired. Please log in again.";
+    // 🔥 NEW: Use notification system if available
+    if (globalNotificationService && typeof window !== "undefined") {
+      // Show notification instead of browser alert
+      globalNotificationService.showWarning(
+        "Your session has expired. You will be redirected to the login page.",
+        "Session Expired"
+      );
 
-      // Try to show a more user-friendly notification if available
-      if (window.confirm) {
-        window.confirm(message);
-      } else {
-        alert(message);
-      }
+      // Wait a moment for user to see the notification
+      setTimeout(() => {
+        redirectToLogin();
+      }, 2000);
+    } else {
+      // Fallback to browser alert if notification system not available
+      if (typeof window !== "undefined" && window.location) {
+        const message = "Your session has expired. Please log in again.";
 
-      // 🔥 FIX: Only redirect if not already on login page
-      const currentPath = window.location.pathname;
-      if (!currentPath.includes("/login") && !currentPath.includes("/auth")) {
-        window.location.href = "/login";
+        if (window.confirm) {
+          window.confirm(message);
+        } else {
+          alert(message);
+        }
+
+        redirectToLogin();
       }
     }
   } catch (error) {
     console.error("💥 Error during force logout:", error);
     // Still try to redirect even if cleanup fails
-    if (typeof window !== "undefined" && window.location) {
+    redirectToLogin();
+  }
+};
+
+// Helper function to handle redirect
+const redirectToLogin = () => {
+  if (typeof window !== "undefined" && window.location) {
+    const currentPath = window.location.pathname;
+    if (!currentPath.includes("/login") && !currentPath.includes("/auth")) {
       window.location.href = "/login";
     }
   }

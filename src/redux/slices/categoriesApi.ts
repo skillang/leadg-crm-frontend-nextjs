@@ -1,7 +1,6 @@
 // src/redux/slices/categoriesApi.ts
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   Category,
   CreateCategoryRequest,
@@ -11,22 +10,12 @@ import {
   CreateCategoryResponse,
   UpdateCategoryResponse,
 } from "@/models/types/category";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 // Base query with authentication
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as RootState;
-    const token = state.auth.token;
-
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-    headers.set("content-type", "application/json");
-    headers.set("accept", "application/json"); // Add this
-    return headers;
-  },
-});
+const baseQuery = createBaseQueryWithReauth(
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+);
 
 // Transform API response to match our frontend types
 const transformCategory = (apiCategory: ApiCategoryResponse): Category => ({

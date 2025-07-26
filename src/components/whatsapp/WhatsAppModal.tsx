@@ -120,7 +120,7 @@ const WhatsAppModal: React.FC = () => {
               disabled
             >
               <Users className="h-4 w-4" />
-              Bulk Send
+              Message History
             </TabsTrigger>
           </TabsList>
 
