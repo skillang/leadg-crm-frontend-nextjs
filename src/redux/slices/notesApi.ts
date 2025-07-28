@@ -6,55 +6,16 @@ import {
   CreateNoteRequest,
   UpdateNoteRequest,
   NotesResponse,
+  ApiNote,
+  ApiNotesResponse,
+  transformNote,
 } from "@/models/types/note";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
-
-// Define raw API note type
-type ApiNote = {
-  id?: string;
-  _id?: string;
-  title: string;
-  content: string;
-  tags?: string[];
-  lead_id: string;
-  created_by: string;
-  created_by_name: string;
-  created_at: string;
-  updated_at: string;
-  updated_by: string;
-  updated_by_name: string;
-};
-
-// Define raw notes response type
-type ApiNotesResponse = {
-  notes?: ApiNote[];
-  total?: number;
-  page?: number;
-  limit?: number;
-  has_next?: boolean;
-  has_prev?: boolean;
-  available_tags?: string[];
-};
 
 // Base query with authentication
 const baseQuery = createBaseQueryWithReauth(
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 );
-
-// Transform API response to match our frontend types
-const transformNote = (apiNote: ApiNote): Note => ({
-  id: apiNote.id || apiNote._id || "",
-  title: apiNote.title,
-  content: apiNote.content,
-  tags: apiNote.tags || [],
-  lead_id: apiNote.lead_id,
-  created_by: apiNote.created_by,
-  created_by_name: apiNote.created_by_name,
-  created_at: apiNote.created_at,
-  updated_at: apiNote.updated_at,
-  updated_by: apiNote.updated_by,
-  updated_by_name: apiNote.updated_by_name,
-});
 
 export const notesApi = createApi({
   reducerPath: "notesApi",

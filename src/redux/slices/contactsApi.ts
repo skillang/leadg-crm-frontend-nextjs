@@ -14,26 +14,7 @@ import {
 } from "@/models/types/contact";
 import type { RootState } from "../store";
 import type { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
-
-// Define raw contact shape received from API
-interface RawContact {
-  id: string;
-  lead_id: string;
-  first_name: string;
-  last_name: string;
-  full_name?: string;
-  email: string;
-  phone: string;
-  role: string;
-  relationship: string;
-  is_primary?: boolean;
-  address?: string;
-  notes?: string;
-  linked_leads?: string[];
-  created_by_name?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { transformContact, RawContact } from "@/models/types/contact";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/",
@@ -71,26 +52,6 @@ const baseQueryWithLogging: BaseQueryFn<
 
   return result;
 };
-
-const transformContact = (apiContact: RawContact): Contact => ({
-  id: apiContact.id,
-  lead_id: apiContact.lead_id,
-  first_name: apiContact.first_name,
-  last_name: apiContact.last_name,
-  full_name:
-    apiContact.full_name || `${apiContact.first_name} ${apiContact.last_name}`,
-  email: apiContact.email,
-  phone: apiContact.phone,
-  role: apiContact.role,
-  relationship: apiContact.relationship,
-  is_primary: apiContact.is_primary || false,
-  address: apiContact.address || "",
-  notes: apiContact.notes || "",
-  linked_leads: apiContact.linked_leads || [],
-  created_by_name: apiContact.created_by_name || "Unknown",
-  created_at: apiContact.created_at,
-  updated_at: apiContact.updated_at,
-});
 
 export const contactsApi = createApi({
   reducerPath: "contactsApi",

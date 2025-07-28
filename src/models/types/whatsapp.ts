@@ -194,6 +194,44 @@ export interface WhatsAppError {
   timestamp: string;
 }
 
+export interface WhatsAppState {
+  // Modal states
+  isModalOpen: boolean;
+  messageType: MessageType;
+
+  // Contact validation
+  contactValidation: ContactValidation;
+
+  // Template selection
+  selectedTemplate: string | null;
+  templateParameters: TemplateParameters;
+
+  // UI states
+  isPreviewMode: boolean;
+  isSending: boolean;
+
+  // Current context
+  currentLead: LeadData | null;
+  currentUser: UserData | null;
+}
+
+// =============== PAYLOAD TYPES FOR SLICE ACTIONS ===============
+export interface OpenModalPayload {
+  lead: LeadData;
+  user: UserData;
+}
+
+export interface SetTemplateParameterPayload {
+  key: string;
+  value: string;
+}
+
+export interface TemplateApiResponse {
+  data?: WhatsAppTemplate[];
+  templates?: WhatsAppTemplate[];
+  [key: string]: unknown;
+}
+
 // Template Parameter Helpers
 export const getParameterValue = (
   parameters: TemplateParameters,
@@ -415,60 +453,6 @@ export const processTemplatesResponse = (
   }
 };
 
-// Default Templates (for fallback) - Updated to match backend format
-export const DEFAULT_TEMPLATES: WhatsAppTemplate[] = [
-  createTemplate({
-    id: 1,
-    template_name: "new_lead_welcome",
-    display_name: "New Lead Welcome",
-    parameters: ["lead_name", "agent_name"],
-    template:
-      "Hi {{lead_name}}! This is {{agent_name}} from Skillang Careers. Welcome!",
-    category: "welcome",
-    description: "Welcome message for new leads",
-  }),
-  createTemplate({
-    id: 2,
-    template_name: "follow_up",
-    display_name: "Follow Up",
-    parameters: ["lead_name", "agent_name"],
-    template:
-      "Hello {{lead_name}}, this is {{agent_name}}. I wanted to follow up on your application.",
-    category: "follow_up",
-    description: "Follow-up message for existing leads",
-  }),
-  createTemplate({
-    id: 3,
-    template_name: "document_request",
-    display_name: "Document Request",
-    parameters: ["lead_name", "agent_name", "document_type"],
-    template:
-      "Hi {{lead_name}}, {{agent_name}} here. Could you please send your {{document_type}}?",
-    category: "documents",
-    description: "Request specific documents from leads",
-  }),
-  // Add the templates from your backend as defaults
-  createTemplate({
-    id: 4,
-    template_name: "nursing_promo_form_wa",
-    display_name: "Nursing Promo",
-    parameters: ["lead_name"],
-    template: "Hi {{lead_name}}, check out our nursing program promotion!",
-    category: "promotion",
-    description: "form for nursing",
-  }),
-  createTemplate({
-    id: 5,
-    template_name: "lead_new",
-    display_name: "New Lead",
-    parameters: ["lead_name"],
-    template:
-      "Welcome {{lead_name}}! Thank you for your interest in our programs.",
-    category: "welcome",
-    description: "new lead welcome message",
-  }),
-];
-
 // Named export object to fix the anonymous default export warning
 const WhatsAppUtils = {
   MESSAGE_TYPES,
@@ -491,7 +475,6 @@ const WhatsAppUtils = {
   createTemplateMessageRequest,
   createContactValidationRequest,
   createWhatsAppError,
-  DEFAULT_TEMPLATES,
 } as const;
 
 export default WhatsAppUtils;

@@ -9,8 +9,8 @@ import {
   setSelectedTemplate,
   setTemplateParameter,
   setPreviewMode,
-  type MessageType,
 } from "@/redux/slices/whatsappSlice";
+import { type MessageType } from "@/models/types/whatsapp";
 import {
   useCheckAccountStatusQuery,
   useValidateContactMutation,

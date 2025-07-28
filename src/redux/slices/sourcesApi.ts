@@ -2,49 +2,13 @@
 
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
-
-// Types for Sources API
-export interface Source {
-  id: string;
-  name: string;
-  display_name: string;
-  description: string;
-  short_form: string;
-  sort_order: number;
-  is_active: boolean;
-  is_default: boolean;
-  lead_count?: number;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SourcesResponse {
-  sources: Source[];
-  total: number;
-  active_count: number;
-  inactive_count: number;
-}
-
-export interface CreateSourceRequest {
-  name: string;
-  display_name: string;
-  description?: string;
-  short_form?: string;
-  sort_order?: number;
-  is_active?: boolean;
-  is_default?: boolean;
-}
-
-export interface UpdateSourceRequest {
-  name?: string;
-  display_name?: string;
-  description?: string;
-  short_form?: string;
-  sort_order?: number;
-  is_active?: boolean;
-  is_default?: boolean;
-}
+import {
+  Source,
+  SourcesResponse,
+  CreateSourceRequest,
+  UpdateSourceRequest,
+  // SourceMutationResponse,
+} from "@/models/types/source";
 
 // Base query with authentication
 const baseQuery = createBaseQueryWithReauth(

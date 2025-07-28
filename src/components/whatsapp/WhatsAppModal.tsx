@@ -23,11 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import type { RootState } from "@/redux/store";
-import {
-  closeModal,
-  setMessageType,
-  type MessageType,
-} from "@/redux/slices/whatsappSlice";
+import { closeModal, setMessageType } from "@/redux/slices/whatsappSlice";
 import {
   useCheckAccountStatusQuery,
   useValidateContactMutation,
@@ -35,6 +31,7 @@ import {
 import WhatsAppTextMessage from "./WhatsAppTextMessage";
 import WhatsAppTemplateMessage from "./WhatsAppTemplateMessage";
 import ContactValidator from "./ContactValidator";
+import { MessageType } from "@/models/types/whatsapp";
 
 const WhatsAppModal: React.FC = () => {
   const dispatch = useDispatch();

@@ -2,8 +2,8 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,12 +20,24 @@ interface CreateCategoryModalProps {
   onClose: () => void;
   onSubmit: (data: {
     name: string;
+    display_name: string;
     short_form: string;
     description?: string;
     is_active: boolean;
   }) => Promise<void>;
   isLoading?: boolean;
 }
+
+// Utility function to generate internal name from display name
+const generateInternalName = (displayName: string): string => {
+  return displayName
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_") // Use underscores for categories
+    .replace(/[^a-z0-9_]/g, "") // Remove any character that's not lowercase letter, number, or underscore
+    .replace(/_+/g, "_") // Replace multiple consecutive underscores with single underscore
+    .replace(/^_|_$/g, ""); // Remove leading and trailing underscores
+};
 
 const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   isOpen,
@@ -34,14 +46,32 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   isLoading = false,
 }) => {
   const [formData, setFormData] = useState({
+    display_name: "",
     name: "",
     short_form: "",
     description: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Auto-generate internal name when display name changes
+  useEffect(() => {
+    if (formData.display_name) {
+      const generatedName = generateInternalName(formData.display_name);
+      setFormData((prev) => ({
+        ...prev,
+        name: generatedName,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        name: "",
+      }));
+    }
+  }, [formData.display_name]);
+
   const handleClose = () => {
     setFormData({
+      display_name: "",
       name: "",
       short_form: "",
       description: "",
@@ -53,10 +83,16 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Category name is required";
+    // Display Name validation
+    if (!formData.display_name.trim()) {
+      newErrors.display_name = "Display name is required";
+    } else if (formData.display_name.trim().length < 2) {
+      newErrors.display_name = "Display name must be at least 2 characters";
+    } else if (formData.display_name.trim().length > 100) {
+      newErrors.display_name = "Display name must not exceed 100 characters";
     }
 
+    // Short Form validation
     if (!formData.short_form.trim()) {
       newErrors.short_form = "Short form is required";
     } else if (
@@ -66,6 +102,11 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
       newErrors.short_form = "Short form must be 2-4 characters";
     } else if (!/^[A-Z]+$/.test(formData.short_form)) {
       newErrors.short_form = "Short form must contain only uppercase letters";
+    }
+
+    // Description validation
+    if (formData.description.trim().length > 200) {
+      newErrors.description = "Description must not exceed 200 characters";
     }
 
     setErrors(newErrors);
@@ -81,7 +122,8 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
 
     try {
       await onSubmit({
-        name: formData.name.trim(),
+        display_name: formData.display_name.trim(),
+        name: formData.name,
         short_form: formData.short_form.trim().toUpperCase(),
         description: formData.description.trim() || undefined,
         is_active: true, // New categories are active by default
@@ -115,23 +157,48 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Category Name */}
+          {/* Display Name - First Field */}
           <div className="space-y-2">
-            <Label htmlFor="name">
-              Category Name <span className="text-red-500">*</span>
+            <Label htmlFor="display_name">
+              Display Name <span className="text-red-500">*</span>
             </Label>
+            <Input
+              id="display_name"
+              type="text"
+              placeholder="e.g., Nursing Programs, Study Abroad, Work Authorization"
+              value={formData.display_name}
+              onChange={(e) =>
+                handleInputChange("display_name", e.target.value)
+              }
+              className={errors.display_name ? "border-red-500" : ""}
+              disabled={isLoading}
+            />
+            {errors.display_name && (
+              <div className="flex items-center text-sm text-red-600">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                {errors.display_name}
+              </div>
+            )}
+            <p className="text-xs text-gray-500">
+              This is the user-friendly name displayed in the UI
+            </p>
+          </div>
+
+          {/* Auto-generated Internal Name - Read Only */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Internal Name (Auto-generated)</Label>
             <Input
               id="name"
               type="text"
-              placeholder="e.g., Nursing, Study Abroad"
               value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className={errors.name ? "border-red-500" : ""}
-              disabled={isLoading}
+              disabled
+              className="bg-gray-50 text-gray-600"
+              placeholder="Auto-generated from display name"
             />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name}</p>
-            )}
+            <p className="text-xs text-gray-500">
+              Automatically generated from display name (lowercase, spaces
+              replaced with underscores)
+            </p>
           </div>
 
           {/* Short Form */}
@@ -142,18 +209,22 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
             <Input
               id="short_form"
               type="text"
-              placeholder="e.g., NS, SA, WA"
+              placeholder="e.g., NP, SA, WA"
               value={formData.short_form}
               onChange={(e) => handleInputChange("short_form", e.target.value)}
               className={errors.short_form ? "border-red-500" : ""}
               maxLength={4}
               disabled={isLoading}
+              style={{ textTransform: "uppercase" }}
             />
             {errors.short_form && (
-              <p className="text-sm text-red-500">{errors.short_form}</p>
+              <div className="flex items-center text-sm text-red-600">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                {errors.short_form}
+              </div>
             )}
             <p className="text-xs text-gray-500">
-              2-4 uppercase letters used for lead ID generation (e.g., NS-001)
+              2-4 uppercase letters used for lead ID generation (e.g., NP-001)
             </p>
           </div>
 
@@ -167,7 +238,18 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
               onChange={(e) => handleInputChange("description", e.target.value)}
               rows={3}
               disabled={isLoading}
+              className={errors.description ? "border-red-500" : ""}
+              maxLength={200}
             />
+            {errors.description && (
+              <div className="flex items-center text-sm text-red-600">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                {errors.description}
+              </div>
+            )}
+            <p className="text-xs text-gray-500">
+              {formData.description.length}/200 characters
+            </p>
           </div>
 
           {/* Form Actions */}

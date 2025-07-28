@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   useGetStagesQuery,
   useGetInactiveStagesQuery,
@@ -62,6 +62,17 @@ interface ApiError {
   originalStatus?: number;
 }
 
+// Function to generate internal name from display name
+const generateInternalName = (displayName: string): string => {
+  return displayName
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_") // Replace spaces with underscores for stage names
+    .replace(/[^a-z0-9_]/g, "") // Remove any character that's not lowercase letter, number, or underscore
+    .replace(/_+/g, "_") // Replace multiple consecutive underscores with single underscore
+    .replace(/^_|_$/g, ""); // Remove leading and trailing underscores
+};
+
 const StageManagementPage = () => {
   // State for forms and dialogs
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -76,6 +87,22 @@ const StageManagementPage = () => {
     is_active: true,
     is_default: false,
   });
+
+  // Auto-generate internal name when display name changes in create form
+  useEffect(() => {
+    if (createFormData.display_name) {
+      const generatedName = generateInternalName(createFormData.display_name);
+      setCreateFormData((prev) => ({
+        ...prev,
+        name: generatedName,
+      }));
+    } else {
+      setCreateFormData((prev) => ({
+        ...prev,
+        name: "",
+      }));
+    }
+  }, [createFormData.display_name]);
 
   // Hooks
   const { showSuccess, showError, showConfirm } = useNotifications();
@@ -132,7 +159,9 @@ const StageManagementPage = () => {
   const handleCreateStage = async () => {
     try {
       await createStage(createFormData).unwrap();
-      showSuccess("Stage created successfully!", "Creation Complete");
+      showSuccess(
+        `Stage "${createFormData.display_name}" created successfully!`
+      );
       setIsCreateDialogOpen(false);
       setCreateFormData({
         name: "",
@@ -148,10 +177,11 @@ const StageManagementPage = () => {
       console.error("Create stage error:", error);
       const apiError = error as ApiError;
       const errorMessage =
+        apiError?.data?.detail ||
         apiError?.data?.message ||
         apiError?.message ||
-        "Unknown error occurred";
-      showError(`Failed to create stage: ${errorMessage}`, "Creation Failed");
+        "Failed to create stage";
+      showError(errorMessage);
     }
   };
 
@@ -160,6 +190,7 @@ const StageManagementPage = () => {
     if (!editingStage) return;
 
     try {
+      // Exclude 'name' from updates since it shouldn't be changed
       await updateStage({
         stageId: editingStage.id,
         stageData: {
@@ -171,51 +202,53 @@ const StageManagementPage = () => {
           is_default: editingStage.is_default,
         },
       }).unwrap();
-      showSuccess("Stage updated successfully!", "Update Complete");
+      showSuccess(`Stage "${editingStage.display_name}" updated successfully!`);
       setIsEditDialogOpen(false);
       setEditingStage(null);
     } catch (error: unknown) {
       console.error("Update stage error:", error);
       const apiError = error as ApiError;
       const errorMessage =
+        apiError?.data?.detail ||
         apiError?.data?.message ||
         apiError?.message ||
-        "Unknown error occurred";
-      showError(`Failed to update stage: ${errorMessage}`, "Update Failed");
+        "Failed to update stage";
+      showError(errorMessage);
     }
   };
 
-  // Handle delete stage
-  const handleDeleteStage = async (
-    stageId: string,
-    stageName: string,
-    hasLeads: boolean
-  ) => {
+  // Handle delete stage using notification system
+  const handleDeleteStage = async (stage: Stage) => {
+    const hasLeads = stage.lead_count > 0;
+
+    // Check if stage has leads before showing confirmation
+    if (hasLeads) {
+      showError(
+        `Cannot delete "${stage.display_name}" because it has ${stage.lead_count} associated leads. Please reassign or remove the leads first.`
+      );
+      return;
+    }
+
     showConfirm({
       title: "Delete Stage",
-      description: hasLeads
-        ? `This stage "${stageName}" has leads assigned to it. Are you sure you want to delete it? This action cannot be undone.`
-        : `Are you sure you want to delete "${stageName}"? This action cannot be undone.`,
-      confirmText: "Delete",
+      description: `Are you sure you want to permanently delete the stage "${stage.display_name}"? This action cannot be undone.`,
+      confirmText: "Delete Stage",
+      cancelText: "Cancel",
       variant: "destructive",
       onConfirm: async () => {
         try {
-          await deleteStage({ stageId, force: hasLeads }).unwrap();
-          showSuccess(
-            `Stage "${stageName}" deleted successfully!`,
-            "Stage Deleted"
-          );
+          await deleteStage({ stageId: stage.id, force: hasLeads }).unwrap();
+          showSuccess(`Stage "${stage.display_name}" deleted successfully!`);
+          refetchActive();
         } catch (error: unknown) {
           console.error("Delete stage error:", error);
           const apiError = error as ApiError;
           const errorMessage =
+            apiError?.data?.detail ||
             apiError?.data?.message ||
             apiError?.message ||
-            "Unknown error occurred";
-          showError(
-            `Failed to delete stage: ${errorMessage}`,
-            "Deletion Failed"
-          );
+            "Failed to delete stage";
+          showError(errorMessage);
         }
       },
     });
@@ -226,64 +259,52 @@ const StageManagementPage = () => {
     stageId: string,
     currentlyActive: boolean
   ) => {
-    // console.log(
-    //   `Toggling stage ${stageId}, currently active: ${currentlyActive}`
-    // );
-
     try {
       // let result;
       if (currentlyActive) {
         // Currently active, so deactivate it
-        // console.log("Calling deactivateStage...");
         // result = await deactivateStage(stageId).unwrap();
-        // console.log("Deactivate result:", result);
         showSuccess("Stage deactivated successfully!");
       } else {
         // Currently inactive, so activate it
-        // console.log("Calling activateStage...");
         // result = await activateStage(stageId).unwrap();
-        // console.log("Activate result:", result);
         showSuccess("Stage activated successfully!");
       }
     } catch (error: unknown) {
       console.error("Toggle stage status error:", error);
       const apiError = error as ApiError;
-      console.error("Error details:", {
-        message: apiError?.message,
-        data: apiError?.data,
-        status: apiError?.status,
-        originalStatus: apiError?.originalStatus,
-      });
-
       const errorMessage =
         apiError?.data?.detail ||
         apiError?.data?.message ||
         apiError?.message ||
-        `HTTP ${apiError?.status || "Unknown"} error`;
-
-      showError(
-        `Failed to ${
-          currentlyActive ? "deactivate" : "activate"
-        } stage: ${errorMessage}`,
-        "Toggle Failed"
-      );
+        `Failed to ${currentlyActive ? "deactivate" : "activate"} stage`;
+      showError(errorMessage);
     }
   };
 
-  // Handle setup default stages
+  // Handle setup default stages using notification system
   const handleSetupDefaults = async () => {
     showConfirm({
       title: "Setup Default Stages",
-      description: "This will create default stages for your CRM. Continue?",
-      confirmText: "Setup",
+      description:
+        "This will create default stages for your CRM. This will add standard lead workflow stages. Continue?",
+      confirmText: "Setup Default Stages",
+      cancelText: "Cancel",
       variant: "default",
       onConfirm: async () => {
         try {
           await setupDefaultStages().unwrap();
-          showSuccess("Default stages created successfully!", "Setup Complete");
-        } catch (error) {
+          showSuccess("Default stages created successfully!");
+          refetchActive();
+        } catch (error: unknown) {
           console.error("Setup defaults error:", error);
-          showError("Failed to setup default stages.", "Setup Failed");
+          const apiError = error as ApiError;
+          const errorMessage =
+            apiError?.data?.detail ||
+            apiError?.data?.message ||
+            apiError?.message ||
+            "Failed to setup default stages";
+          showError(errorMessage);
         }
       },
     });
@@ -320,10 +341,11 @@ const StageManagementPage = () => {
       console.error("Reorder error:", error);
       const apiError = error as ApiError;
       const errorMessage =
+        apiError?.data?.detail ||
         apiError?.data?.message ||
         apiError?.message ||
-        "Unknown error occurred";
-      showError(`Failed to reorder stages: ${errorMessage}`);
+        "Failed to reorder stages";
+      showError(errorMessage);
     }
   };
 
@@ -361,7 +383,7 @@ const StageManagementPage = () => {
                 isActive ? "text-gray-600" : "text-gray-500"
               }`}
             >
-              <strong>Name:</strong> {stage.name}
+              <strong>Internal Name:</strong> {stage.name}
             </p>
             {stage.description && (
               <p
@@ -426,13 +448,8 @@ const StageManagementPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() =>
-                handleDeleteStage(
-                  stage.id,
-                  stage.display_name,
-                  stage.lead_count > 0
-                )
-              }
+              onClick={() => handleDeleteStage(stage)}
+              disabled={stage.lead_count > 0}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -443,7 +460,7 @@ const StageManagementPage = () => {
   );
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto  space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -597,35 +614,35 @@ const StageManagementPage = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={createFormData.name}
-                  onChange={(e) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g., initial"
-                />
-              </div>
-              <div>
-                <Label htmlFor="display_name">Display Name</Label>
-                <Input
-                  id="display_name"
-                  value={createFormData.display_name}
-                  onChange={(e) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      display_name: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g., Initial Contact"
-                />
-              </div>
+            <div>
+              <Label htmlFor="display_name">Display Name *</Label>
+              <Input
+                id="display_name"
+                value={createFormData.display_name}
+                onChange={(e) =>
+                  setCreateFormData((prev) => ({
+                    ...prev,
+                    display_name: e.target.value,
+                  }))
+                }
+                placeholder="e.g., Initial Contact"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="name">Internal Name (Auto-generated)</Label>
+              <Input
+                id="name"
+                value={createFormData.name}
+                disabled
+                className="bg-gray-50 text-gray-600"
+                placeholder="Auto-generated from display name"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Automatically generated from display name (lowercase, spaces
+                replaced with underscores)
+              </p>
             </div>
 
             <div>
@@ -739,32 +756,34 @@ const StageManagementPage = () => {
           </DialogHeader>
           {editingStage && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit_name">Name</Label>
-                  <Input
-                    id="edit_name"
-                    value={editingStage.name}
-                    disabled
-                    className="bg-gray-50"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Name cannot be changed
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="edit_display_name">Display Name</Label>
-                  <Input
-                    id="edit_display_name"
-                    value={editingStage.display_name}
-                    onChange={(e) =>
-                      setEditingStage((prev) =>
-                        prev ? { ...prev, display_name: e.target.value } : null
-                      )
-                    }
-                    placeholder="e.g., Initial Contact"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="edit_display_name">Display Name *</Label>
+                <Input
+                  id="edit_display_name"
+                  value={editingStage.display_name}
+                  onChange={(e) =>
+                    setEditingStage((prev) =>
+                      prev ? { ...prev, display_name: e.target.value } : null
+                    )
+                  }
+                  placeholder="e.g., Initial Contact"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit_name">
+                  Internal Name (Cannot be changed)
+                </Label>
+                <Input
+                  id="edit_name"
+                  value={editingStage.name}
+                  disabled
+                  className="bg-gray-50 text-gray-600"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Internal name cannot be modified after creation
+                </p>
               </div>
 
               <div>

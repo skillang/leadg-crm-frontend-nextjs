@@ -6,29 +6,14 @@ import type {
   ContactValidationResponse,
   SendTemplateResponse,
   SendTextResponse,
+  TemplateMessageRequest,
+  TextMessageRequest,
+  TemplateApiResponse,
 } from "@/models/types/whatsapp";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-interface TemplateMessageRequest {
-  template_name: string;
-  contact: string;
-  lead_name: string;
-}
-
-interface TextMessageRequest {
-  contact: string;
-  message: string;
-}
-
-// Define the raw template response structure
-interface TemplateApiResponse {
-  data?: WhatsAppTemplate[];
-  templates?: WhatsAppTemplate[];
-  [key: string]: unknown;
-}
 
 const baseQuery = createBaseQueryWithReauth(`${API_BASE_URL}/whatsapp`);
 

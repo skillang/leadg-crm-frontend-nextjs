@@ -1,7 +1,6 @@
 // src/components/admin/StatusCard.tsx
 
 import React from "react";
-import { Status } from "@/redux/slices/statusesApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +24,7 @@ import {
   Calendar,
   User,
 } from "lucide-react";
+import { Status } from "@/models/types/status";
 
 interface StatusCardProps {
   status: Status;

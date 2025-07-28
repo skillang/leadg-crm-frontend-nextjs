@@ -148,6 +148,187 @@ interface BulkUploadError {
   message?: string;
 }
 
+// ✅ Enhanced date converter function with support for more formats
+const convertToYYYYMMDD = (dateStr: string): string | null => {
+  if (!dateStr || !dateStr.trim()) return null;
+
+  const cleaned = dateStr.trim();
+
+  // Check if already in YYYY-MM-DD format
+  if (/^(\d{4})-(\d{1,2})-(\d{1,2})$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  // Handle scientific notation phone numbers that got mixed with dates
+  if (cleaned.includes("E+") || cleaned.includes("e+")) {
+    return null; // This is likely a phone number, not a date
+  }
+
+  // Month name mappings
+  const monthMap: Record<string, string> = {
+    jan: "01",
+    january: "01",
+    feb: "02",
+    february: "02",
+    mar: "03",
+    march: "03",
+    apr: "04",
+    april: "04",
+    may: "05",
+    jun: "06",
+    june: "06",
+    jul: "07",
+    july: "07",
+    aug: "08",
+    august: "08",
+    sep: "09",
+    september: "09",
+    sept: "09",
+    oct: "10",
+    october: "10",
+    nov: "11",
+    november: "11",
+    dec: "12",
+    december: "12",
+  };
+
+  // Format 1: "20th April 1987" - Descriptive format with ordinals
+  const descriptiveMatch = cleaned.match(
+    /(\d{1,2})(st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})/i
+  );
+  if (descriptiveMatch) {
+    const day = descriptiveMatch[1].padStart(2, "0");
+    const monthName = descriptiveMatch[3].toLowerCase();
+    const year = descriptiveMatch[4];
+    const month = monthMap[monthName];
+
+    if (month) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Format 2: "30-Jul-02" - DD-MMM-YY format
+  const shortFormatMatch = cleaned.match(/(\d{1,2})-([a-z]{3})-(\d{2})/i);
+  if (shortFormatMatch) {
+    const day = shortFormatMatch[1].padStart(2, "0");
+    const monthName = shortFormatMatch[2].toLowerCase();
+    let year = shortFormatMatch[3];
+
+    // Convert 2-digit year to 4-digit (assuming 1900s for ages > 30, 2000s for ages < 30)
+    const yearNum = parseInt(year);
+    if (yearNum > 30) {
+      year = `19${year}`;
+    } else {
+      year = `20${year}`;
+    }
+
+    const month = monthMap[monthName];
+    if (month) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Format 3: "30/Jul/2002" - DD/MMM/YYYY format
+  const slashFormatMatch = cleaned.match(/(\d{1,2})\/([a-z]{3})\/(\d{4})/i);
+  if (slashFormatMatch) {
+    const day = slashFormatMatch[1].padStart(2, "0");
+    const monthName = slashFormatMatch[2].toLowerCase();
+    const year = slashFormatMatch[3];
+    const month = monthMap[monthName];
+
+    if (month) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Format 4: Standard formats from original function
+  const formats = [
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // DD/MM/YYYY or MM/DD/YYYY
+    /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // DD-MM-YYYY or MM-DD-YYYY
+    /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // DD.MM.YYYY or MM.DD.YYYY
+  ];
+
+  for (const format of formats) {
+    const match = cleaned.match(format);
+    if (match) {
+      const [, first, second, year] = match;
+
+      // Assume DD/MM/YYYY format (more common internationally)
+      const day = first.padStart(2, "0");
+      const month = second.padStart(2, "0");
+
+      // Basic validation
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+        return `${year}-${month}-${day}`;
+      }
+    }
+  }
+
+  return null; // Invalid format
+};
+
+// ✅ Enhanced phone number cleaning function
+const cleanPhoneNumber = (phoneStr: string): string | null => {
+  if (!phoneStr || !phoneStr.trim()) return null;
+
+  const cleaned = phoneStr.trim();
+
+  // Handle scientific notation (Excel issue)
+  if (
+    cleaned.includes("E+") ||
+    cleaned.includes("e+") ||
+    cleaned.includes("E-") ||
+    cleaned.includes("e-")
+  ) {
+    // Convert scientific notation back to number
+    const number = parseFloat(cleaned);
+    if (!isNaN(number)) {
+      // Convert to string and remove decimal if it's a whole number
+      let phoneNumber = number.toString();
+      if (phoneNumber.includes(".")) {
+        phoneNumber = Math.round(number).toString();
+      }
+
+      // Handle negative numbers (remove minus sign)
+      phoneNumber = phoneNumber.replace("-", "");
+
+      // Validate length (should be 10-15 digits)
+      if (phoneNumber.length >= 10 && phoneNumber.length <= 15) {
+        return phoneNumber;
+      }
+    }
+  }
+
+  // Standard phone number cleaning
+  const cleanedPhone = cleaned.replace(/[\s\-\(\)\+]/g, "");
+  if (/^\d{10,15}$/.test(cleanedPhone)) {
+    return cleanedPhone;
+  }
+
+  return null;
+};
+
+// ✅ Enhanced age extraction function
+const extractAge = (ageStr: string): number | null => {
+  if (!ageStr || !ageStr.trim()) return null;
+
+  const cleaned = ageStr.trim().toLowerCase();
+
+  // Extract first number from string like "26 (as per document date)" or "22 years"
+  const ageMatch = cleaned.match(/(\d+)/);
+  if (ageMatch) {
+    const age = parseInt(ageMatch[1]);
+    if (age > 0 && age <= 120) {
+      return age;
+    }
+  }
+
+  return null;
+};
+
 const HEADER_MAPPING: Record<string, string> = {
   // Name mappings
   name: "name",
@@ -632,18 +813,19 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   lead.contact_number = generatedPhone;
                   notesData.push("Original Phone: Missing - Auto-generated");
                 } else {
-                  const cleanedPhone = value.replace(/[\s\-\(\)\+]/g, "");
-                  if (!/^\d{10,15}$/.test(cleanedPhone)) {
+                  // ✅ NEW: Use enhanced phone cleaning that handles scientific notation
+                  const cleanedPhone = cleanPhoneNumber(value);
+                  if (cleanedPhone) {
+                    lead.contact_number = cleanedPhone;
+                  } else {
                     const generatedPhone = generateUniquePhoneNumber(
                       rowTimestamp,
                       i
                     );
                     lead.contact_number = generatedPhone;
                     notesData.push(
-                      `Original Phone: ${value} (Invalid format) - Auto-generated`
+                      `Original Phone: ${value} (Invalid format/Scientific notation) - Auto-generated`
                     );
-                  } else {
-                    lead.contact_number = cleanedPhone;
                   }
                 }
                 break;
@@ -662,21 +844,14 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     break; // Skip processing
                   }
 
-                  // ✅ Extract number from formats like "25 years", "25", "25 yrs"
-                  const ageMatch = value.match(/(\d+)/);
-                  if (ageMatch) {
-                    const ageNumber = parseInt(ageMatch[1]);
-                    if (
-                      !isNaN(ageNumber) &&
-                      ageNumber > 0 &&
-                      ageNumber <= 120
-                    ) {
-                      lead.age = ageNumber;
-                    } else {
-                      notesData.push(`Age: ${value}`);
-                    }
+                  // ✅ NEW: Use enhanced age extraction
+                  const extractedAge = extractAge(value);
+                  if (extractedAge) {
+                    lead.age = extractedAge;
                   } else {
-                    notesData.push(`Age: ${value}`);
+                    notesData.push(
+                      `Age: ${value} (could not extract valid age)`
+                    );
                   }
                 }
                 break;
@@ -695,10 +870,22 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     break; // Skip processing
                   }
 
-                  lead.date_of_birth = value.trim();
+                  // ✅ NEW: Use enhanced date conversion that handles more formats
+                  const convertedDate = convertToYYYYMMDD(value.trim());
+                  if (convertedDate) {
+                    lead.date_of_birth = convertedDate;
+                    console.log(
+                      `✅ Date converted: "${value}" → "${convertedDate}"`
+                    );
+                  } else {
+                    // Invalid date - add to notes instead
+                    notesData.push(
+                      `Date of Birth: ${value} (unsupported format)`
+                    );
+                    console.warn(`❌ Date conversion failed for: "${value}"`);
+                  }
                 }
                 break;
-
               case "experience":
                 if (value && value.trim()) {
                   const normalizedExp = value.toLowerCase().trim();
@@ -1212,6 +1399,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         source: selectedSource,
         category: selectedCategory,
         age: lead.age,
+        date_of_birth: lead.date_of_birth,
         experience: lead.experience,
         nationality: lead.nationality,
         current_location: lead.current_location,

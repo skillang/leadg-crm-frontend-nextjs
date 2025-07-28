@@ -174,48 +174,33 @@ export interface UpdateLeadData {
   assignment_method?: string;
 }
 
-// Constants for dropdown options
-export const LEAD_SOURCES = [
-  { value: "website", label: "Website" },
-  { value: "referral", label: "Referral" },
-  { value: "social_media", label: "Social Media" },
-  { value: "email_campaign", label: "Email Campaign" },
-  { value: "cold_call", label: "Cold Call" },
-  { value: "trade_show", label: "Trade Show" },
-  { value: "naukri", label: "Naukri" },
-  { value: "webinar", label: "Webinar" },
-  { value: "content_marketing", label: "Content Marketing" },
-  { value: "paid_ads", label: "Paid Ads" },
-  { value: "organic_search", label: "Organic Search" },
-];
+// =============== HOOK INTERFACES ===============
+export interface UseLeadsWithAuthProps {
+  page?: number;
+  limit?: number;
+  lead_status?: string;
+  assigned_to?: string;
+  search?: string;
+  include_multi_assigned?: boolean;
+  assigned_to_me?: boolean;
+}
 
-export const LEAD_STAGES = [
-  { value: "open", label: "Open", color: "blue" },
-  { value: "contacted", label: "Contacted", color: "orange" },
-  { value: "qualified", label: "Qualified", color: "purple" },
-  { value: "proposal", label: "Proposal", color: "cyan" },
-  { value: "negotiation", label: "Negotiation", color: "gold" },
-  { value: "closed_won", label: "Closed Won", color: "green" },
-  { value: "closed_lost", label: "Closed Lost", color: "red" },
-];
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
 
-export const COURSE_LEVELS = [
-  { value: "certificate", label: "Certificate" },
-  { value: "diploma", label: "Diploma" },
-  { value: "bachelor", label: "Bachelor's Degree" },
-  { value: "master", label: "Master's Degree" },
-  { value: "phd", label: "PhD" },
-  { value: "professional", label: "Professional Course" },
-];
-
-export const EXPERIENCE_LEVELS = [
-  { value: "fresher", label: "Fresher" },
-  { value: "less_than_1_year", label: "Less than 1 year" },
-  { value: "1_to_3_years", label: "1-3 Years" },
-  { value: "3_to_5_years", label: "3-5 Years" },
-  { value: "5_to_10_years", label: "5-10 Years" },
-  { value: "more_than_10_years", label: "10+ Years" },
-];
+export interface UseLeadsWithAuthResult {
+  leads: Lead[];
+  allLeads: Lead[];
+  isLoading: boolean;
+  error: unknown;
+  isAdmin: boolean;
+  paginationMeta?: PaginationMeta;
+}
 
 export const COUNTRIES = [
   "USA",
@@ -280,32 +265,6 @@ export const ASSIGNMENT_METHODS = [
   { value: "multi_user_manual", label: "Multi-User Assignment" },
 ];
 
-// Helper functions
-export const getStageColor = (stage: string): string => {
-  const stageObj = LEAD_STAGES.find((s) => s.value === stage);
-  return stageObj?.color || "default";
-};
-
-export const getStageLabel = (stage: string): string => {
-  const stageObj = LEAD_STAGES.find((s) => s.value === stage);
-  return stageObj?.label || stage;
-};
-
-export const getSourceLabel = (source: string): string => {
-  const sourceObj = LEAD_SOURCES.find((s) => s.value === source);
-  return sourceObj?.label || source;
-};
-
-export const getExperienceLabel = (experience: string): string => {
-  const expObj = EXPERIENCE_LEVELS.find((e) => e.value === experience);
-  return expObj?.label || experience;
-};
-
-export const getCourseLevelLabel = (courseLevel: string): string => {
-  const levelObj = COURSE_LEVELS.find((l) => l.value === courseLevel);
-  return levelObj?.label || courseLevel;
-};
-
 // Multi-assignment helper functions
 export const getAllAssignees = (lead: Lead): string[] => {
   const assignees = [];
@@ -355,3 +314,423 @@ export const parseCountriesString = (countriesString: string): string[] => {
 export const formatCountriesString = (countries: string[]): string => {
   return countries.join(", ");
 };
+
+// =============== API RESPONSE TYPES ===============
+export interface ApiLead {
+  lead_id?: string;
+  id?: string;
+  name: string;
+  stage?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  lead_score?: number;
+  contact_number?: string;
+  phone_number?: string;
+  email?: string;
+  source?: string;
+  last_contacted?: string;
+  notes?: string;
+  category?: string;
+
+  // Enhanced assignment fields
+  assigned_to?: string;
+  assigned_to_name?: string;
+  co_assignees?: string[];
+  co_assignees_names?: string[];
+  is_multi_assigned?: boolean;
+  assignment_method?: string;
+
+  // New fields
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  current_location?: string;
+  date_of_birth?: string;
+  course_level?: string;
+  country_of_interest?: string;
+}
+
+export interface RawLeadDetails {
+  system_info: {
+    id: string;
+    lead_id: string;
+    created_at: string;
+    created_by: string;
+    updated_at: string;
+    last_contacted: string | null;
+    status: string;
+  };
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    country_of_interest?: string;
+    course_level?: string;
+    source: string;
+    category: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
+    date_of_birth?: string;
+    current_location?: string;
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    priority: string;
+    tags: string[];
+  };
+  assignment: {
+    assigned_to: string;
+    assigned_to_name: string;
+    co_assignees: string[];
+    co_assignees_names: string[];
+    is_multi_assigned: boolean;
+    assignment_method: string;
+    assignment_history: AssignmentHistory[];
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
+export interface LeadDetailsResponse {
+  id: string;
+  leadId: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  contact: string;
+  countryOfInterest: string;
+  courseLevel: string;
+  source: string;
+  stage: string;
+  leadScore: number;
+  priority: string;
+  tags: string[];
+
+  assignedTo: string;
+  assignedToName: string;
+  coAssignees: string[];
+  coAssigneesNames: string[];
+  isMultiAssigned: boolean;
+  assignmentMethod: string;
+
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  current_location?: string;
+  date_of_birth?: string;
+
+  notes: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  lastContacted: string | null;
+  status: string;
+  assignmentHistory: AssignmentHistory[];
+  leadCategory: string;
+}
+
+// =============== BULK LEAD TYPES ===============
+export interface FlatBulkLeadData {
+  name: string;
+  email: string;
+  contact_number: string;
+  source: string;
+  category: string;
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  date_of_birth?: string;
+  current_location?: string;
+  country_of_interest?: string;
+  course_level?: string;
+  stage: string;
+  status: string;
+  lead_score?: number;
+  tags?: string[];
+  notes?: string;
+}
+
+export interface BulkLeadData {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    source: string;
+    category: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
+    date_of_birth?: string;
+    current_location?: string;
+    date_of_borth?: string;
+  };
+  status_and_tags: {
+    stage: string;
+    lead_score: number;
+    tags: string[];
+  };
+  additional_info: {
+    notes: string;
+  };
+}
+
+// =============== API REQUEST TYPES ===============
+export interface CreateLeadApiRequest {
+  basic_info: {
+    name: string;
+    email: string;
+    contact_number: string;
+    source: string;
+    category: string;
+    age?: number;
+    experience?: string;
+    nationality?: string;
+    current_location?: string;
+    date_of_birth?: string;
+    country_of_interest?: string;
+    course_level?: string;
+  };
+  status_and_tags: {
+    stage: string;
+    status: string;
+    lead_score: number;
+    tags: string[];
+  };
+  assignment: {
+    assigned_to: string | null;
+  };
+  additional_info: {
+    notes: string;
+  };
+  selected_user_emails?: string;
+}
+
+export interface UpdateLeadRequest {
+  lead_id: string;
+  name?: string;
+  lead_score?: number;
+  stage?: string;
+  status?: string;
+  email?: string;
+  contact_number?: string;
+  source?: string;
+  notes?: string;
+  tags?: string[];
+  assigned_to?: string;
+  assigned_to_name?: string;
+  assignment_method?: string;
+  age?: number;
+  experience?: string;
+  nationality?: string;
+  current_location?: string;
+  country_of_interest?: string;
+  course_level?: string;
+  date_of_birth?: string;
+  [key: string]: unknown;
+}
+
+// =============== ASSIGNMENT TYPES ===============
+export interface BulkAssignSelectiveRequest {
+  assignment_method: "selected_users" | "all_users";
+  lead_ids: string[];
+  selected_user_emails?: string[];
+}
+
+export interface SelectiveRoundRobinTestRequest {
+  selected_user_emails: string[];
+}
+
+// =============== RESPONSE TYPES ===============
+export interface LeadStatsResponse {
+  total_leads: number;
+  open_leads: number;
+  in_progress_leads: number;
+  closed_won_leads: number;
+  closed_lost_leads: number;
+  my_leads: number;
+}
+
+export interface PaginatedResponse<T> {
+  leads?: T[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
+}
+
+export interface CreateLeadResponse {
+  success: boolean;
+  message: string;
+  lead: ApiLead;
+}
+
+export interface BulkCreateResponse {
+  success: boolean;
+  message: string;
+  created_count: number;
+  failed_count: number;
+  failed_leads?: unknown[];
+  successful_creates: number;
+  duplicates_skipped: number;
+  failed_creates: number;
+  total_attempted: number;
+}
+
+export interface MultiAssignResponse {
+  success: boolean;
+  message: string;
+  assignment_details: {
+    lead_id: string;
+    newly_assigned_users: string[];
+    previously_assigned: string[];
+  };
+}
+
+export interface RemoveUserResponse {
+  success: boolean;
+  message: string;
+  remaining_assignees: string[];
+}
+
+export interface BulkAssignResponse {
+  success: boolean;
+  message: string;
+  assignments_created: number;
+  failed_assignments: number;
+}
+
+export interface RoundRobinTestResponse {
+  success: boolean;
+  message: string;
+  next_user: string;
+  user_load_distribution: Record<string, number>;
+}
+
+export interface RoundRobinPreviewResponse {
+  success: boolean;
+  available_users: UserWithDetails[];
+  next_user_in_rotation: string;
+  user_load_distribution: Record<string, number>;
+}
+
+export interface AssignmentDetailsResponse {
+  success: boolean;
+  assignment_details: {
+    current_assignees: string[];
+    assignment_history: AssignmentHistory[];
+    is_multi_assigned: boolean;
+  };
+}
+
+// =============== USER STATS TYPES ===============
+export interface UserStats {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+  assigned_leads_count: number;
+}
+
+export interface UserLeadStatsResponse {
+  success: boolean;
+  user_stats: UserStats[];
+  summary: {
+    total_users: number;
+    total_leads: number;
+    assigned_leads: number;
+    unassigned_leads: number;
+  };
+  performance: string;
+}
+
+// =============== UI STATE TYPES ===============
+export interface LeadsState {
+  filters: LeadFilters;
+  selectedLeads: string[];
+  bulkUpdateModalOpen: boolean;
+  editModalOpen: boolean;
+  currentEditLeadId: string | null;
+}
+
+// =============== TRANSFORMATION FUNCTIONS ===============
+export const transformApiLead = (apiLead: ApiLead): Lead => ({
+  id: apiLead.lead_id || apiLead.id || "",
+  leadId: apiLead.lead_id || apiLead.id || "",
+  name: apiLead.name || "",
+  email: apiLead.email || "",
+  contact: apiLead.contact_number || apiLead.phone_number || "",
+  phoneNumber: apiLead.contact_number || apiLead.phone_number || "",
+  source: apiLead.source || "",
+  stage: apiLead.stage || "",
+  leadScore: apiLead.lead_score || 0,
+  status: apiLead.status || "",
+
+  assignedTo: apiLead.assigned_to || "",
+  assignedToName: apiLead.assigned_to_name || "",
+  coAssignees: apiLead.co_assignees || [],
+  coAssigneesNames: apiLead.co_assignees_names || [],
+  isMultiAssigned: apiLead.is_multi_assigned || false,
+  assignmentMethod: apiLead.assignment_method || "",
+
+  age: apiLead.age,
+  experience: apiLead.experience,
+  nationality: apiLead.nationality,
+  date_of_birth: apiLead.date_of_birth,
+  current_location: apiLead.current_location || "",
+
+  courseLevel: apiLead.course_level || "",
+  countryOfInterest: apiLead.country_of_interest || "",
+  notes: apiLead.notes || "",
+  createdAt: apiLead.created_at || "",
+  createdBy: apiLead.created_at || "",
+  updatedAt: apiLead.updated_at || "",
+  lastContacted: apiLead.last_contacted || null,
+  leadCategory: apiLead.category || "",
+  tags: [],
+  priority: "medium",
+});
+
+export const transformLeadDetailsResponse = (
+  data: RawLeadDetails
+): LeadDetailsResponse => ({
+  id: data.system_info.id,
+  leadId: data.system_info.lead_id,
+  name: data.basic_info.name,
+  email: data.basic_info.email,
+  phoneNumber: data.basic_info.contact_number,
+  contact: data.basic_info.contact_number,
+  countryOfInterest: data.basic_info.country_of_interest || "",
+  courseLevel: data.basic_info.course_level || "",
+  source: data.basic_info.source,
+  stage: data.status_and_tags.stage,
+  leadScore: data.status_and_tags.lead_score,
+  priority: data.status_and_tags.priority,
+  tags: data.status_and_tags.tags,
+
+  assignedTo: data.assignment.assigned_to,
+  assignedToName: data.assignment.assigned_to_name,
+  coAssignees: data.assignment.co_assignees,
+  coAssigneesNames: data.assignment.co_assignees_names,
+  isMultiAssigned: data.assignment.is_multi_assigned,
+  assignmentMethod: data.assignment.assignment_method,
+
+  age: data.basic_info.age,
+  experience: data.basic_info.experience,
+  nationality: data.basic_info.nationality,
+  date_of_birth: data.basic_info.date_of_birth,
+  current_location: data.basic_info.current_location,
+
+  notes: data.additional_info.notes,
+  createdAt: data.system_info.created_at,
+  createdBy: data.system_info.created_by,
+  updatedAt: data.system_info.updated_at,
+  lastContacted: data.system_info.last_contacted,
+  status: data.system_info.status,
+  assignmentHistory: data.assignment.assignment_history,
+  leadCategory: data.basic_info.category,
+});

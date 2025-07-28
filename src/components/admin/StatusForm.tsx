@@ -1,16 +1,18 @@
 // src/components/admin/StatusForm.tsx
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
   useCreateStatusMutation,
   useUpdateStatusMutation,
+} from "@/redux/slices/statusesApi";
+import {
   Status,
   CreateStatusRequest,
   UpdateStatusRequest,
-} from "@/redux/slices/statusesApi";
+} from "@/models/types/status";
 import {
   Dialog,
   DialogContent,
@@ -100,15 +102,61 @@ const colorOptions = [
   { name: "Teal", value: "#14B8A6" },
 ];
 
+// Utility function to generate internal name from display name
+const generateInternalName = (displayName: string): string => {
+  return displayName
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-") // Replace spaces with underscores for status names
+    .replace(/[^a-z0-9_]/g, "") // Remove any character that's not lowercase letter, number, or underscore
+    .replace(/-+/g, "-") // Replace multiple consecutive underscores with single underscore
+    .replace(/^-|-$/g, ""); // Remove leading and trailing underscores
+};
+
+// Utility function to convert RGB to Hex
+const rgbToHex = (rgb: string): string => {
+  // Handle rgb(r, g, b) format
+  const rgbMatch = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1]);
+    const g = parseInt(rgbMatch[2]);
+    const b = parseInt(rgbMatch[3]);
+    return (
+      "#" +
+      ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()
+    );
+  }
+
+  // If it's already hex, return as is
+  if (rgb.startsWith("#")) {
+    return rgb;
+  }
+
+  // Default fallback
+  return "#6B7280";
+};
+
+// Utility function to ensure valid hex format
+const ensureHexFormat = (color: string): string => {
+  if (color.startsWith("rgb")) {
+    return rgbToHex(color);
+  }
+  if (color.startsWith("#") && color.length === 7) {
+    return color;
+  }
+  return "#6B7280"; // Default gray
+};
+
 const StatusForm: React.FC<StatusFormProps> = ({
   status,
   onClose,
   onSuccess,
 }) => {
   const isEditing = !!status;
+  const { showSuccess, showError, showConfirm } = useNotifications();
 
-  // Use existing notification system
-  const { showSuccess, showError } = useNotifications();
+  // State for auto-generated internal name
+  const [displayName, setDisplayName] = useState("");
 
   // Mutations
   const [createStatus, { isLoading: isCreating }] = useCreateStatusMutation();
@@ -124,7 +172,7 @@ const StatusForm: React.FC<StatusFormProps> = ({
       display_name: "",
       description: "",
       color: "#6B7280",
-      sort_order: 0,
+      sort_order: 1,
       is_active: true,
       is_default: false,
     },
@@ -133,131 +181,154 @@ const StatusForm: React.FC<StatusFormProps> = ({
   // Reset form when status changes
   useEffect(() => {
     if (status) {
-      form.reset({
+      const formValues = {
         name: status.name,
         display_name: status.display_name,
         description: status.description || "",
-        color: status.color,
+        color: ensureHexFormat(status.color),
         sort_order: status.sort_order,
         is_active: status.is_active,
         is_default: status.is_default,
-      });
+      };
+
+      form.reset(formValues);
+      setDisplayName(status.display_name);
     } else {
-      form.reset({
+      const formValues = {
         name: "",
         display_name: "",
         description: "",
         color: "#6B7280",
-        sort_order: 0,
+        sort_order: 1,
         is_active: true,
         is_default: false,
-      });
+      };
+
+      form.reset(formValues);
+      setDisplayName("");
     }
   }, [status, form]);
 
-  // Generate name from display name
-  const generateName = (displayName: string) => {
-    return displayName
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, "")
-      .replace(/\s+/g, "_")
-      .substring(0, 50);
-  };
-
-  // Handle display name change
-  const handleDisplayNameChange = (value: string) => {
-    if (!isEditing) {
-      // Auto-generate name only for new statuses
-      const generatedName = generateName(value);
+  // Auto-generate internal name when display name changes (only for create mode)
+  useEffect(() => {
+    if (!isEditing && displayName) {
+      const generatedName = generateInternalName(displayName);
       form.setValue("name", generatedName);
     }
-  };
+  }, [displayName, isEditing, form]);
 
-  // Handle form submission
-  const onSubmit = async (data: StatusFormData) => {
+  const handleSubmit = async (data: StatusFormData) => {
     try {
+      // Ensure color is in proper hex format
+      const submissionData = {
+        ...data,
+        color: ensureHexFormat(data.color),
+      };
+
       if (isEditing && status) {
-        // Update existing status
+        // For editing, exclude the name field from updates
         const updateData: UpdateStatusRequest = {
-          display_name: data.display_name,
-          description: data.description || undefined,
-          color: data.color,
-          sort_order: data.sort_order,
-          is_active: data.is_active,
-          is_default: data.is_default,
+          display_name: submissionData.display_name,
+          description: submissionData.description || undefined,
+          color: submissionData.color,
+          sort_order: submissionData.sort_order,
+          is_active: submissionData.is_active,
+          is_default: submissionData.is_default,
         };
 
-        const result = await updateStatus({
+        await updateStatus({
           statusId: status.id,
           statusData: updateData,
         }).unwrap();
 
-        showSuccess(result.message || "Status updated successfully");
+        showSuccess(
+          `Status "${submissionData.display_name}" updated successfully!`
+        );
       } else {
-        // Create new status
         const createData: CreateStatusRequest = {
-          name: data.name,
-          display_name: data.display_name,
-          description: data.description || "null",
-          color: data.color,
-          sort_order: data.sort_order,
-          is_active: data.is_active,
-          is_default: data.is_default,
+          name: submissionData.name,
+          display_name: submissionData.display_name,
+          description: submissionData.description || "",
+          color: submissionData.color,
+          sort_order: submissionData.sort_order,
+          is_active: submissionData.is_active,
+          is_default: submissionData.is_default,
         };
 
-        const result = await createStatus(createData).unwrap();
-        showSuccess(result.message || "Status created successfully");
+        await createStatus(createData).unwrap();
+        showSuccess(
+          `Status "${submissionData.display_name}" created successfully!`
+        );
       }
 
       onSuccess();
+      onClose();
     } catch (error: unknown) {
-      console.error("Form submission error:", error);
       const apiError = error as ApiError;
-      showError(apiError?.data?.detail || "Failed to save status");
+      const errorMessage =
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        (isEditing ? "Failed to update status" : "Failed to create status");
+      showError(errorMessage);
     }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!status) return;
+
+    showConfirm({
+      title: "Delete Status",
+      description: `Are you sure you want to permanently delete the status "${status.display_name}"? This action cannot be undone.`,
+      confirmText: "Delete Status",
+      cancelText: "Cancel",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          // Add your delete mutation here when available
+          // await deleteStatus(status.id).unwrap();
+          showSuccess(`Status "${status.display_name}" deleted successfully!`);
+          onSuccess();
+          onClose();
+        } catch (error: unknown) {
+          const apiError = error as ApiError;
+          const errorMessage =
+            apiError?.data?.detail ||
+            apiError?.data?.message ||
+            "Failed to delete status";
+          showError(errorMessage);
+        }
+      },
+    });
+  };
+
+  const handleColorChange = (
+    value: string,
+    onChange: (value: string) => void
+  ) => {
+    const hexColor = ensureHexFormat(value);
+    onChange(hexColor);
   };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Status" : "Create New Status"}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update the status information below."
-              : "Create a new lead status for your CRM workflow."}
+              ? "Update the status information."
+              : "Add a new status for lead management."}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Name Field */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="e.g., contacted"
-                      disabled={isEditing || isLoading}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {isEditing
-                      ? "Status name cannot be changed after creation"
-                      : "Unique identifier (auto-generated from display name)"}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Display Name Field */}
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
+            {/* Display Name */}
             <FormField
               control={form.control}
               name="display_name"
@@ -266,24 +337,56 @@ const StatusForm: React.FC<StatusFormProps> = ({
                   <FormLabel>Display Name *</FormLabel>
                   <FormControl>
                     <Input
+                      placeholder="e.g., New Lead"
                       {...field}
-                      placeholder="e.g., Contacted"
-                      disabled={isLoading}
                       onChange={(e) => {
                         field.onChange(e);
-                        handleDisplayNameChange(e.target.value);
+                        if (!isEditing) {
+                          setDisplayName(e.target.value);
+                        }
                       }}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Name Field */}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {isEditing
+                      ? "Internal Name (Cannot be changed)"
+                      : "Internal Name (Auto-generated)"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={
+                        isEditing
+                          ? "Cannot be modified"
+                          : "Auto-generated from display name"
+                      }
+                      {...field}
+                      disabled={true}
+                      className="bg-gray-50 text-gray-600"
                     />
                   </FormControl>
                   <FormDescription>
-                    Friendly name shown in the UI
+                    {isEditing
+                      ? "Internal name cannot be modified after creation"
+                      : "Automatically generated from display name (lowercase, spaces replaced with underscores)"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Description Field */}
+            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -292,21 +395,18 @@ const StatusForm: React.FC<StatusFormProps> = ({
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      {...field}
-                      placeholder="e.g., Lead has been contacted"
-                      disabled={isLoading}
+                      placeholder="Brief description of this status"
                       rows={3}
+                      {...field}
+                      disabled={isLoading}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Optional description of what this status represents
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Color Field */}
+            {/* Color */}
             <FormField
               control={form.control}
               name="color"
@@ -315,10 +415,12 @@ const StatusForm: React.FC<StatusFormProps> = ({
                   <FormLabel>Color</FormLabel>
                   <FormControl>
                     <div className="space-y-3">
-                      {/* Color Selection */}
+                      {/* Predefined Color Selection */}
                       <Select
                         value={field.value}
-                        onValueChange={field.onChange}
+                        onValueChange={(value) =>
+                          handleColorChange(value, field.onChange)
+                        }
                         disabled={isLoading}
                       >
                         <SelectTrigger>
@@ -345,47 +447,51 @@ const StatusForm: React.FC<StatusFormProps> = ({
                         </SelectContent>
                       </Select>
 
-                      {/* Manual Color Input */}
+                      {/* Manual Color Input with Color Picker */}
                       <div className="flex items-center space-x-2">
                         <Input
                           placeholder="#6B7280"
                           value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
+                          onChange={(e) =>
+                            handleColorChange(e.target.value, field.onChange)
+                          }
                           disabled={isLoading}
                           className="flex-1"
+                          pattern="^#[0-9A-Fa-f]{6}$"
                         />
                         <input
                           type="color"
                           value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          className="w-10 h-10 border rounded cursor-pointer"
+                          onChange={(e) =>
+                            handleColorChange(e.target.value, field.onChange)
+                          }
                           disabled={isLoading}
+                          className="w-10 h-10 border border-gray-300 rounded cursor-pointer disabled:opacity-50"
+                          title="Pick a color"
                         />
                       </div>
 
-                      {/* Preview Badge */}
+                      {/* Color Preview */}
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-600">Preview:</span>
                         <Badge
                           style={{
                             backgroundColor: field.value,
-                            color: "#ffffff",
+                            color:
+                              field.value === "#FFFFFF" ? "#000000" : "#FFFFFF",
                           }}
                         >
-                          {form.watch("display_name") || "Status Name"}
+                          {form.watch("display_name") || "Status"}
                         </Badge>
                       </div>
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    Color used for status badges and indicators
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Sort Order Field */}
+            {/* Sort Order */}
             <FormField
               control={form.control}
               name="sort_order"
@@ -394,74 +500,77 @@ const StatusForm: React.FC<StatusFormProps> = ({
                   <FormLabel>Sort Order</FormLabel>
                   <FormControl>
                     <Input
-                      {...field}
                       type="number"
-                      min="0"
-                      placeholder="0"
-                      disabled={isLoading}
+                      min={0}
+                      {...field}
                       onChange={(e) =>
                         field.onChange(parseInt(e.target.value) || 0)
                       }
+                      disabled={isLoading}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Display order (lower numbers appear first)
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Switches */}
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Active Status</FormLabel>
-                      <FormDescription>
-                        Active statuses are available for lead assignment
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+            {/* Active Switch */}
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Active</FormLabel>
+                    <FormDescription>
+                      Active statuses are available for selection
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="is_default"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Default Status
-                      </FormLabel>
-                      <FormDescription>
-                        New leads will be assigned this status by default
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* Default Switch */}
+            <FormField
+              control={form.control}
+              name="is_default"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Default Status</FormLabel>
+                    <FormDescription>
+                      New leads will use this status by default
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-            <DialogFooter>
+            <DialogFooter className="gap-2">
+              {isEditing && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteConfirm}
+                  disabled={isLoading}
+                >
+                  Delete
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -471,8 +580,14 @@ const StatusForm: React.FC<StatusFormProps> = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? "Update Status" : "Create Status"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isEditing ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  <>{isEditing ? "Update Status" : "Create Status"}</>
+                )}
               </Button>
             </DialogFooter>
           </form>

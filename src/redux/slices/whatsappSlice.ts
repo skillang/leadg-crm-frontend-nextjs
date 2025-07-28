@@ -1,53 +1,12 @@
 // src/redux/slices/whatsappSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-export type MessageType = "text" | "template" | "document";
-
-interface ContactValidation {
-  isValid: boolean | null;
-  isValidating: boolean;
-  error: string | null;
-}
-
-interface LeadData {
-  id: string;
-  leadId: string;
-  name: string;
-  phoneNumber: string;
-  email?: string;
-}
-
-interface UserData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
-
-interface TemplateParameters {
-  [key: string]: string;
-}
-
-interface WhatsAppState {
-  // Modal states
-  isModalOpen: boolean;
-  messageType: MessageType;
-
-  // Contact validation
-  contactValidation: ContactValidation;
-
-  // Template selection
-  selectedTemplate: string | null;
-  templateParameters: TemplateParameters;
-
-  // UI states
-  isPreviewMode: boolean;
-  isSending: boolean;
-
-  // Current context
-  currentLead: LeadData | null;
-  currentUser: UserData | null;
-}
+import {
+  MessageType,
+  WhatsAppState,
+  OpenModalPayload,
+  SetTemplateParameterPayload,
+  TemplateParameters,
+} from "@/models/types/whatsapp";
 
 const initialState: WhatsAppState = {
   // Modal states
@@ -73,16 +32,6 @@ const initialState: WhatsAppState = {
   currentLead: null,
   currentUser: null,
 };
-
-interface OpenModalPayload {
-  lead: LeadData;
-  user: UserData;
-}
-
-interface SetTemplateParameterPayload {
-  key: string;
-  value: string;
-}
 
 const whatsappSlice = createSlice({
   name: "whatsapp",

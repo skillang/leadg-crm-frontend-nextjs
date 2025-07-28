@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   useGetDepartmentsQuery,
   useCreateDepartmentMutation,
@@ -31,12 +30,9 @@ import {
   Users2,
   // Edit,
   Trash2,
-  UserPlus,
 } from "lucide-react";
 
 const DepartmentManagementPage = () => {
-  const router = useRouter();
-
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
   const { showSuccess, showError, showConfirm } = useNotifications();
   const { hasAccess, AccessDeniedComponent } = useAdminAccess({
@@ -151,7 +147,7 @@ const DepartmentManagementPage = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -162,7 +158,7 @@ const DepartmentManagementPage = () => {
               <p className="text-gray-600">Manage organizational departments</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          {/* <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -171,6 +167,99 @@ const DepartmentManagementPage = () => {
               <UserPlus className="w-4 h-4 mr-2" />
               Register User
             </Button>
+          </div> */}
+          {/* Create Department Button */}
+          <div className="mb-6">
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Department
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create New Department</DialogTitle>
+                  <DialogDescription>
+                    Add a new custom department to your organization
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateDepartment} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Department Name *</Label>
+                    <Input
+                      id="name"
+                      value={createFormData.name}
+                      onChange={(e) => {
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }));
+                        if (errors.name)
+                          setErrors((prev) => ({ ...prev, name: "" }));
+                      }}
+                      placeholder="e.g., Study Abroad"
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-600">{errors.name}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      value={createFormData.description}
+                      onChange={(e) => {
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }));
+                        if (errors.description)
+                          setErrors((prev) => ({ ...prev, description: "" }));
+                      }}
+                      placeholder="Describe the department's role and responsibilities"
+                      rows={3}
+                    />
+                    {errors.description && (
+                      <p className="text-sm text-red-600">
+                        {errors.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="is_active"
+                      checked={createFormData.is_active}
+                      onCheckedChange={(checked) =>
+                        setCreateFormData((prev) => ({
+                          ...prev,
+                          is_active: checked,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="is_active">Active Department</Label>
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isCreating}>
+                      {isCreating ? "Creating..." : "Create Department"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -223,95 +312,6 @@ const DepartmentManagementPage = () => {
           </Card>
         </div>
       )}
-
-      {/* Create Department Button */}
-      <div className="mb-6">
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create New Department
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Department</DialogTitle>
-              <DialogDescription>
-                Add a new custom department to your organization
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateDepartment} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Department Name *</Label>
-                <Input
-                  id="name"
-                  value={createFormData.name}
-                  onChange={(e) => {
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }));
-                    if (errors.name)
-                      setErrors((prev) => ({ ...prev, name: "" }));
-                  }}
-                  placeholder="e.g., Study Abroad"
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  value={createFormData.description}
-                  onChange={(e) => {
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }));
-                    if (errors.description)
-                      setErrors((prev) => ({ ...prev, description: "" }));
-                  }}
-                  placeholder="Describe the department's role and responsibilities"
-                  rows={3}
-                />
-                {errors.description && (
-                  <p className="text-sm text-red-600">{errors.description}</p>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={createFormData.is_active}
-                  onCheckedChange={(checked) =>
-                    setCreateFormData((prev) => ({
-                      ...prev,
-                      is_active: checked,
-                    }))
-                  }
-                />
-                <Label htmlFor="is_active">Active Department</Label>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isCreating}>
-                  {isCreating ? "Creating..." : "Create Department"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
 
       {/* Departments List */}
       {isLoading ? (

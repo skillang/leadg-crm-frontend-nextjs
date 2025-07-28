@@ -67,6 +67,49 @@ export interface ContactsResponse {
   timestamp: string;
 }
 
+// src/models/types/contact.ts
+
+// Add this interface to your existing file:
+export interface RawContact {
+  id: string;
+  lead_id: string;
+  first_name: string;
+  last_name: string;
+  full_name?: string;
+  email: string;
+  phone: string;
+  role: string;
+  relationship: string;
+  is_primary?: boolean;
+  address?: string;
+  notes?: string;
+  linked_leads?: string[];
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Also add this helper function to models:
+export const transformContact = (apiContact: RawContact): Contact => ({
+  id: apiContact.id,
+  lead_id: apiContact.lead_id,
+  first_name: apiContact.first_name,
+  last_name: apiContact.last_name,
+  full_name:
+    apiContact.full_name || `${apiContact.first_name} ${apiContact.last_name}`,
+  email: apiContact.email,
+  phone: apiContact.phone,
+  role: apiContact.role,
+  relationship: apiContact.relationship,
+  is_primary: apiContact.is_primary || false,
+  address: apiContact.address || "",
+  notes: apiContact.notes || "",
+  linked_leads: apiContact.linked_leads || [],
+  created_by_name: apiContact.created_by_name || "Unknown",
+  created_at: apiContact.created_at,
+  updated_at: apiContact.updated_at,
+});
+
 export const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -104,7 +147,6 @@ export const validateContactData = (data: CreateContactRequest): string[] => {
 // Add below your interfaces
 export const CONTACT_ROLES = [
   { value: "Decision Maker", label: "Decision Maker" },
-  { value: "Influencer", label: "Influencer" },
   { value: "End User", label: "End User" },
   { value: "Counselor", label: "Counselor" },
   { value: "Parent", label: "Parent" },

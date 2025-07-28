@@ -1,30 +1,6 @@
 // src/redux/slices/emailSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-interface EmailState {
-  // Email dialog states
-  emailDialogOpen: boolean;
-  currentLeadId: string | null;
-
-  // Bulk email states
-  selectedTemplateKey: string;
-  selectedSenderPrefix: string;
-  isScheduled: boolean;
-  scheduledDateTime: string;
-
-  // UI states
-  activeTab: "basic" | "send" | "history";
-  isLoading: boolean;
-  error: string | null;
-
-  // Bulk email page states
-  bulkEmailFilters: {
-    name: string;
-    stage: string;
-    status: string;
-  };
-  selectedLeadsForBulk: string[];
-}
+import { EmailState, EmailTabType } from "@/models/types/email";
 
 const initialState: EmailState = {
   emailDialogOpen: false,
@@ -67,10 +43,7 @@ const emailSlice = createSlice({
       state.error = null;
     },
 
-    setActiveTab: (
-      state,
-      action: PayloadAction<"basic" | "send" | "history">
-    ) => {
+    setActiveTab: (state, action: PayloadAction<EmailTabType>) => {
       state.activeTab = action.payload;
     },
 

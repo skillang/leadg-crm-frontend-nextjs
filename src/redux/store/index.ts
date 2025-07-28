@@ -23,13 +23,15 @@ import { experienceLevelsApi } from "../slices/experienceLevelsApi";
 import { sourcesApi } from "../slices/sourcesApi";
 import emailReducer from "../slices/emailSlice";
 import { emailApi } from "../slices/emailApi";
+import permissionsReducer from "../slices/permissionsSlice";
+import { permissionsApi } from "../slices/permissionApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
   key: "leadg-crm",
   storage,
   whitelist: ["auth"], // Only persist auth state
-  blacklist: ["leads"], // Don't persist leads UI state
+  blacklist: ["leads", "permissions"], // Don't persist leads UI state
 };
 
 // Combine reducers
@@ -50,11 +52,13 @@ const rootReducer = combineReducers({
   whatsappApi: whatsappApi.reducer,
   [courseLevelsApi.reducerPath]: courseLevelsApi.reducer,
   [sourcesApi.reducerPath]: sourcesApi.reducer,
+  [permissionsApi.reducerPath]: permissionsApi.reducer,
   // UI state
   leads: leadsReducer,
   auth: authReducer,
   email: emailReducer,
   emailApi: emailApi.reducer,
+  permissions: permissionsReducer,
 });
 
 // Create persisted reducer
@@ -74,6 +78,7 @@ export const store = configureStore({
           "persist/FLUSH",
           "persist/PAUSE",
         ],
+        ignoredPaths: ["permissions.optimisticUpdates"],
       },
     }).concat(
       leadsApi.middleware,
@@ -90,7 +95,8 @@ export const store = configureStore({
       experienceLevelsApi.middleware,
       whatsappApi.middleware,
       sourcesApi.middleware,
-      emailApi.middleware // Add email API middleware
+      emailApi.middleware, // Add email API middleware,
+      permissionsApi.middleware
     ),
 });
 

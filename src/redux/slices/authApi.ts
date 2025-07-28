@@ -9,189 +9,29 @@ import type {
 import type { BaseQueryApi } from "@reduxjs/toolkit/query/react";
 import { RootState } from "@/redux/store";
 import { setError, clearAuthState, updateTokens } from "./authSlice";
+import {
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  LogoutRequest,
+  LogoutResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
+  CurrentUserResponse,
+  AdminRegisterRequest,
+  AdminRegisterResponse,
+  DeleteUserResponse,
+} from "@/models/types/auth";
+import {
+  DepartmentsResponse,
+  CreateDepartmentRequest,
+  CreateDepartmentResponse,
+} from "@/models/types/department";
 
 // API Base URL
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-// Types
-interface LoginRequest {
-  email: string;
-  password: string;
-  remember_me?: boolean;
-}
-
-interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    first_name: string;
-    last_name: string;
-    role: "admin" | "user";
-    is_active: boolean;
-    phone: string;
-    department: string;
-    created_at: string;
-    last_login: string;
-  };
-}
-
-interface RegisterRequest {
-  department: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  password: string;
-  phone: string;
-  role: "admin" | "user";
-  username: string;
-}
-
-interface RegisterResponse {
-  success: boolean;
-  message: string;
-  user: CurrentUserResponse;
-}
-
-interface LogoutRequest {
-  refresh_token: string;
-}
-
-interface LogoutResponse {
-  success: boolean;
-  message: string;
-  data: Record<string, unknown>;
-}
-
-interface CurrentUserResponse {
-  id: string;
-  email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  role: "admin" | "user";
-  is_active: boolean;
-  phone: string;
-  department: string;
-  created_at: string;
-  last_login: string;
-}
-
-interface AdminRegisterRequest {
-  email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  password: string;
-  role: "admin" | "user";
-  phone: string;
-  departments: string[];
-}
-
-interface AdminRegisterResponse {
-  success: boolean;
-  message: string;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    first_name: string;
-    last_name: string;
-    role: string;
-    created_at: string;
-  };
-}
-
-// ADD these to your existing src/redux/slices/authApi.ts file
-
-// 1. ADD these interface types (add them with your existing types)
-interface AdminRegisterRequest {
-  email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  password: string;
-  role: "admin" | "user";
-  phone: string;
-  departments: string[];
-}
-
-interface AdminRegisterResponse {
-  success: boolean;
-  message: string;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    first_name: string;
-    last_name: string;
-    role: string;
-    created_at: string;
-  };
-}
-
-// 🔥 NEW: Department types
-interface Department {
-  id?: string;
-  name: string;
-  display_name: string;
-  description: string;
-  is_predefined: boolean;
-  is_active: boolean;
-  created_at?: string;
-  created_by?: string;
-  user_count: number;
-}
-
-interface DepartmentsResponse {
-  success: boolean;
-  departments: {
-    predefined: Department[];
-    custom: Department[];
-    all: Department[];
-  };
-  total_count: number;
-  predefined_count: number;
-  custom_count: number;
-}
-
-interface CreateDepartmentRequest {
-  name: string;
-  description: string;
-  is_active: boolean;
-}
-
-interface CreateDepartmentResponse {
-  success: boolean;
-  message: string;
-  department: Department;
-}
-
-interface DeleteUserResponse {
-  success: boolean;
-  message: string;
-  reassigned_leads?: number;
-  deleted_user: {
-    email: string;
-    name: string;
-  };
-}
-
-interface RefreshTokenRequest {
-  refresh_token: string;
-}
-
-interface RefreshTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-}
 
 // Base query with headers
 const baseQuery = fetchBaseQuery({

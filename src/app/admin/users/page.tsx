@@ -1,10 +1,11 @@
-// src/app/admin/users/page.tsx - Fixed with correct types
+// src/app/admin/users/page.tsx - Fixed with NotificationSystem
 
 "use client";
 
-import React, { useState } from "react";
-import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi"; // Import from leadsApi
-import { useDeleteUserMutation } from "@/redux/slices/authApi"; // Import from authApi
+import React from "react";
+import { useRouter } from "next/navigation";
+import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi";
+import { useDeleteUserMutation } from "@/redux/slices/authApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,16 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Users,
   Crown,
   UserCheck,
@@ -36,8 +27,8 @@ import {
   AlertTriangle,
   RefreshCw,
   TrendingUp,
-  Trash2,
   UserX,
+  Settings,
 } from "lucide-react";
 
 // Define API error interface for better type safety
@@ -50,17 +41,19 @@ interface ApiError {
   status?: number;
 }
 
-// 🔥 FIXED: Use the correct interface from API (matches leadsApi.ts)
+// Use the correct interface from API (matches leadsApi.ts)
 interface UserStats {
   user_id: string;
   name: string;
   email: string;
-  role: string; // 🔥 This is string, not union type
+  role: string;
   assigned_leads_count: number;
 }
 
 const AdminUsersPage = () => {
-  // 🔥 Admin access control (must be called first)
+  const router = useRouter();
+
+  // Admin access control (must be called first)
   const {
     hasAccess,
     AccessDeniedComponent,
@@ -70,12 +63,8 @@ const AdminUsersPage = () => {
     description: "You need admin privileges to view user management.",
   });
 
-  // Notifications - removed unused showSuccess
-  const { showError, showWarning } = useNotifications();
-
-  // State for delete confirmation
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserStats | null>(null); // 🔥 FIXED: UserStats
+  // Notifications - using showConfirm instead of AlertDialog
+  const { showError, showWarning, showConfirm } = useNotifications();
 
   // RTK Query hooks
   const {
@@ -86,7 +75,7 @@ const AdminUsersPage = () => {
     refetch,
   } = useGetUserLeadStatsQuery();
 
-  // 🔥 NEW: Delete user mutation (using authApi)
+  // Delete user mutation (using authApi)
   const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
 
   // Return access denied if not admin
@@ -170,7 +159,7 @@ const AdminUsersPage = () => {
 
   const { user_stats, summary } = userStatsData;
 
-  // 🔥 FIXED: Correct sorting with UserStats type
+  // Correct sorting with UserStats type
   const sortedUsers = [...user_stats].sort((a: UserStats, b: UserStats) => {
     // Admins first
     if (a.role === "admin" && b.role !== "admin") return -1;
@@ -197,7 +186,7 @@ const AdminUsersPage = () => {
     refetch();
   };
 
-  // 🔥 FIXED: Handle delete user initiation with correct type
+  // ✅ FIXED: Using showConfirm instead of AlertDialog
   const handleDeleteUser = (user: UserStats) => {
     // Prevent self-deletion
     if (user.email === currentUser?.email) {
@@ -205,53 +194,44 @@ const AdminUsersPage = () => {
       return;
     }
 
-    setUserToDelete(user);
-    setDeleteDialogOpen(true);
+    // Use showConfirm from notification system
+    showConfirm({
+      title: "Delete User Account",
+      description: `Are you sure you want to delete "${user.name}" (${user.email})? This action cannot be undone. The user will be deactivated and their data will be preserved for audit purposes.`,
+      confirmText: "Delete User",
+      cancelText: "Cancel",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          // Call delete user API using user email
+          await deleteUser(user.email).unwrap();
+
+          // Success handling
+          showWarning(
+            `User "${user.name}" has been successfully deleted`,
+            "User Deleted"
+          );
+
+          // Refresh user stats
+          refetch();
+        } catch (error: unknown) {
+          console.error("Failed to delete user:", error);
+
+          // Extract error message
+          const apiError = error as ApiError;
+          const errorMessage =
+            apiError?.data?.detail ||
+            apiError?.data?.message ||
+            apiError?.message ||
+            "Failed to delete user. Please try again.";
+
+          showError(errorMessage, "Deletion Failed");
+        }
+      },
+    });
   };
 
-  // 🔥 NEW: Confirm delete user
-  const confirmDeleteUser = async () => {
-    if (!userToDelete) return;
-
-    try {
-      // Call delete user API using user ID or email
-      await deleteUser(userToDelete.email).unwrap();
-
-      // Success handling
-      showWarning(`User Deleted`, "User has been successfully deleted");
-
-      // Close dialog and reset state
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
-
-      // Refresh user stats
-      refetch();
-    } catch (error: unknown) {
-      console.error("Failed to delete user:", error);
-
-      // Extract error message
-      const apiError = error as ApiError;
-      const errorMessage =
-        apiError?.data?.detail ||
-        apiError?.data?.message ||
-        apiError?.message ||
-        "Failed to delete user. Please try again.";
-
-      showError(errorMessage, "Deletion Failed");
-
-      // Close dialog
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
-    }
-  };
-
-  // 🔥 NEW: Cancel delete
-  const cancelDelete = () => {
-    setDeleteDialogOpen(false);
-    setUserToDelete(null);
-  };
-
-  // 🔥 FIXED: Check if user can be deleted with correct type
+  // Check if user can be deleted with correct type
   const canDeleteUser = (user: UserStats): boolean => {
     // Cannot delete self
     if (user.email === currentUser?.email) return false;
@@ -411,31 +391,48 @@ const AdminUsersPage = () => {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      {isDeletable ? (
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteUser(user)}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                          disabled={isDeletingUser}
+                          onClick={() => {
+                            // Debug log to check user data structure
+                            console.log("User data:", user);
+                            // Navigate using the correct ID field
+                            router.push(
+                              `/admin/users/${user.user_id}/permissions`
+                            );
+                          }}
                         >
-                          <UserX className="h-4 w-4" />
+                          <Settings className="h-4 w-4" />
                         </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled
-                          className="text-gray-400 cursor-not-allowed"
-                          title={
-                            user.email === currentUser?.email
-                              ? "Cannot delete your own account"
-                              : "Cannot delete the last admin"
-                          }
-                        >
-                          <UserX className="h-4 w-4" />
-                        </Button>
-                      )}
+
+                        {isDeletable ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                            disabled={isDeletingUser}
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="text-gray-400 cursor-not-allowed"
+                            title={
+                              user.email === currentUser?.email
+                                ? "Cannot delete your own account"
+                                : "Cannot delete the last admin"
+                            }
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -451,51 +448,6 @@ const AdminUsersPage = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* 🔥 NEW: Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5 text-red-600" />
-              Delete User Account
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p className="text-muted-foreground text-sm">
-                  Are you sure you want to delete{" "}
-                  <span className="font-semibold">{userToDelete?.name}</span> (
-                  {userToDelete?.email})?
-                </p>
-                <p className="text-sm text-gray-600">
-                  This action cannot be undone. The user will be deactivated and
-                  their data will be preserved for audit purposes.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={isDeletingUser}
-            >
-              {isDeletingUser ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete User
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

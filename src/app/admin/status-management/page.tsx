@@ -10,7 +10,6 @@ import {
   useDeactivateStatusMutation,
   useReorderStatusesMutation,
   useSetupDefaultStatusesMutation,
-  Status,
 } from "@/redux/slices/statusesApi";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +24,7 @@ import { Plus, Settings, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import StatusForm from "@/components/admin/StatusForm";
 import StatusCard from "@/components/admin/StausCard";
+import { Status } from "@/models/types/status";
 
 // Define API error interface for better type safety
 interface ApiError {
@@ -264,7 +264,7 @@ const StatusManagement: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>

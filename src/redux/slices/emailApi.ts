@@ -1,123 +1,25 @@
 // src/redux/slices/emailApi.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
+import {
+  // EmailTemplate,
+  EmailTemplatesResponse,
+  SendEmailRequest,
+  BulkEmailRequest,
+  EmailResponse,
+  // EmailHistoryItem,
+  EmailHistoryResponse,
+  // ScheduledEmail,
+  ScheduledEmailsResponse,
+  // EmailStats,
+  EmailStatsResponse,
+  // SchedulerStatus,
+  SchedulerStatusResponse,
+  // EmailStatus,
+} from "@/models/types/email";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-// Types
-export interface EmailTemplate {
-  key: string;
-  name: string;
-  subject: string;
-  description: string;
-  template_type: string;
-  is_active: boolean;
-}
-
-export interface EmailTemplatesResponse {
-  success: boolean;
-  templates: EmailTemplate[];
-  total: number;
-  message: string;
-}
-
-export interface SendEmailRequest {
-  template_key: string;
-  sender_email_prefix: string;
-  scheduled_time?: string;
-}
-
-export interface BulkEmailRequest {
-  lead_ids: string[];
-  template_key: string;
-  sender_email_prefix: string;
-  scheduled_time?: string;
-}
-
-export interface EmailResponse {
-  success: boolean;
-  data: {
-    email_id: string;
-    lead_id?: string;
-    message: string;
-    scheduled: boolean;
-    scheduled_time: string | null;
-    created_at: string;
-  };
-}
-
-export interface EmailHistoryItem {
-  email_id: string;
-  template_name: string;
-  status: "sent" | "failed" | "pending" | "cancelled";
-  scheduled_time: string | null;
-  sent_time: string | null;
-  created_at: string;
-  sender_email: string;
-  created_by_name: string;
-}
-
-export interface EmailHistoryResponse {
-  success: boolean;
-  emails: EmailHistoryItem[];
-  total: number;
-  page: number;
-  limit: number;
-  has_next: boolean;
-  has_prev: boolean;
-}
-
-export interface ScheduledEmail {
-  email_id: string;
-  lead_id: string;
-  lead_name: string;
-  template_name: string;
-  status: "pending" | "sent" | "failed" | "cancelled";
-  scheduled_time: string;
-  created_at: string;
-}
-
-export interface ScheduledEmailsResponse {
-  success: boolean;
-  emails: ScheduledEmail[];
-  total: number;
-  page: number;
-  limit: number;
-  has_next: boolean;
-  has_prev: boolean;
-}
-
-export interface EmailStats {
-  total_sent: number;
-  total_pending: number;
-  total_failed: number;
-  total_cancelled: number;
-  success_rate: number;
-  monthly_sent: number;
-}
-
-export interface EmailStatsResponse {
-  success: boolean;
-  stats: EmailStats;
-}
-
-// 🔥 NEW: Proper type for scheduler status
-export interface SchedulerStatus {
-  is_running: boolean;
-  last_run: string | null;
-  next_run: string | null;
-  pending_jobs: number;
-  failed_jobs: number;
-  total_processed: number;
-  uptime: string;
-  version: string;
-}
-
-export interface SchedulerStatusResponse {
-  success: boolean;
-  status: SchedulerStatus;
-}
 
 // Base query with authentication and auto-refresh
 const baseQuery = createBaseQueryWithReauth(`${API_BASE_URL}/emails`);

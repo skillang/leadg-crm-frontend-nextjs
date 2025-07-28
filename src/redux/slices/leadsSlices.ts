@@ -1,15 +1,9 @@
 // src/redux/slices/leadsSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { LeadFilters } from "@/models/types/lead";
-
-// Simple state for UI-only concerns
-interface LeadsState {
-  filters: LeadFilters;
-  selectedLeads: string[];
-  bulkUpdateModalOpen: boolean;
-  editModalOpen: boolean;
-  currentEditLeadId: string | null;
-}
+import {
+  // LeadFilters,
+  LeadsState,
+} from "@/models/types/lead";
 
 const initialState: LeadsState = {
   filters: {

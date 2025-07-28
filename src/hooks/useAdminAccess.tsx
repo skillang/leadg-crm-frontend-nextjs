@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/redux/hooks";
 import AccessDeniedCard from "@/components/common/AccessDeniedCard";
-import type { ApiUser } from "@/redux/slices/authSlice"; // ✅ Use your existing ApiUser type
+import type { ApiUser } from "@/models/types/auth"; // ✅ Use your existing ApiUser type
 
 interface UseAdminAccessOptions {
   redirectPath?: string;

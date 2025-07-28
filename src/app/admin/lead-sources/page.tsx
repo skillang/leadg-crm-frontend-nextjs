@@ -28,10 +28,10 @@ import {
   useGetInactiveSourcesQuery,
   useCreateSourceMutation,
   useUpdateSourceMutation,
-  Source,
 } from "@/redux/slices/sourcesApi";
 import CreateSourceModal from "@/components/leads/CreateSourceModal";
 import EditSourceModal from "@/components/leads/EditSourceModal";
+import { Source } from "@/models/types/source";
 
 const SourcesPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals

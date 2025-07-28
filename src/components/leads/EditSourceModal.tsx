@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Source } from "@/redux/slices/sourcesApi";
+import type { Source } from "@/models/types/source";
 
 interface EditSourceModalProps {
   isOpen: boolean;

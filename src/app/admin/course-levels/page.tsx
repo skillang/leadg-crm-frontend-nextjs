@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   useGetCourseLevelsQuery,
   useGetInactiveCourseLevelsQuery,
@@ -44,16 +44,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Plus,
   Edit,
   Trash2,
@@ -93,9 +83,6 @@ const CourseLevelManagementPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCourseLevel, setEditingCourseLevel] =
     useState<CourseLevel | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deletingCourseLevel, setDeletingCourseLevel] =
-    useState<CourseLevel | null>(null);
   const [activeTab, setActiveTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "created_at" | "sort_order">(
@@ -117,8 +104,35 @@ const CourseLevelManagementPage = () => {
     {}
   );
 
+  // Function to generate internal name from display name
+  const generateInternalName = (displayName: string): string => {
+    return displayName
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-") // Replace one or more spaces with single hyphen
+      .replace(/[^a-z0-9-]/g, "") // Remove any character that's not lowercase letter, number, or hyphen
+      .replace(/-+/g, "-") // Replace multiple consecutive hyphens with single hyphen
+      .replace(/^-|-$/g, ""); // Remove leading and trailing hyphens
+  };
+
+  // Auto-generate internal name when display name changes in create form
+  useEffect(() => {
+    if (createFormData.display_name) {
+      const generatedName = generateInternalName(createFormData.display_name);
+      setCreateFormData((prev) => ({
+        ...prev,
+        name: generatedName,
+      }));
+    } else {
+      setCreateFormData((prev) => ({
+        ...prev,
+        name: "",
+      }));
+    }
+  }, [createFormData.display_name]);
+
   // Hooks
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError, showConfirm } = useNotifications();
   const { hasAccess } = useAdminAccess({
     title: "Admin Access Required",
     description: "You need admin privileges to manage course levels.",
@@ -139,13 +153,12 @@ const CourseLevelManagementPage = () => {
     refetch: refetchInactive,
   } = useGetInactiveCourseLevelsQuery({ include_lead_count: true });
 
-  // Mutations with error suppression
+  // Mutations
   const [createCourseLevel, { isLoading: isCreating }] =
     useCreateCourseLevelMutation();
   const [updateCourseLevel, { isLoading: isUpdating }] =
     useUpdateCourseLevelMutation();
-  const [deleteCourseLevel, { isLoading: isDeleting }] =
-    useDeleteCourseLevelMutation();
+  const [deleteCourseLevel] = useDeleteCourseLevelMutation();
   const [activateCourseLevel, { isLoading: isActivating }] =
     useActivateCourseLevelMutation();
   const [deactivateCourseLevel, { isLoading: isDeactivating }] =
@@ -228,9 +241,13 @@ const CourseLevelManagementPage = () => {
     if (!editingCourseLevel) return;
 
     try {
+      // Remove 'name' from editFormData since it shouldn't be updated
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { name: _name, ...updateData } = editFormData;
+
       await updateCourseLevel({
         courseLevelId: editingCourseLevel.id,
-        data: editFormData,
+        data: updateData,
       }).unwrap();
 
       // Close dialog and reset state first
@@ -256,50 +273,54 @@ const CourseLevelManagementPage = () => {
     }
   };
 
-  const handleDeleteCourseLevel = async () => {
-    if (!deletingCourseLevel) return;
-
-    try {
-      // Use await properly and unwrap() to get direct result
-      await deleteCourseLevel(deletingCourseLevel.id).unwrap();
-
-      // Close dialog and reset state immediately
-      setDeleteConfirmOpen(false);
-      setDeletingCourseLevel(null);
-
-      // Only show success if we get here without error
-      showSuccess(
-        `Course level "${deletingCourseLevel.display_name}" deleted successfully!`
+  const handleDeleteCourseLevel = async (courseLevel: CourseLevel) => {
+    // Check if course level has leads before showing confirmation
+    if (courseLevel.lead_count > 0) {
+      showError(
+        `Cannot delete "${courseLevel.display_name}" because it has ${courseLevel.lead_count} associated leads. Please reassign or remove the leads first.`
       );
-
-      // Refetch only the current active tab's data
-      if (activeTab === "active") {
-        refetchActive();
-      } else {
-        refetchInactive();
-      }
-    } catch (error: unknown) {
-      // Close dialog first
-      setDeleteConfirmOpen(false);
-      setDeletingCourseLevel(null);
-
-      // Extract meaningful error message
-      let errorMessage = "Failed to delete course level";
-      const apiError = error as ApiError;
-
-      if (apiError?.data?.detail) {
-        errorMessage = apiError.data.detail;
-      } else if (apiError?.data?.message) {
-        errorMessage = apiError.data.message;
-      } else if (apiError?.message) {
-        errorMessage = apiError.message;
-      } else if (typeof error === "string") {
-        errorMessage = error;
-      }
-
-      // Show error only once
-      showError(errorMessage);
+      return;
     }
+
+    // Use notification system for confirmation
+    showConfirm({
+      title: "Delete Course Level",
+      description: `Are you sure you want to permanently delete the course level "${courseLevel.display_name}"? This action cannot be undone.`,
+      confirmText: "Delete Course Level",
+      cancelText: "Cancel",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteCourseLevel(courseLevel.id).unwrap();
+          showSuccess(
+            `Course level "${courseLevel.display_name}" deleted successfully!`
+          );
+
+          // Refetch only the current active tab's data
+          if (activeTab === "active") {
+            refetchActive();
+          } else {
+            refetchInactive();
+          }
+        } catch (error: unknown) {
+          // Extract meaningful error message
+          let errorMessage = "Failed to delete course level";
+          const apiError = error as ApiError;
+
+          if (apiError?.data?.detail) {
+            errorMessage = apiError.data.detail;
+          } else if (apiError?.data?.message) {
+            errorMessage = apiError.data.message;
+          } else if (apiError?.message) {
+            errorMessage = apiError.message;
+          } else if (typeof error === "string") {
+            errorMessage = error;
+          }
+
+          showError(errorMessage);
+        }
+      },
+    });
   };
 
   const handleActivateDeactivate = async (
@@ -335,7 +356,7 @@ const CourseLevelManagementPage = () => {
   const openEditDialog = (courseLevel: CourseLevel) => {
     setEditingCourseLevel(courseLevel);
     setEditFormData({
-      name: courseLevel.name,
+      name: courseLevel.name, // Include name for reference but won't be editable
       display_name: courseLevel.display_name,
       description: courseLevel.description,
       sort_order: courseLevel.sort_order,
@@ -346,15 +367,7 @@ const CourseLevelManagementPage = () => {
   };
 
   const openDeleteDialog = (courseLevel: CourseLevel) => {
-    // Check if course level has leads before opening dialog
-    if (courseLevel.lead_count > 0) {
-      showError(
-        `Cannot delete "${courseLevel.display_name}" because it has ${courseLevel.lead_count} associated leads. Please reassign or remove the leads first.`
-      );
-      return;
-    }
-    setDeletingCourseLevel(courseLevel);
-    setDeleteConfirmOpen(true);
+    handleDeleteCourseLevel(courseLevel);
   };
 
   const formatDate = (dateString: string) => {
@@ -668,22 +681,6 @@ const CourseLevelManagementPage = () => {
 
           <form onSubmit={handleCreateCourseLevel} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Internal Name *</Label>
-              <Input
-                id="name"
-                value={createFormData.name}
-                onChange={(e) =>
-                  setCreateFormData({ ...createFormData, name: e.target.value })
-                }
-                placeholder="e.g., undergraduate"
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Lowercase, underscores for spaces (used internally)
-              </p>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="display_name">Display Name *</Label>
               <Input
                 id="display_name"
@@ -697,6 +694,21 @@ const CourseLevelManagementPage = () => {
                 placeholder="e.g., Undergraduate Programs"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Internal Name (Auto-generated)</Label>
+              <Input
+                id="name"
+                value={createFormData.name}
+                disabled
+                className="bg-gray-50 text-gray-600"
+                placeholder="Auto-generated from display name"
+              />
+              <p className="text-xs text-gray-500">
+                Automatically generated from display name (lowercase, spaces
+                replaced with hyphens)
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -782,16 +794,18 @@ const CourseLevelManagementPage = () => {
 
           <form onSubmit={handleUpdateCourseLevel} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit_name">Internal Name *</Label>
+              <Label htmlFor="edit_name">
+                Internal Name (Cannot be changed)
+              </Label>
               <Input
                 id="edit_name"
                 value={editFormData.name || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, name: e.target.value })
-                }
-                placeholder="e.g., undergraduate"
-                required
+                disabled
+                className="bg-gray-50 text-gray-600"
               />
+              <p className="text-xs text-gray-500">
+                Internal name cannot be modified after creation
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -880,33 +894,6 @@ const CourseLevelManagementPage = () => {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Course Level</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to permanently delete the course level
-              &quot;
-              {deletingCourseLevel?.display_name}&quot;?
-              <br />
-              <br />
-              <strong>This action cannot be undone.</strong>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteCourseLevel}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? "Deleting..." : "Delete Course Level"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

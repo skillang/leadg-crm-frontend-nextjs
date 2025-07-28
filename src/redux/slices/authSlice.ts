@@ -1,34 +1,7 @@
 // src/redux/slices/authSlice.ts
 
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-// Define the user interface
-export interface ApiUser {
-  id: string;
-  email: string;
-  name?: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  username: string;
-  is_active: boolean;
-  department: string;
-  created_at: string;
-  last_login?: string;
-}
-
-// Define the auth state interface
-interface AuthState {
-  isAuthenticated: boolean;
-  token: string | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  user?: ApiUser | null;
-  loading: boolean;
-  error: string | null;
-  expiresIn: number | null;
-  tokenCreatedAt: number | null;
-}
+import { AuthState, ApiUser } from "@/models/types/auth";
 
 // Define the initial state
 const initialState: AuthState = {

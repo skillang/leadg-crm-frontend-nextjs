@@ -27,7 +27,6 @@ import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   useCreateLeadMutation,
   useGetAssignableUsersWithDetailsQuery,
-  CreateLeadApiRequest,
 } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
@@ -40,6 +39,7 @@ import ExperienceLevelDropdown from "../common/ExperienceLevelDropdown";
 import SourceDropdown from "../common/SourceDropdown";
 import { StageSelect } from "../common/StageSelect";
 import { StatusSelect } from "../common/StatusSelect";
+import { CreateLeadApiRequest } from "@/models/types/lead";
 
 // ✅ FIXED: Helper function to convert countries array to string for backend
 const formatCountriesForBackend = (countries: string[]): string => {
@@ -477,7 +477,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       }
 
       if (formData.date_of_birth && formData.date_of_birth.trim()) {
-        payload.basic_info.current_location = formData.current_location;
+        payload.basic_info.date_of_birth = formData.date_of_birth.trim();
       }
 
       // console.log(

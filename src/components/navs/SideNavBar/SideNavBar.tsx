@@ -22,6 +22,7 @@ import {
   ChevronUp,
   Globe,
   Mail,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -96,14 +97,20 @@ const mainMenuItems = [
 // User management dropdown items
 const userMenuItems = [
   {
+    title: "Register User",
+    url: "/admin/register-user",
+    icon: UserPlus,
+  },
+  {
     title: "Users",
     url: "/admin/users",
     icon: UsersRound,
   },
   {
-    title: "Register User",
-    url: "/admin/register-user",
-    icon: UserPlus,
+    title: "User Permissions",
+    url: "/admin/user-permissions",
+    icon: Shield,
+    adminOnly: true,
   },
   {
     title: "Manage Departments",

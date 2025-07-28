@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, UserPlus, Shield, Settings2, Users2 } from "lucide-react";
+import { Eye, EyeOff, UserPlus, Shield, Users2 } from "lucide-react";
 
 // Form validation types
 interface FormData {
@@ -401,7 +401,7 @@ const AdminRegisterUserPage = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="container mx-auto  space-y-6">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
@@ -416,7 +416,7 @@ const AdminRegisterUserPage = () => {
                 Create new user accounts for the LeadG CRM system
               </p>
             </div>
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -425,7 +425,7 @@ const AdminRegisterUserPage = () => {
                 <Settings2 className="w-4 h-4 mr-2" />
                 Manage Departments
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
 

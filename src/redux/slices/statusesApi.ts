@@ -2,59 +2,18 @@
 
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
-
-// Types for Status management
-export interface Status {
-  id: string;
-  name: string;
-  display_name: string;
-  description: string;
-  color: string;
-  sort_order: number;
-  is_active: boolean;
-  is_default: boolean;
-  lead_count: number;
-  created_by: string;
-  created_at: string;
-  updated_at: string | null;
-}
-
-export interface CreateStatusRequest {
-  name: string;
-  display_name: string;
-  description: string;
-  color?: string;
-  sort_order?: number;
-  is_active?: boolean;
-  is_default?: boolean;
-}
-
-export interface UpdateStatusRequest {
-  display_name?: string;
-  description?: string;
-  color?: string;
-  sort_order?: number;
-  is_active?: boolean;
-  is_default?: boolean;
-}
-
-export interface StatusesResponse {
-  statuses: Status[];
-  total: number;
-  active_count: number;
-  inactive_count: number;
-}
-
-export interface CreateStatusResponse {
-  success: boolean;
-  message: string;
-  status: Status;
-}
-
-export interface StatusReorderItem {
-  id: string;
-  sort_order: number;
-}
+import {
+  Status,
+  StatusesResponse,
+  CreateStatusRequest,
+  UpdateStatusRequest,
+  CreateStatusResponse,
+  // UpdateStatusResponse,
+  // DeleteStatusResponse,
+  // StatusActionResponse,
+  StatusReorderItem,
+  // SetupDefaultStatusesResponse,
+} from "@/models/types/status";
 
 // Base query with authentication and auto-refresh
 const baseQuery = createBaseQueryWithReauth(
