@@ -168,6 +168,22 @@ export interface WhatsAppState {
   isSending: boolean;
   currentLead: LeadData | null;
   currentUser: UserData | null;
+
+  // Bulk WhatsApp states (NEW)
+  bulkWhatsappFilters: BulkWhatsAppFilters;
+  selectedLeadsForBulk: string[];
+  bulkJobName: string;
+  bulkMessageType: "template" | "text";
+  bulkSelectedTemplate: string | null;
+  bulkMessageContent: string;
+  bulkIsScheduled: boolean;
+  bulkScheduledDateTime: string;
+  bulkBatchSize: number;
+  bulkDelayBetweenMessages: number;
+
+  // Bulk UI states (NEW)
+  bulkIsLoading: boolean;
+  bulkError: string | null;
 }
 
 // Generic API Response Interface with specific type parameter
@@ -230,6 +246,138 @@ export interface TemplateApiResponse {
   data?: WhatsAppTemplate[];
   templates?: WhatsAppTemplate[];
   [key: string]: unknown;
+}
+
+// ============================================================================
+// BULK WHATSAPP TYPES (ADD TO EXISTING FILE)
+// ============================================================================
+
+export type WhatsAppJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "scheduled";
+
+// ============================================================================
+// BULK JOB REQUEST/RESPONSE TYPES
+// ============================================================================
+
+export interface CreateBulkWhatsAppJobRequest {
+  job_name: string;
+  message_type: "template" | "text";
+  template_name?: string; // Required if message_type is "template"
+  message_content?: string; // Required if message_type is "text"
+  lead_ids: string[];
+  scheduled_time?: string; // ISO format: "2024-07-30T18:00:00"
+  batch_size?: number; // Default: 10
+  delay_between_messages?: number; // Default: 2 (seconds)
+}
+
+export interface CreateBulkWhatsAppJobResponse {
+  success: boolean;
+  job_id: string;
+  message: string;
+  total_recipients: number;
+  scheduled: boolean;
+  scheduled_time_ist: string | null;
+  scheduled_time_utc: string | null;
+}
+
+export interface BulkWhatsAppJob {
+  job_id: string;
+  job_name: string;
+  message_type: "template" | "text";
+  template_name?: string;
+  status: WhatsAppJobStatus;
+  total_recipients: number;
+  processed_count: number;
+  success_count: number;
+  failed_count: number;
+  skipped_count: number;
+  progress_percentage: number;
+  is_scheduled: boolean;
+  scheduled_time: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  created_by_name: string;
+  estimated_completion: string | null;
+}
+
+export interface BulkWhatsAppJobsResponse {
+  success: boolean;
+  jobs: BulkWhatsAppJob[];
+  total_jobs: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export interface BulkWhatsAppJobStatusResponse {
+  job_id: string;
+  job_name: string;
+  message_type: "template" | "text";
+  template_name?: string;
+  status: WhatsAppJobStatus;
+  total_recipients: number;
+  processed_count: number;
+  success_count: number;
+  failed_count: number;
+  skipped_count: number;
+  progress_percentage: number;
+  is_scheduled: boolean;
+  scheduled_time: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  created_by_name: string;
+  estimated_completion: string | null;
+}
+
+export interface CancelBulkJobRequest {
+  reason: string;
+}
+
+export interface BulkWhatsAppStats {
+  total_jobs: number;
+  active_jobs: number;
+  completed_jobs: number;
+  failed_jobs: number;
+  total_messages_sent: number;
+  total_messages_failed: number;
+  success_rate: number;
+  jobs_today: number;
+  messages_sent_today: number;
+  next_scheduled_job: Record<string, unknown> | null;
+}
+
+export interface BulkWhatsAppStatsResponse {
+  success: boolean;
+  stats: BulkWhatsAppStats;
+}
+
+export interface ValidatePhoneNumbersResponse {
+  success: boolean;
+  results: Array<{
+    phone_number: string;
+    is_valid: boolean;
+    formatted_number?: string;
+    error_message?: string;
+  }>;
+  total_valid: number;
+  total_invalid: number;
+}
+
+// ============================================================================
+// BULK STATE TYPES (ADD TO EXISTING WhatsAppState)
+// ============================================================================
+
+export interface BulkWhatsAppFilters {
+  name: string;
+  stage: string;
+  status: string;
 }
 
 // Template Parameter Helpers

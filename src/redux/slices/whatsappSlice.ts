@@ -6,6 +6,13 @@ import {
   OpenModalPayload,
   SetTemplateParameterPayload,
   TemplateParameters,
+  // CreateBulkWhatsAppJobRequest,
+  // CreateBulkWhatsAppJobResponse,
+  // BulkWhatsAppJobsResponse,
+  // BulkWhatsAppJobStatusResponse,
+  // CancelBulkJobRequest,
+  // BulkWhatsAppStatsResponse,
+  // ValidatePhoneNumbersResponse,
 } from "@/models/types/whatsapp";
 
 const initialState: WhatsAppState = {
@@ -31,6 +38,25 @@ const initialState: WhatsAppState = {
   // Current context
   currentLead: null,
   currentUser: null,
+
+  bulkWhatsappFilters: {
+    name: "",
+    stage: "all",
+    status: "all",
+  },
+  selectedLeadsForBulk: [],
+  bulkJobName: "",
+  bulkMessageType: "template",
+  bulkSelectedTemplate: null,
+  bulkMessageContent: "",
+  bulkIsScheduled: false,
+  bulkScheduledDateTime: "",
+  bulkBatchSize: 10,
+  bulkDelayBetweenMessages: 2,
+
+  // Bulk UI states
+  bulkIsLoading: false,
+  bulkError: null,
 };
 
 const whatsappSlice = createSlice({
@@ -139,6 +165,115 @@ const whatsappSlice = createSlice({
     setSending: (state, action: PayloadAction<boolean>) => {
       state.isSending = action.payload;
     },
+
+    setBulkWhatsappNameFilter: (state, action: PayloadAction<string>) => {
+      state.bulkWhatsappFilters.name = action.payload;
+    },
+
+    setBulkWhatsappStageFilter: (state, action: PayloadAction<string>) => {
+      state.bulkWhatsappFilters.stage = action.payload;
+    },
+
+    setBulkWhatsappStatusFilter: (state, action: PayloadAction<string>) => {
+      state.bulkWhatsappFilters.status = action.payload;
+    },
+
+    clearBulkWhatsappFilters: (state) => {
+      state.bulkWhatsappFilters = {
+        name: "",
+        stage: "all",
+        status: "all",
+      };
+    },
+
+    // Lead selection for bulk
+    toggleLeadForBulkWhatsapp: (state, action: PayloadAction<string>) => {
+      const leadId = action.payload;
+      const index = state.selectedLeadsForBulk.indexOf(leadId);
+      if (index === -1) {
+        state.selectedLeadsForBulk.push(leadId);
+      } else {
+        state.selectedLeadsForBulk.splice(index, 1);
+      }
+    },
+
+    selectAllLeadsForBulkWhatsapp: (state, action: PayloadAction<string[]>) => {
+      state.selectedLeadsForBulk = action.payload;
+    },
+
+    clearBulkWhatsappSelection: (state) => {
+      state.selectedLeadsForBulk = [];
+    },
+
+    // Bulk job configuration
+    setBulkJobName: (state, action: PayloadAction<string>) => {
+      state.bulkJobName = action.payload;
+    },
+
+    setBulkMessageType: (state, action: PayloadAction<"template" | "text">) => {
+      state.bulkMessageType = action.payload;
+      // Reset template/content when switching types
+      if (action.payload === "template") {
+        state.bulkMessageContent = "";
+      } else {
+        state.bulkSelectedTemplate = null;
+      }
+    },
+
+    setBulkSelectedTemplate: (state, action: PayloadAction<string | null>) => {
+      state.bulkSelectedTemplate = action.payload;
+      if (action.payload) {
+        state.bulkMessageContent = ""; // Clear custom message when template selected
+      }
+    },
+
+    setBulkMessageContent: (state, action: PayloadAction<string>) => {
+      state.bulkMessageContent = action.payload;
+    },
+
+    // Bulk scheduling
+    setBulkIsScheduled: (state, action: PayloadAction<boolean>) => {
+      state.bulkIsScheduled = action.payload;
+      if (!action.payload) {
+        state.bulkScheduledDateTime = "";
+      }
+    },
+
+    setBulkScheduledDateTime: (state, action: PayloadAction<string>) => {
+      state.bulkScheduledDateTime = action.payload;
+    },
+
+    // Bulk settings
+    setBulkBatchSize: (state, action: PayloadAction<number>) => {
+      state.bulkBatchSize = action.payload;
+    },
+
+    setBulkDelayBetweenMessages: (state, action: PayloadAction<number>) => {
+      state.bulkDelayBetweenMessages = action.payload;
+    },
+
+    // Bulk UI states
+    setBulkLoading: (state, action: PayloadAction<boolean>) => {
+      state.bulkIsLoading = action.payload;
+    },
+
+    setBulkError: (state, action: PayloadAction<string | null>) => {
+      state.bulkError = action.payload;
+    },
+
+    // Reset bulk form
+    resetBulkWhatsappForm: (state) => {
+      state.bulkJobName = "";
+      state.bulkMessageType = "template";
+      state.bulkSelectedTemplate = null;
+      state.bulkMessageContent = "";
+      state.bulkIsScheduled = false;
+      state.bulkScheduledDateTime = "";
+      state.bulkBatchSize = 10;
+      state.bulkDelayBetweenMessages = 2;
+      state.selectedLeadsForBulk = [];
+      state.bulkError = null;
+    },
   },
 });
 
@@ -154,6 +289,24 @@ export const {
   updateTemplateParameters,
   setPreviewMode,
   setSending,
+  setBulkWhatsappStatusFilter,
+  clearBulkWhatsappFilters,
+  toggleLeadForBulkWhatsapp,
+  selectAllLeadsForBulkWhatsapp,
+  clearBulkWhatsappSelection,
+  setBulkJobName,
+  setBulkMessageType,
+  setBulkSelectedTemplate,
+  setBulkMessageContent,
+  setBulkIsScheduled,
+  setBulkScheduledDateTime,
+  setBulkBatchSize,
+  setBulkDelayBetweenMessages,
+  setBulkLoading,
+  setBulkError,
+  resetBulkWhatsappForm,
+  setBulkWhatsappNameFilter, // ← YOU WERE MISSING THIS
+  setBulkWhatsappStageFilter,
 } = whatsappSlice.actions;
 
 export default whatsappSlice.reducer;

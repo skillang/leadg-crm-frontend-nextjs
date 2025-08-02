@@ -228,10 +228,7 @@ const TasksContainer: React.FC<TasksContainerProps> = ({ leadId }) => {
             />
           </div>
 
-          <Button
-            onClick={handleCreateTask}
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
-          >
+          <Button onClick={handleCreateTask} className="gap-2 ">
             <PlusIcon className="h-4 w-4" />
             New task
           </Button>

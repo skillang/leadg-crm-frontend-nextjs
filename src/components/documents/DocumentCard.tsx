@@ -2,27 +2,28 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNotifications } from "@/components/common/NotificationSystem";
+import { getFileIconForDocument } from "@/utils/getFileIconForDocument";
 import {
-  FileText,
-  Download,
-  Edit,
-  Trash,
   Calendar,
   Clock,
-  User,
   FileCheck,
   FileX,
   AlertCircle,
   CheckCircle,
   XCircle,
+  Eye,
+  Download,
+  Edit,
+  Trash,
 } from "lucide-react";
 import { Document } from "@/models/types/documents";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   useDeleteDocumentMutation,
   useDownloadDocumentMutation,
@@ -32,6 +33,7 @@ import {
 import { useAppSelector } from "@/redux/hooks";
 import { selectIsAdmin } from "@/redux/selectors";
 import { cn } from "@/lib/utils";
+import DocumentViewerModal from "./DocumentViewerModal";
 
 interface DocumentCardProps {
   document: Document;
@@ -49,6 +51,16 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   className,
 }) => {
   const isAdmin = useAppSelector(selectIsAdmin);
+  const [viewerData, setViewerData] = useState<{
+    isOpen: boolean;
+    documentUrl: string | null;
+    document: Document | null;
+  }>({
+    isOpen: false,
+    documentUrl: null,
+    document: null,
+  });
+
   // ✅ SIMPLE: Direct hook usage - no naming conflicts
   const { showSuccess, showError, showConfirm, showPrompt } =
     useNotifications();
@@ -115,7 +127,9 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         try {
           await approveDocument({
             documentId: document.id,
-            approvalData: { approval_notes: notes || "Approved" },
+            approvalData: {
+              approval_notes: notes || "No specific approval notes",
+            },
           }).unwrap();
           showSuccess(`Document "${document.filename}" approved successfully`);
         } catch (error) {
@@ -164,6 +178,33 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     }
   };
 
+  const handleView = async () => {
+    try {
+      // Use existing download endpoint (but for viewing)
+      const blob = await downloadDocument(document.id).unwrap();
+
+      // Create blob URL for viewer
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Open in viewer
+      setViewerData({
+        isOpen: true,
+        documentUrl: blobUrl,
+        document: document,
+      });
+    } catch (error) {
+      showError("Failed to load document viewer.");
+    }
+  };
+
+  // Don't forget to cleanup blob URL when modal closes
+  const handleCloseViewer = () => {
+    if (viewerData.documentUrl) {
+      URL.revokeObjectURL(viewerData.documentUrl); // Cleanup memory
+    }
+    setViewerData({ isOpen: false, documentUrl: null, document: null });
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -190,40 +231,29 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     });
   };
 
+  // ✅ UPDATED: Now uses Badge variants instead of custom className
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Approved":
         return {
           icon: <CheckCircle className="h-3 w-3" />,
-          className: "bg-green-100 text-green-800 border-green-200",
+          variant: "success-light" as const,
         };
       case "Rejected":
         return {
           icon: <XCircle className="h-3 w-3" />,
-          className: "bg-red-100 text-red-800 border-red-200",
+          variant: "destructive-light" as const,
         };
       case "Pending":
         return {
           icon: <AlertCircle className="h-3 w-3" />,
-          className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+          variant: "pending" as const,
         };
       default:
         return {
           icon: <AlertCircle className="h-3 w-3" />,
-          className: "bg-gray-100 text-gray-800 border-gray-200",
+          variant: "outline" as const,
         };
-    }
-  };
-
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.includes("pdf")) {
-      return <FileText className="h-6 w-6 text-red-600" />;
-    } else if (mimeType.includes("image")) {
-      return <FileText className="h-6 w-6 text-purple-600" />;
-    } else if (mimeType.includes("word") || mimeType.includes("document")) {
-      return <FileText className="h-6 w-6 text-blue-600" />;
-    } else {
-      return <FileText className="h-6 w-6 text-gray-600" />;
     }
   };
 
@@ -256,7 +286,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
           )}
 
           <div className="flex items-center gap-3">
-            {getFileIcon(document.mime_type)}
+            {getFileIconForDocument(document.mime_type)}
             <div>
               <h3 className="font-semibold text-gray-900 line-clamp-1">
                 {document.filename}
@@ -269,14 +299,25 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+              onClick={handleDownload}
+              disabled={isDownloading}
+            >
+              <Download className="h-4 w-4 text-gray-600" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 hover:bg-gray-100"
-            onClick={handleDownload}
-            disabled={isDownloading}
+            onClick={handleView}
+            // disabled={isDownloading}
           >
-            <Download className="h-4 w-4 text-gray-600" />
+            <Eye className="h-4 w-4 text-gray-600" />
           </Button>
 
           <Button
@@ -302,132 +343,193 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        {/* Status section */}
-        <div className="flex items-center justify-between">
-          <Badge
-            variant="secondary"
-            className={cn("text-sm px-3 py-1 gap-1", statusBadge.className)}
-          >
-            {statusBadge.icon}
-            {documentStatus}
-          </Badge>
+        <Table>
+          <TableBody>
+            {/* Status section */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3">
+                Status:
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge
+                  variant={statusBadge.variant}
+                  className="text-sm px-2 py-1 gap-1"
+                >
+                  {statusBadge.icon}
+                  {documentStatus}
+                </Badge>
+              </TableCell>
+            </TableRow>
 
-          {/* Admin approval actions for pending documents */}
-          {isAdmin && documentStatus === "Pending" && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleApprove}
-                disabled={isApproving}
-                className="text-green-600 border-green-200 hover:bg-green-50"
-              >
-                {isApproving ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-                ) : (
-                  <FileCheck className="h-4 w-4" />
-                )}
-                Approve
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReject}
-                disabled={isRejecting}
-                className="text-red-600 border-red-200 hover:bg-red-50"
-              >
-                {isRejecting ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-                ) : (
-                  <FileX className="h-4 w-4" />
-                )}
-                Reject
-              </Button>
-            </div>
-          )}
-        </div>
+            {/* Admin approval actions for pending documents */}
+            {isAdmin && documentStatus === "Pending" && (
+              <TableRow>
+                <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3">
+                  Approval Request:
+                </TableCell>
+                <TableCell className="py-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApprove}
+                      disabled={isApproving}
+                      className="text-green-600 border-green-200 hover:bg-green-50 cursor-pointer"
+                    >
+                      {isApproving ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                      ) : (
+                        <FileCheck className="h-4 w-4" />
+                      )}
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReject}
+                      disabled={isRejecting}
+                      className="text-red-600 border-red-200 hover:bg-red-50 cursor-pointer"
+                    >
+                      {isRejecting ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                      ) : (
+                        <FileX className="h-4 w-4" />
+                      )}
+                      Reject
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
 
-        {/* Upload info section */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-gray-500">
-              <User className="h-4 w-4" />
-              <span>Uploaded by:</span>
-            </div>
-            <p className="font-medium text-gray-900 pl-6">
-              {document.uploaded_by_name}
-            </p>
-          </div>
+            {/* Upload info section */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3">
+                <div className="flex items-center gap-2">Uploaded by:</div>
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge variant="primary-ghost">
+                  {document.uploaded_by_name}
+                </Badge>
+              </TableCell>
+            </TableRow>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-gray-500">
-              <Calendar className="h-4 w-4" />
-              <span>Upload date:</span>
-            </div>
-            <div className="flex items-center gap-2 pl-6">
-              <span className="font-medium text-gray-900">
-                {formatDate(document.uploaded_at)}
-              </span>
-              <Clock className="h-3 w-3 text-gray-400" />
-              <span className="text-gray-600">
-                {formatTime(document.uploaded_at)}
-              </span>
-            </div>
-          </div>
-        </div>
+            {/* Upload Date */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3">
+                <div className="flex items-center gap-2">Upload date:</div>
+              </TableCell>
+              <TableCell className="py-2">
+                <div className="flex items-center gap-4 text-sm">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span className="font-medium">
+                      {formatDate(document.uploaded_at)}
+                    </span>
+                  </Badge>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{formatTime(document.uploaded_at)}</span>
+                  </Badge>
+                </div>
+              </TableCell>
+            </TableRow>
 
-        {/* Approval info for approved/rejected documents */}
-        {(documentStatus === "Approved" || documentStatus === "Rejected") &&
-          approvedByName && (
-            <div className="p-3 bg-gray-50 rounded-md space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">
-                  {documentStatus === "Approved"
-                    ? "Approved by:"
-                    : "Rejected by:"}
-                </span>
-                <span className="font-medium text-gray-900">
-                  {approvedByName}
-                </span>
-              </div>
-              {approvedAt && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Date:</span>
-                  <span className="text-gray-900">
-                    {formatDate(approvedAt)}
+            {(documentStatus === "Approved" || documentStatus === "Rejected") &&
+              approvedByName && (
+                <>
+                  {/* Approved/Rejected by row */}
+                  <TableRow>
+                    <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3">
+                      {documentStatus === "Approved"
+                        ? "Approved by:"
+                        : "Rejected by:"}
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex items-center gap-4 text-sm">
+                        <Badge variant="primary-ghost">{approvedByName}</Badge>
+                        {approvedAt && (
+                          <Badge
+                            variant="outline"
+                            className="flex items-center gap-1 text-xs"
+                          >
+                            <Calendar className="h-3 w-3" />
+                            <span>{formatDate(approvedAt)}</span>
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Approval/Rejection notes row - only show if notes exist */}
+                  {approvalNotes && (
+                    <TableRow>
+                      <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3 align-top">
+                        {documentStatus === "Approved"
+                          ? "Approval notes:"
+                          : "Rejection notes:"}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="text-gray-700 text-sm leading-relaxed bg-gray-50 rounded-md">
+                          {approvalNotes}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              )}
+
+            {/* Notes section */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3 align-top">
+                Notes:
+              </TableCell>
+              <TableCell className="py-2">
+                <div className="text-gray-700 text-sm leading-relaxed bg-gray-50  rounded-md">
+                  {notes ? notes : "No notes available"}
+                </div>
+              </TableCell>
+            </TableRow>
+
+            {/* Expiry date section */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-medium w-1/3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Expires on:</span>
+                </div>
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge
+                  variant={expiryDate ? "secondary" : "outline"}
+                  className={cn(
+                    "flex items-center gap-1",
+                    expiryDate
+                      ? "bg-orange-100 text-orange-700"
+                      : "text-gray-500"
+                  )}
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {expiryDate ? formatDate(expiryDate) : "Not Mentioned"}
                   </span>
-                </div>
-              )}
-              {approvalNotes && (
-                <div className="text-sm">
-                  <span className="text-gray-600">Notes:</span>
-                  <p className="mt-1 text-gray-900">{approvalNotes}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-        {/* Notes section */}
-        {notes && (
-          <div className="space-y-2">
-            <span className="text-sm text-gray-700 font-medium">Notes:</span>
-            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-              {notes}
-            </p>
-          </div>
-        )}
-
-        {/* Expiry date section */}
-        {expiryDate && (
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-600">Expires on:</span>
-            <span className="font-medium text-gray-900">
-              {formatDate(expiryDate)}
-            </span>
-          </div>
-        )}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
+      {viewerData.isOpen && viewerData.documentUrl && (
+        <DocumentViewerModal
+          isOpen={viewerData.isOpen}
+          onClose={handleCloseViewer}
+          documentUrl={viewerData.documentUrl}
+          document={viewerData.document!}
+        />
+      )}
     </Card>
   );
 };

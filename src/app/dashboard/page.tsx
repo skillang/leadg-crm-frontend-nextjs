@@ -1,4 +1,4 @@
-// src/app/dashboard/page.tsx - Dashboard with Stats
+// src/app/dashboard/page.tsx - Dashboard with Skeleton Loading States
 
 "use client";
 import React from "react";
@@ -14,20 +14,35 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Loading skeleton component for stats cards
+const StatsCardSkeleton = () => (
+  <div className="bg-white p-6 rounded-lg shadow border">
+    <div className="flex items-center justify-between">
+      <div className="flex-1">
+        <Skeleton className="h-4 w-20 mb-3" />
+        <Skeleton className="h-8 w-16 mb-2" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+      <Skeleton className="h-12 w-12 rounded-full" />
+    </div>
+  </div>
+);
 
 const DashboardPage = () => {
   // Get user info
   const isAdmin = useAppSelector(selectIsAdmin);
   const currentUser = useAppSelector(selectCurrentUser);
 
-  // Get lead statistics - 🔥 FIXED: Added required argument object
+  // Get lead statistics
   const {
     data: stats,
     isLoading: statsLoading,
     error: statsError,
     refetch: refetchStats,
   } = useGetLeadStatsQuery({
-    include_multi_assignment_stats: isAdmin, // Include multi-assignment stats for admins
+    include_multi_assignment_stats: isAdmin,
   });
 
   const handleRefreshStats = () => {
@@ -42,11 +57,6 @@ const DashboardPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">
             Welcome back, {currentUser?.first_name} {currentUser?.last_name}!
-            {/* {!isAdmin && (
-              <span className="text-green-600 font-medium ml-2">
-                ⚡ Super Fast Queries
-              </span>
-            )} */}
           </p>
         </div>
         <div className="flex gap-2">
@@ -67,14 +77,7 @@ const DashboardPage = () => {
       {statsLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="bg-white p-6 rounded-lg shadow border animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 rounded mb-3"></div>
-              <div className="h-8 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-            </div>
+            <StatsCardSkeleton key={i} />
           ))}
         </div>
       ) : statsError ? (
@@ -159,23 +162,33 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* My Leads Card (for both admin and user) */}
+      {/* My Leads Card */}
       <div className="bg-white rounded-lg shadow border p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">My Leads</h2>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-3xl font-bold text-blue-600">
-              {stats?.my_leads || 0}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">Leads assigned to me</p>
+        {statsLoading ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-10 w-16 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-10 w-32 rounded-lg" />
           </div>
-          <Link
-            href="/my-leads"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            View My Leads
-          </Link>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-3xl font-bold text-blue-600">
+                {stats?.my_leads || 0}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">Leads assigned to me</p>
+            </div>
+            <Link
+              href="/my-leads"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              View My Leads
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -236,7 +249,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Recent Activity or Additional Stats */}
+      {/* System Status */}
       <div className="bg-white rounded-lg shadow border p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           System Status

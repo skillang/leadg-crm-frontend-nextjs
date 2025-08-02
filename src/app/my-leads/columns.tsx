@@ -574,19 +574,9 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     cell: ({ row }) => {
       const lead = row.original;
       const assignedToEmail = lead.assignedTo;
-
-      // Create a mapping from emails to proper names
-      const emailToNameMap: { [key: string]: string } = {
-        "rejibabu@skillang.com": "Reji Babu",
-        "hariharan@skillang.com": "Hariharan",
-        "lokesh@skillang.com": "Lokesh Sekar",
-        "neha@skillang.com": "Neha Admin",
-      };
-
       let displayName = null;
       if (assignedToEmail) {
-        displayName =
-          emailToNameMap[assignedToEmail] || assignedToEmail.split("@")[0];
+        displayName = assignedToEmail.split("@")[0];
       }
 
       return (

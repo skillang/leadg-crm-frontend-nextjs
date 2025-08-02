@@ -7,6 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { getColorVariations } from "@/utils/colorUtils";
 
 interface Stage {
   id: string;
@@ -42,6 +44,11 @@ export const StageSelect = ({
   className = "",
   showLabel = true,
 }: StageSelectProps) => {
+  const selectedStage = stages.find((stage) => stage.name === value);
+  const selectedColors = selectedStage
+    ? getColorVariations(selectedStage.color)
+    : null;
+
   return (
     <div className="space-y-2">
       {showLabel && (
@@ -55,24 +62,43 @@ export const StageSelect = ({
         disabled={disabled || isLoading}
       >
         <SelectTrigger
-          className={`${error ? "border-red-500" : ""} ${className}`}
+          className={cn(
+            "font-medium",
+            error ? "border-red-500" : "",
+            className
+          )}
+          style={
+            selectedColors
+              ? {
+                  backgroundColor: selectedColors.bg,
+                  color: selectedColors.text,
+                }
+              : {}
+          }
         >
           <SelectValue
             placeholder={isLoading ? "Loading stages..." : placeholder}
           />
         </SelectTrigger>
         <SelectContent>
-          {stages.map((stage) => (
-            <SelectItem key={stage.id} value={stage.name}>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: stage.color }}
-                />
-                {stage.display_name}
-              </div>
-            </SelectItem>
-          ))}
+          {stages.map((stage) => {
+            const colors = getColorVariations(stage.color);
+            return (
+              <SelectItem
+                key={stage.id}
+                value={stage.name}
+                className={cn("cursor-pointer font-medium rounded-md mb-1")}
+                style={{
+                  backgroundColor: colors.bg,
+                  color: colors.text,
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  {stage.display_name}
+                </div>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
       {error && <p className="text-sm text-red-500">{error}</p>}

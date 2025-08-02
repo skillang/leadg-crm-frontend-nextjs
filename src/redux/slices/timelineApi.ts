@@ -7,6 +7,8 @@ import {
   TimelineStats,
   TimelineFilters,
   ActivityType,
+  getActivityTypeConfig,
+  getAllActivityTypeConfigs,
 } from "@/models/types/timeline";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
@@ -219,7 +221,7 @@ export const timelineApi = createApi({
       ],
     }),
 
-    // Get available activity types
+    // Get available activity types (now dynamically generated)
     getActivityTypes: builder.query<ActivityType[], void>({
       query: () => "/timeline/activity-types",
       transformResponse: (response: unknown): ActivityType[] => {
@@ -227,10 +229,8 @@ export const timelineApi = createApi({
           try {
             const parsed = JSON.parse(response);
             if (Array.isArray(parsed)) {
-              return parsed.map((type) => ({
-                value: type,
-                label: type.charAt(0).toUpperCase() + type.slice(1),
-              }));
+              // Use the dynamic function to generate activity type configs
+              return getAllActivityTypeConfigs(parsed);
             }
             return [];
           } catch (error) {
@@ -241,10 +241,68 @@ export const timelineApi = createApi({
 
         const parsed = response as string[];
         if (Array.isArray(parsed)) {
-          return parsed.map((type) => ({
-            value: type,
-            label: type.charAt(0).toUpperCase() + type.slice(1),
-          }));
+          // Use the dynamic function to generate activity type configs
+          return getAllActivityTypeConfigs(parsed);
+        }
+
+        return [];
+      },
+      providesTags: ["ActivityTypes"],
+    }),
+
+    // Get activity types for a specific lead (with counts)
+    getLeadActivityTypes: builder.query<
+      Array<ActivityType & { count: number }>,
+      string
+    >({
+      query: (leadId) => `/timeline/leads/${leadId}/activity-types`,
+      transformResponse: (
+        response: unknown
+      ): Array<ActivityType & { count: number }> => {
+        if (typeof response === "string") {
+          try {
+            const parsed = JSON.parse(response) as Record<string, number>;
+            return Object.entries(parsed).map(([type, count]) => ({
+              ...getActivityTypeConfig(type),
+              count,
+            }));
+          } catch (error) {
+            console.error("Failed to parse lead activity types:", error);
+            return [];
+          }
+        }
+
+        const parsed = response as Record<string, number>;
+        return Object.entries(parsed).map(([type, count]) => ({
+          ...getActivityTypeConfig(type),
+          count,
+        }));
+      },
+      providesTags: (result, _error, leadId) => [
+        { type: "ActivityTypes", id: leadId },
+      ],
+    }),
+
+    // Get unique activity types across all leads (for admin filtering)
+    getAllUniqueActivityTypes: builder.query<ActivityType[], void>({
+      query: () => "/timeline/activity-types/all",
+      transformResponse: (response: unknown): ActivityType[] => {
+        if (typeof response === "string") {
+          try {
+            const parsed = JSON.parse(response);
+            if (Array.isArray(parsed)) {
+              return getAllActivityTypeConfigs(parsed);
+            }
+            return [];
+          } catch (error) {
+            console.error("Failed to parse all activity types:", error);
+            return [];
+          }
+        }
+
+        const parsed = response as string[];
+        if (Array.isArray(parsed)) {
+          return getAllActivityTypeConfigs(parsed);
         }
 
         return [];
@@ -274,5 +332,7 @@ export const {
   useGetLeadTimelineQuery,
   useGetLeadTimelineStatsQuery,
   useGetActivityTypesQuery,
+  useGetLeadActivityTypesQuery,
+  useGetAllUniqueActivityTypesQuery,
   useGetTimelineDebugQuery,
 } = timelineApi;

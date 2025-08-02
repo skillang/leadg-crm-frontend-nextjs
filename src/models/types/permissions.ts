@@ -10,6 +10,30 @@ export interface UserPermissions {
   last_modified_at: string | null;
 }
 
+// Update the ApiUser interface to include permissions
+export interface ApiUserWithPermissions {
+  id: string;
+  email: string;
+  name?: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  username: string;
+  is_active: boolean;
+  department: string;
+  created_at: string;
+  last_login?: string;
+  departments?: string[];
+  permissions?: {
+    can_create_single_lead: boolean;
+    can_create_bulk_leads: boolean;
+    granted_by: string | null;
+    granted_at: string | null;
+    last_modified_by: string | null;
+    last_modified_at: string | null;
+  };
+}
+
 export interface PermissionSummary {
   has_any_permission: boolean;
   permission_level: number;

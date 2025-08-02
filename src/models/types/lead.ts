@@ -121,9 +121,26 @@ export interface BulkAssignmentResult {
 export interface UserWithDetails {
   email: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   is_active: boolean;
-  current_lead_count: number;
-  departments: string[];
+  id?: string;
+  username?: string;
+  role?: string;
+  created_at?: string;
+  last_login?: string;
+  phone?: string;
+  current_lead_count?: number;
+  departments?: string[];
+  login_count?: number;
+  permissions?: {
+    granted_by?: string;
+    granted_at?: string;
+    last_modified_by?: string;
+    last_modified_at?: string;
+    can_create_single_lead?: boolean;
+    can_create_bulk_leads?: boolean;
+  };
 }
 
 export interface AssignableUsersResponse {
@@ -616,6 +633,7 @@ export interface RoundRobinPreviewResponse {
   available_users: UserWithDetails[];
   next_user_in_rotation: string;
   user_load_distribution: Record<string, number>;
+  next_assignee?: UserWithDetails;
 }
 
 export interface AssignmentDetailsResponse {

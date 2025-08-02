@@ -77,8 +77,14 @@ export const store = configureStore({
           "persist/PURGE",
           "persist/FLUSH",
           "persist/PAUSE",
+          "documentsApi/executeMutation/pending",
+          "documentsApi/executeMutation/fulfilled",
+          "documentsApi/executeMutation/rejected",
         ],
-        ignoredPaths: ["permissions.optimisticUpdates"],
+        ignoredPaths: [
+          "permissions.optimisticUpdates",
+          "documentsApi.mutations",
+        ],
       },
     }).concat(
       leadsApi.middleware,

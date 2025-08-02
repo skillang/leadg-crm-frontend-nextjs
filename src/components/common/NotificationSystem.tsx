@@ -21,6 +21,96 @@ import { Label } from "@/components/ui/label";
 import { X, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ✅ AUDIO: Audio functionality integrated directly
+type AudioType = "success" | "error" | "warning" | "confirm";
+
+class IntegratedAudioService {
+  private audioCache: Map<AudioType, HTMLAudioElement> = new Map();
+  private config = { volume: 0.5, enabled: true };
+  private isInitialized = false;
+
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.loadPreferences();
+      this.preloadAudio();
+    }
+  }
+
+  private loadPreferences(): void {
+    try {
+      const saved = localStorage.getItem("leadg_audio_config");
+      if (saved) this.config = { ...this.config, ...JSON.parse(saved) };
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private savePreferences(): void {
+    try {
+      localStorage.setItem("leadg_audio_config", JSON.stringify(this.config));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private async preloadAudio(): Promise<void> {
+    const audioFiles: Record<AudioType, string> = {
+      success: "/assets/audio/success.wav",
+      error: "/assets/audio/error.wav",
+      warning: "/assets/audio/showWarning.wav",
+      confirm: "/assets/audio/showConfirm.wav",
+    };
+
+    Object.entries(audioFiles).forEach(([type, path]) => {
+      try {
+        const audio = new Audio(path);
+        audio.volume = this.config.volume;
+        audio.preload = "auto";
+        this.audioCache.set(type as AudioType, audio);
+      } catch {
+        console.warn(`Failed to load audio: ${type}`);
+      }
+    });
+
+    this.isInitialized = true;
+  }
+
+  public async playSound(type: AudioType): Promise<void> {
+    if (!this.config.enabled || !this.isInitialized) return;
+
+    try {
+      const audio = this.audioCache.get(type);
+      if (audio) {
+        audio.currentTime = 0;
+        audio.volume = this.config.volume;
+        await audio.play();
+      }
+    } catch {
+      // Audio blocked by browser - fail silently
+    }
+  }
+
+  public setEnabled(enabled: boolean): void {
+    this.config.enabled = enabled;
+    this.savePreferences();
+  }
+
+  public setVolume(volume: number): void {
+    this.config.volume = Math.max(0, Math.min(1, volume));
+    this.audioCache.forEach((audio) => {
+      audio.volume = this.config.volume;
+    });
+    this.savePreferences();
+  }
+
+  public getConfig() {
+    return { ...this.config };
+  }
+}
+
+// ✅ AUDIO: Create audio service instance
+const audioService = new IntegratedAudioService();
+
 // ✅ UPDATED: Added warning to notification types
 type NotificationType = "success" | "error" | "warning";
 
@@ -105,6 +195,9 @@ export function NotificationProvider({
 
       setToasts((prev) => [...prev, newToast]);
 
+      // ✅ AUDIO: Play sound based on toast type
+      audioService.playSound(toast.type as AudioType);
+
       const duration = toast.duration ?? 5000;
       if (duration > 0) {
         setTimeout(() => {
@@ -118,6 +211,8 @@ export function NotificationProvider({
   // Confirmation dialog
   const showConfirm = useCallback((options: ConfirmDialogOptions) => {
     setConfirmDialog({ ...options, isOpen: true });
+    // ✅ AUDIO: Play confirm sound
+    audioService.playSound("confirm");
   }, []);
 
   const handleConfirm = async () => {
@@ -145,6 +240,8 @@ export function NotificationProvider({
   const showPrompt = useCallback((options: PromptDialogOptions) => {
     setPromptValue(options.defaultValue || "");
     setPromptDialog({ ...options, isOpen: true });
+    // ✅ AUDIO: Play confirm sound for prompts too
+    audioService.playSound("confirm");
   }, []);
 
   const handlePromptConfirm = async () => {
@@ -382,3 +479,11 @@ export function useNotifications() {
   }
   return context;
 }
+
+// ✅ AUDIO: Export audio control functions for optional advanced usage
+export const notificationAudio = {
+  setEnabled: (enabled: boolean) => audioService.setEnabled(enabled),
+  setVolume: (volume: number) => audioService.setVolume(volume),
+  getConfig: () => audioService.getConfig(),
+  playSound: (type: AudioType) => audioService.playSound(type),
+};

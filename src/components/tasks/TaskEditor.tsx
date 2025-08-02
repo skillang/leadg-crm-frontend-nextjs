@@ -1,4 +1,4 @@
-// src/components/tasks/TaskEditor.tsx (FIXED TypeScript Error)
+// Updated TaskEditor.tsx with integrated date/time picker
 
 "use client";
 
@@ -20,6 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ChevronDownIcon, Calendar as CalendarIcon, Clock } from "lucide-react";
 import {
   Task,
   CreateTaskRequest,
@@ -58,6 +65,9 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
 }) => {
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
+
+  // Add state for date picker popover
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const [formData, setFormData] = useState<TaskFormData>({
     task_title: "",
@@ -136,6 +146,20 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Handle date selection from calendar
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const formattedDate = date.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+      handleInputChange("due_date", formattedDate);
+    }
+    setDatePickerOpen(false);
+  };
+
+  // Get selected date as Date object for calendar
+  const getSelectedDate = () => {
+    return formData.due_date ? new Date(formData.due_date) : undefined;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -304,62 +328,65 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
             />
           </div>
 
-          {/* Assign to */}
-          <div className="space-y-2">
-            {/* <Label htmlFor="assigned_to" className="text-sm font-medium">
-              Assign to *
-            </Label> */}
-            {/* <Select
-              value={formData.assigned_to}
-              onValueChange={(value) => handleInputChange("assigned_to", value)}
-              disabled={isLoading}
-            > */}
-            {/* <SelectTrigger>
-                <SelectValue placeholder="Select Person" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="6853b46a94c81d9328a29e82">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
-                    Aman Rawat
-                  </div>
-                </SelectItem> */}
-            {/* </SelectContent> */}
-            {/* </Select> */}
-          </div>
-
-          {/* Due Date and Time Row */}
+          {/* Due Date and Time Row - UPDATED WITH POPOVER */}
           <div className="grid grid-cols-2 gap-4">
+            {/* Date Picker with Popover */}
             <div className="space-y-2">
               <Label htmlFor="due_date" className="text-sm font-medium">
                 Due date *
               </Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={isLoading}
+                    className="w-full justify-between font-normal text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-gray-500" />
+                      {formData.due_date
+                        ? new Date(formData.due_date).toLocaleDateString()
+                        : "Select date"}
+                    </div>
+                    <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto overflow-hidden p-0"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={getSelectedDate()}
+                    captionLayout="dropdown"
+                    onSelect={handleDateSelect}
+                    disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Time Picker */}
+            <div className="space-y-2">
+              <Label htmlFor="due_time" className="text-sm font-medium">
+                Time *
+              </Label>
               <div className="relative">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
+                  id="due_time"
+                  type="time"
+                  value={formData.due_time}
                   onChange={(e) =>
-                    handleInputChange("due_date", e.target.value)
+                    handleInputChange("due_time", e.target.value)
                   }
                   disabled={isLoading}
                   required
+                  className="pl-10 bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none text-sm"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="due_time" className="text-sm font-medium">
-                Time
-              </Label>
-              <Input
-                id="due_time"
-                type="time"
-                value={formData.due_time}
-                onChange={(e) => handleInputChange("due_time", e.target.value)}
-                disabled={isLoading}
-                required
-              />
             </div>
           </div>
 

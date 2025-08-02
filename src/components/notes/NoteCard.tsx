@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Pen, Trash, Calendar, Clock } from "lucide-react";
 import { Note } from "@/models/types/note";
 import { useDeleteNoteMutation } from "@/redux/slices/notesApi";
-import { useNotifications } from "@/components/common/NotificationSystem"; // ✅ New import
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { useNotifications } from "@/components/common/NotificationSystem";
 import { cn } from "@/lib/utils";
 
 interface NoteCardProps {
@@ -109,12 +110,12 @@ const NoteCard: React.FC<NoteCardProps> = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md border border-gray-200",
+        "transition-all duration-200  border-gray-200",
         isSelected && "ring-2 ring-blue-500",
         className
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-3 flex-1">
           {onSelect && (
             <Checkbox
@@ -131,9 +132,9 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-100"
+            className="h-8 w-8 p-0"
             onClick={handleEdit}
             disabled={isDeleting}
           >
@@ -141,9 +142,9 @@ const NoteCard: React.FC<NoteCardProps> = ({
           </Button>
 
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-100"
+            className="h-8 w-8 p-0"
             onClick={handleDelete}
             disabled={isDeleting}
           >
@@ -153,60 +154,98 @@ const NoteCard: React.FC<NoteCardProps> = ({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        {/* Last updated section */}
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span className="font-medium">Last updated:</span>
-          <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            <span>{dateText}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            <span>{timeText}</span>
-          </div>
-        </div>
+        <Table>
+          <TableBody>
+            {/* Last updated row */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-normal w-32">
+                Last updated:
+              </TableCell>
+              <TableCell className="py-2">
+                <div className="flex items-center gap-4 text-sm">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span className="">{dateText}</span>
+                  </Badge>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span className="">{timeText}</span>
+                  </Badge>
+                </div>
+              </TableCell>
+            </TableRow>
 
-        {/* Content section */}
-        <div className="text-gray-700 text-sm leading-relaxed">
-          <span>{truncatedContent}</span>
-          {isTruncated && (
-            <>
-              <span>... </span>
-              <button
-                className="text-blue-600 hover:text-blue-800 font-medium"
-                onClick={() => {
-                  // Could expand content or open full view
-                  // console.log("Read all clicked");
-                }}
-              >
-                read all
-              </button>
-            </>
-          )}
-        </div>
+            {/* Tags row - only show if tags exist */}
+            {note.tags && note.tags.length > 0 && (
+              <TableRow>
+                <TableCell className="py-2 text-gray-500 text-sm font-normal align-top">
+                  Tags:
+                </TableCell>
+                <TableCell className="py-2">
+                  <div className="flex flex-wrap gap-2">
+                    {note.tags.map((tag, tagIndex) => (
+                      <Badge
+                        key={tagIndex}
+                        variant="secondary"
+                        className="bg-gray-100 text-gray-700 text-xs"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
 
-        <div className="flex gap-2">
-          <span className="text-sm">Created By:</span>
-          <Badge>{note.created_by_name}</Badge>
-        </div>
+            {/* Content row */}
+            <TableRow>
+              <TableCell className="py-2 text-gray-500 text-sm font-normal align-top">
+                Content:
+              </TableCell>
+              <TableCell className="py-2">
+                <div className="text-gray-700 text-sm leading-relaxed">
+                  <span>{truncatedContent}</span>
+                  {isTruncated && (
+                    <>
+                      <span>... </span>
+                      <button
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        onClick={() => {
+                          // Could expand content or open full view
+                          // console.log("Read all clicked");
+                        }}
+                      >
+                        read all
+                      </button>
+                    </>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
 
-        {/* Tags section - Now below the content */}
-        {note.tags && note.tags.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-sm text-gray-700 font-medium">Tags:</span>
-            <div className="flex flex-wrap gap-2">
-              {note.tags.map((tag, tagIndex) => (
+            {/* Created by row */}
+            <TableRow
+              className={cn(
+                (!note.tags || note.tags.length === 0) && "border-b-0"
+              )}
+            >
+              <TableCell className="py-2 text-gray-500 text-sm font-normal">
+                Created by:
+              </TableCell>
+              <TableCell className="py-2">
                 <Badge
-                  key={tagIndex}
                   variant="secondary"
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm px-3 py-1"
+                  className="bg-blue-100 text-blue-700 text-xs"
                 >
-                  {tag}
+                  {note.created_by_name}
                 </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

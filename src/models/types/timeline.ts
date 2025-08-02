@@ -51,31 +51,281 @@ export interface ActivityType {
   color?: string;
 }
 
-// Common activity types (based on typical CRM activities)
-export const ACTIVITY_TYPES: ActivityType[] = [
-  { value: "call", label: "Call", icon: "Phone", color: "blue" },
-  { value: "email", label: "Email", icon: "Mail", color: "green" },
-  { value: "meeting", label: "Meeting", icon: "Users", color: "purple" },
-  { value: "note", label: "Note", icon: "FileText", color: "orange" },
-  { value: "task", label: "Task", icon: "CheckSquare", color: "yellow" },
-  { value: "document", label: "Document", icon: "Paperclip", color: "red" },
-  {
-    value: "stage_change",
-    label: "Stage Change",
-    icon: "ArrowRight",
-    color: "indigo",
-  },
-  { value: "assignment", label: "Assignment", icon: "UserPlus", color: "pink" },
-  { value: "system", label: "System", icon: "Settings", color: "gray" },
-];
+/**
+ * Converts activity type strings to proper camel case labels
+ * Examples:
+ * "lead_reassigned" -> "Lead Reassigned"
+ * "task_completed" -> "Task Completed"
+ * "document-uploaded" -> "Document Uploaded"
+ * "emailSent" -> "Email Sent"
+ */
+export const formatActivityTypeLabel = (activityType: string): string => {
+  if (!activityType) return "";
 
-export const getActivityTypeConfig = (type: string): ActivityType => {
   return (
-    ACTIVITY_TYPES.find((t) => t.value === type) || {
-      value: type,
-      label: type.charAt(0).toUpperCase() + type.slice(1),
+    activityType
+      // Split by underscores, dashes, or camelCase
+      .split(/[_\-]|(?=[A-Z])/)
+      // Filter out empty strings
+      .filter((word) => word.length > 0)
+      // Capitalize first letter of each word and make rest lowercase
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      // Join with spaces
+      .join(" ")
+  );
+};
+
+/**
+ * Maps activity types to their corresponding icons
+ * Add more mappings as needed for your specific activity types
+ */
+const getActivityIcon = (activityType: string): string => {
+  const iconMap: Record<string, string> = {
+    // Lead activities
+    lead_reassigned: "UserPlus",
+    lead_assigned: "UserPlus",
+    lead_created: "UserPlus",
+    lead_updated: "User",
+    lead_stage_updated: "ArrowRight",
+
+    // Task activities
+    task_completed: "CheckSquare",
+    task_created: "CheckSquare",
+    task_updated: "CheckSquare",
+    task_assigned: "CheckSquare",
+
+    // Document activities
+    document_uploaded: "Upload",
+    document_shared: "Paperclip",
+    document_downloaded: "Download",
+    file_uploaded: "Upload",
+
+    // Communication activities
+    call_logged: "Phone",
+    call_completed: "Phone",
+    call_scheduled: "Phone",
+    email_sent: "Mail",
+    email_received: "Mail",
+    sms_sent: "MessageSquare",
+
+    // Meeting activities
+    meeting_scheduled: "Calendar",
+    meeting_completed: "Users",
+    meeting_cancelled: "CalendarX",
+
+    // Note activities
+    note_added: "StickyNote",
+    note_updated: "StickyNote",
+    comment_added: "MessageCircle",
+
+    // System activities
+    system_update: "Settings",
+    system_notification: "Bell",
+    user_login: "LogIn",
+    user_logout: "LogOut",
+
+    // Contact activities
+    contact_added: "UserPlus",
+    contact_updated: "User",
+
+    // General fallbacks
+    created: "Plus",
+    updated: "Edit",
+    deleted: "Trash",
+    assigned: "UserPlus",
+    completed: "CheckCircle",
+    cancelled: "XCircle",
+  };
+
+  // Direct match
+  if (iconMap[activityType]) {
+    return iconMap[activityType];
+  }
+
+  // Partial matches for common patterns
+  if (activityType.includes("call")) return "Phone";
+  if (activityType.includes("email")) return "Mail";
+  if (activityType.includes("message") || activityType.includes("sms"))
+    return "MessageSquare";
+  if (activityType.includes("meeting")) return "Calendar";
+  if (activityType.includes("task")) return "CheckSquare";
+  if (activityType.includes("document") || activityType.includes("file"))
+    return "Paperclip";
+  if (activityType.includes("note")) return "StickyNote";
+  if (activityType.includes("user") || activityType.includes("assign"))
+    return "User";
+  if (activityType.includes("stage") || activityType.includes("status"))
+    return "ArrowRight";
+  if (activityType.includes("upload")) return "Upload";
+  if (activityType.includes("download")) return "Download";
+  if (activityType.includes("system")) return "Settings";
+  if (activityType.includes("login")) return "LogIn";
+  if (activityType.includes("logout")) return "LogOut";
+  if (activityType.includes("create")) return "Plus";
+  if (activityType.includes("update")) return "Edit";
+  if (activityType.includes("delete")) return "Trash";
+  if (activityType.includes("complete")) return "CheckCircle";
+  if (activityType.includes("cancel")) return "XCircle";
+
+  // Default fallback
+  return "Activity";
+};
+
+/**
+ * Gets the color theme for an activity type
+ * You can customize this based on your design requirements
+ */
+const getActivityColor = (activityType: string): string => {
+  // For consistency with your blue theme, you can return "blue" for all
+  // Or customize based on activity type categories
+
+  const colorMap: Record<string, string> = {
+    // Lead activities - blue
+    lead: "blue",
+
+    // Task activities - green
+    task: "green",
+
+    // Communication - blue
+    call: "blue",
+    email: "blue",
+    message: "blue",
+    sms: "blue",
+
+    // Document activities - purple
+    document: "purple",
+    file: "purple",
+    upload: "purple",
+
+    // Meeting activities - orange
+    meeting: "orange",
+
+    // Note activities - yellow
+    note: "yellow",
+    comment: "yellow",
+
+    // System activities - gray
+    system: "gray",
+
+    // Contact activities - pink
+    contact: "pink",
+  };
+
+  // Check for category matches
+  for (const [category, color] of Object.entries(colorMap)) {
+    if (activityType.includes(category)) {
+      return color;
+    }
+  }
+
+  // Default to blue for consistency with your design
+  return "blue";
+};
+
+/**
+ * Creates an ActivityType configuration for any activity type string
+ * This replaces the static ACTIVITY_TYPES array with dynamic generation
+ */
+export const getActivityTypeConfig = (activityType: string): ActivityType => {
+  if (!activityType) {
+    return {
+      value: "",
+      label: "Unknown",
       icon: "Activity",
       color: "gray",
-    }
-  );
+    };
+  }
+
+  return {
+    value: activityType,
+    label: formatActivityTypeLabel(activityType),
+    icon: getActivityIcon(activityType),
+    color: getActivityColor(activityType),
+  };
+};
+
+/**
+ * Common activity types for reference (optional)
+ * You can still use this for dropdowns or predefined lists
+ */
+export const COMMON_ACTIVITY_TYPES: ActivityType[] = [
+  {
+    value: "lead_reassigned",
+    label: "Lead Reassigned",
+    icon: "UserPlus",
+    color: "blue",
+  },
+  {
+    value: "lead_assigned",
+    label: "Lead Assigned",
+    icon: "UserPlus",
+    color: "blue",
+  },
+  {
+    value: "lead_stage_updated",
+    label: "Lead Stage Updated",
+    icon: "ArrowRight",
+    color: "blue",
+  },
+  {
+    value: "task_completed",
+    label: "Task Completed",
+    icon: "CheckSquare",
+    color: "green",
+  },
+  {
+    value: "task_created",
+    label: "Task Created",
+    icon: "CheckSquare",
+    color: "green",
+  },
+  {
+    value: "document_uploaded",
+    label: "Document Uploaded",
+    icon: "Upload",
+    color: "purple",
+  },
+  {
+    value: "note_added",
+    label: "Note Added",
+    icon: "StickyNote",
+    color: "yellow",
+  },
+  { value: "call_logged", label: "Call Logged", icon: "Phone", color: "blue" },
+  { value: "email_sent", label: "Email Sent", icon: "Mail", color: "blue" },
+  {
+    value: "meeting_scheduled",
+    label: "Meeting Scheduled",
+    icon: "Calendar",
+    color: "orange",
+  },
+  {
+    value: "contact_added",
+    label: "Contact Added",
+    icon: "UserPlus",
+    color: "pink",
+  },
+  {
+    value: "system_update",
+    label: "System Update",
+    icon: "Settings",
+    color: "gray",
+  },
+];
+
+/**
+ * Get all activity types with their configurations
+ * This can be used for filtering dropdowns, etc.
+ */
+export const getAllActivityTypeConfigs = (
+  activityTypes: string[]
+): ActivityType[] => {
+  return activityTypes.map((type) => getActivityTypeConfig(type));
+};
+
+/**
+ * Utility function to check if an activity type exists in common types
+ */
+export const isCommonActivityType = (activityType: string): boolean => {
+  return COMMON_ACTIVITY_TYPES.some((type) => type.value === activityType);
 };

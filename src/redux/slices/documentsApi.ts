@@ -103,8 +103,9 @@ export const documentsApi = createApi({
         const formData = new FormData();
         formData.append("file", documentData.file);
         formData.append("document_type", documentData.document_type);
-        if (documentData.notes) {
-          formData.append("notes", documentData.notes);
+
+        if (documentData.notes && documentData.notes.trim()) {
+          formData.append("notes", documentData.notes.trim());
         }
 
         return {
@@ -154,6 +155,7 @@ export const documentsApi = createApi({
         method: "GET",
         responseHandler: (response) => response.blob(),
       }),
+      // keepUnusedDataFor: 0,
     }),
 
     // Approve a document (Admin only)

@@ -37,23 +37,23 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  User,
   Loader2,
   Info,
   FileType,
 } from "lucide-react";
 import {
   useBulkCreateLeadsFlatMutation,
-  useGetAssignableUsersWithDetailsQuery,
+  // useGetAssignableUsersWithDetailsQuery,
 } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { useGetStagesQuery } from "@/redux/slices/stagesApi";
 import { useGetStatusesQuery } from "@/redux/slices/statusesApi";
-import MultiSelect, {
-  transformUsersToOptions,
-} from "@/components/common/MultiSelect";
+// import MultiSelect, {
+//   transformUsersToOptions,
+// } from "@/components/common/MultiSelect";
 import { useNotifications } from "../common/NotificationSystem";
 import SourceDropdown from "../common/SourceDropdown";
+import LeadAssignmentDropdown from "../common/LeadAssignmentDropdown";
 
 // Interface for the flat bulk lead data structure as required by backend
 interface FlatBulkLeadData {
@@ -588,17 +588,19 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [selectedSource, setSelectedSource] = useState("bulk_import");
 
   // Assignment configuration
-  const [autoAssign, setAutoAssign] = useState(true);
-  const [assignmentMethod, setAssignmentMethod] = useState<
-    "all_users" | "selected_users"
-  >("all_users");
-  const [selectedCounselors, setSelectedCounselors] = useState<string[]>([]);
+  const [assignmentConfig, setAssignmentConfig] = useState<{
+    type: "unassigned" | "selective_round_robin" | "manual";
+    assigned_to?: string;
+    assigned_users?: string[];
+  }>({
+    type: "unassigned",
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   // API hooks
-  const { data: assignableUsersResponse } =
-    useGetAssignableUsersWithDetailsQuery();
+  // const { data: assignableUsersResponse } =
+  //   useGetAssignableUsersWithDetailsQuery();
   const {
     data: categoriesResponse,
     isLoading: categoriesLoading,
@@ -619,7 +621,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
   const [bulkCreateLeads] = useBulkCreateLeadsFlatMutation();
 
-  const assignableUsers = assignableUsersResponse?.users || [];
+  // const assignableUsers = assignableUsersResponse?.users || [];
   const categories = useMemo(() => {
     return categoriesResponse?.categories || [];
   }, [categoriesResponse]);
@@ -647,11 +649,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       setSelectedCategory(defaultCategory);
     }
   }, [defaultCategory, selectedCategory]);
-
-  // Transform users to MultiSelect options
-  const counselorOptions = transformUsersToOptions(
-    assignableUsers.filter((user) => user.is_active)
-  );
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1376,13 +1373,13 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     }
 
     if (
-      autoAssign &&
-      assignmentMethod === "selected_users" &&
-      selectedCounselors.length === 0
+      assignmentConfig.type === "selective_round_robin" &&
+      (!assignmentConfig.assigned_users ||
+        assignmentConfig.assigned_users.length === 0)
     ) {
       setErrors({
         upload:
-          "Please select at least one counselor for assignment or disable auto-assignment",
+          "Please select at least one counselor for round robin assignment",
       });
       return;
     }
@@ -1416,14 +1413,27 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
+      // Determine assignment method and emails based on new config
+      let assignment_method: string | undefined;
+      let selected_user_emails: string | undefined;
+
+      if (assignmentConfig.type === "selective_round_robin") {
+        assignment_method = "selected_users";
+        selected_user_emails = assignmentConfig.assigned_users?.join(",");
+      } else if (assignmentConfig.type === "manual") {
+        assignment_method = "selected_users";
+        selected_user_emails = assignmentConfig.assigned_to;
+      } else {
+        // unassigned - no assignment
+        assignment_method = undefined;
+        selected_user_emails = undefined;
+      }
+
       const result = await bulkCreateLeads({
         leads: leadsToCreate,
         force_create: false,
-        assignment_method: autoAssign ? assignmentMethod : undefined,
-        selected_user_emails:
-          autoAssign && assignmentMethod === "selected_users"
-            ? selectedCounselors.join(",")
-            : undefined,
+        assignment_method,
+        selected_user_emails,
       }).unwrap();
 
       clearInterval(progressInterval);
@@ -1532,9 +1542,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     setUploadResults(null);
     setErrors({});
     setIsUploading(false);
-    setAutoAssign(true);
-    setAssignmentMethod("all_users");
-    setSelectedCounselors([]);
+    setAssignmentConfig({ type: "unassigned" });
     setActiveTab("valid");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -1755,86 +1763,29 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Auto-assign leads</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically assign leads to counselors
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant={autoAssign ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setAutoAssign(!autoAssign)}
-                  >
-                    {autoAssign ? "Enabled" : "Disabled"}
-                  </Button>
-                </div>
+                <LeadAssignmentDropdown
+                  mode="create"
+                  currentAssignment="unassigned"
+                  onAssignmentChange={setAssignmentConfig}
+                  disabled={isUploading}
+                  showLabel={false}
+                  className="w-full"
+                />
 
-                {autoAssign && (
-                  <div className="space-y-3 pl-4 border-l-2 border-gray-200">
-                    <div className="space-y-2">
-                      <Label>Assignment Method</Label>
-                      <Select
-                        value={assignmentMethod}
-                        onValueChange={(value) =>
-                          setAssignmentMethod(
-                            value as "all_users" | "selected_users"
-                          )
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all_users">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4" />
-                              All Active Counselors
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="selected_users">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
-                              Selected Counselors Only
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                {/* Assignment Summary */}
+                {assignmentConfig.type !== "unassigned" && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm font-medium text-blue-900">
+                      Assignment Summary:
                     </div>
-
-                    {assignmentMethod === "selected_users" && (
-                      <div className="space-y-2">
-                        <Label>Select Counselors</Label>
-                        <MultiSelect
-                          options={counselorOptions}
-                          value={selectedCounselors}
-                          onChange={setSelectedCounselors}
-                          placeholder="Select counselors..."
-                          searchPlaceholder="Search counselors..."
-                          emptyMessage="No counselors found."
-                          showCheckbox={true}
-                          error={errors.counselorSelection}
-                        />
-
-                        {selectedCounselors.length > 0 && (
-                          <div className="text-xs text-muted-foreground p-2 bg-blue-50 rounded">
-                            Leads will be distributed among{" "}
-                            {selectedCounselors.length} selected counselors
-                            using round-robin
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {assignmentMethod === "all_users" && (
-                      <div className="text-xs text-muted-foreground p-2 bg-blue-50 rounded">
-                        Leads will be distributed among all{" "}
-                        {assignableUsers.filter((u) => u.is_active).length}{" "}
-                        active counselors using round-robin
-                      </div>
-                    )}
+                    <div className="text-sm text-blue-700 mt-1">
+                      {assignmentConfig.type === "selective_round_robin" &&
+                        assignmentConfig.assigned_users?.length &&
+                        `Round robin among ${assignmentConfig.assigned_users.length} selected counselors`}
+                      {assignmentConfig.type === "manual" &&
+                        assignmentConfig.assigned_to &&
+                        `All leads will be assigned to ${assignmentConfig.assigned_to}`}
+                    </div>
                   </div>
                 )}
               </CardContent>

@@ -7,6 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { getColorVariations } from "@/utils/colorUtils";
 
 interface Status {
   id: string;
@@ -42,6 +44,11 @@ export const StatusSelect = ({
   className = "",
   showLabel = true,
 }: StatusSelectProps) => {
+  const selectedStatus = statuses.find((status) => status.name === value);
+  const selectedColors = selectedStatus
+    ? getColorVariations(selectedStatus.color)
+    : null;
+
   return (
     <div className="space-y-2">
       {showLabel && (
@@ -55,24 +62,41 @@ export const StatusSelect = ({
         disabled={disabled || isLoading}
       >
         <SelectTrigger
-          className={`${error ? "border-red-500" : ""} ${className}`}
+          className={cn(
+            "font-medium",
+            error ? "border-red-500" : "",
+            className
+          )}
+          style={
+            selectedColors
+              ? {
+                  backgroundColor: selectedColors.bg,
+                  color: selectedColors.text,
+                }
+              : {}
+          }
         >
           <SelectValue
             placeholder={isLoading ? "Loading statuses..." : placeholder}
           />
         </SelectTrigger>
         <SelectContent>
-          {statuses.map((status) => (
-            <SelectItem key={status.id} value={status.name}>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: status.color }}
-                />
-                {status.display_name}
-              </div>
-            </SelectItem>
-          ))}
+          {statuses.map((status) => {
+            const colors = getColorVariations(status.color);
+            return (
+              <SelectItem
+                key={status.id}
+                value={status.name}
+                className={cn("cursor-pointer font-medium rounded-md mb-1")}
+                style={{
+                  backgroundColor: colors.bg,
+                  color: colors.text,
+                }}
+              >
+                <div className="flex items-center">{status.display_name}</div>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
       {error && <p className="text-sm text-red-500">{error}</p>}

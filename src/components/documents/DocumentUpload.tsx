@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, X, FileText, AlertCircle } from "lucide-react";
+import { Upload, X, FileText, AlertCircle, Loader2 } from "lucide-react";
 import {
   UploadDocumentRequest,
   DOCUMENT_TYPES,
@@ -29,6 +29,8 @@ import {
   useGetDocumentTypesQuery,
 } from "@/redux/slices/documentsApi";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "../common/NotificationSystem";
+import { getFileIconForDocument } from "@/utils/getFileIconForDocument";
 
 interface DocumentUploadProps {
   isOpen: boolean;
@@ -42,20 +44,30 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   leadId,
 }) => {
   const [uploadDocument, { isLoading }] = useUploadDocumentMutation();
-  const { data: apiDocumentTypes } = useGetDocumentTypesQuery();
+  const {
+    data: apiDocumentTypes,
+    isLoading: typesLoading,
+    error: typesError,
+  } = useGetDocumentTypesQuery();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Use API document types if available, fallback to predefined types
-  const documentTypes = apiDocumentTypes?.length
-    ? apiDocumentTypes
-    : DOCUMENT_TYPES;
+  // ✅ FIXED: Proper document types logic
+  const documentTypes = React.useMemo(() => {
+    // If API data exists and has items, use it
+    if (apiDocumentTypes && apiDocumentTypes.length > 0) {
+      return apiDocumentTypes;
+    }
+    // Otherwise fallback to hardcoded types
+    return DOCUMENT_TYPES;
+  }, [apiDocumentTypes]);
 
   // File validation
   const validateFile = (file: File): string | null => {
@@ -84,11 +96,12 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const handleFileSelect = useCallback((file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
-      alert(validationError);
+      setUploadError(validationError);
       return;
     }
 
     setSelectedFile(file);
+    setUploadError(""); // Clear any previous errors
   }, []);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -135,21 +148,24 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
+    setUploadError("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
-
+  const { showSuccess } = useNotifications();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploadError("");
 
+    // ✅ IMPROVED: Better validation
     if (!selectedFile) {
-      alert("Please select a file to upload");
+      setUploadError("Please select a file to upload");
       return;
     }
 
     if (!documentType) {
-      alert("Please select a document type");
+      setUploadError("Please select a document type");
       return;
     }
 
@@ -159,29 +175,59 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       const uploadData: UploadDocumentRequest = {
         file: selectedFile,
         document_type: documentType,
-        notes: notes.trim(),
+        notes: notes.trim() || undefined, // Only send notes if not empty
       };
 
-      await uploadDocument({
+      const result = await uploadDocument({
         leadId,
         documentData: uploadData,
       }).unwrap();
 
-      // console.log("Document uploaded successfully");
+      showSuccess(
+        `Document for ${result.message}`,
+        "Document uploaded successfully"
+      );
 
       // Reset form
       setSelectedFile(null);
       setDocumentType("");
       setNotes("");
       setUploadProgress(0);
+      setUploadError("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
       onClose();
-    } catch (error) {
-      console.error("Failed to upload document:", error);
-      alert("Failed to upload document. Please try again.");
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+
+      // ✅ DETAILED: Log the full error details
+      console.error("Full error object:", JSON.stringify(error, null, 2));
+      if (error?.data?.detail) {
+        console.error("Validation errors:", error.data.detail);
+      }
+
+      // ✅ IMPROVED: Better error handling
+      let errorMessage = "Failed to upload document. Please try again.";
+
+      if (error?.data?.detail) {
+        if (Array.isArray(error.data.detail)) {
+          // Validation errors
+          const validationErrors = error.data.detail.map((err: any) => {
+            const location = err.loc ? err.loc.join(" -> ") : "unknown";
+            return `${location}: ${err.msg}`;
+          });
+          errorMessage = `Validation errors: ${validationErrors.join("; ")}`;
+          console.error("Parsed validation errors:", validationErrors);
+        } else {
+          errorMessage = error.data.detail;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      setUploadError(errorMessage);
       setUploadProgress(0);
     }
   };
@@ -191,6 +237,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     setDocumentType("");
     setNotes("");
     setUploadProgress(0);
+    setUploadError("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -205,30 +252,25 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getFileIcon = (file: File) => {
-    if (file.type.includes("pdf")) {
-      return <FileText className="h-8 w-8 text-red-600" />;
-    } else if (file.type.includes("image")) {
-      return <FileText className="h-8 w-8 text-purple-600" />;
-    } else if (file.type.includes("word") || file.type.includes("document")) {
-      return <FileText className="h-8 w-8 text-blue-600" />;
-    } else {
-      return <FileText className="h-8 w-8 text-gray-600" />;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Upload Document</DialogTitle>
+          <DialogTitle>Upload new document</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Upload Area */}
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Select Document *</Label>
+        <form onSubmit={handleSubmit} className="space-y-2">
+          {uploadError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-red-800">{uploadError}</p>
+              </div>
+            </div>
+          )}
 
+          {/* File Upload Area */}
+          <div>
             {!selectedFile ? (
               <div
                 className={cn(
@@ -264,7 +306,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
               <div className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getFileIcon(selectedFile)}
+                    {getFileIconForDocument(selectedFile.type, "h-8 w-8")}
                     <div>
                       <p className="font-medium text-gray-900">
                         {selectedFile.name}
@@ -308,22 +350,37 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           {/* Document Type */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Document Type *</Label>
-            <Select
-              value={documentType}
-              onValueChange={setDocumentType}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select document type" />
-              </SelectTrigger>
-              <SelectContent>
-                {documentTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {typesLoading ? (
+              <div className="flex items-center gap-2 p-3 border rounded-lg">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-gray-600">
+                  Loading document types...
+                </span>
+              </div>
+            ) : (
+              <Select
+                value={documentType}
+                onValueChange={setDocumentType}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {documentTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {/* ✅ ADDED: Debug info */}
+            {typesError && (
+              <p className="text-xs text-red-600">
+                Error loading types: Using fallback options
+              </p>
+            )}
           </div>
 
           {/* Notes */}
@@ -333,7 +390,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any additional notes about this document..."
-              className="min-h-[80px] resize-vertical"
+              // className="min-h-[80px] resize-vertical"
               disabled={isLoading}
             />
           </div>
@@ -344,42 +401,41 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
             <div className="text-sm">
               <p className="text-blue-800 font-medium">Upload Guidelines:</p>
               <ul className="text-blue-700 mt-1 space-y-1 text-xs">
-                <li>• Document will be pending admin approval after upload</li>
+                <li>
+                  • Document will be pending, approval by admin after upload
+                </li>
                 <li>• Maximum file size: 10MB</li>
                 <li>• Supported formats: PDF, Word, Images, Text</li>
-                <li>
-                  • Choose the correct document type for faster processing
-                </li>
               </ul>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleCancel}
+              disabled={isLoading}
+              className="text-primary hover:text-primary hover:bg-primary-foreground"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
-              disabled={isLoading || !selectedFile || !documentType}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+              disabled={
+                isLoading || !selectedFile || !documentType || typesLoading
+              }
+              className=""
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Uploading...
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Upload Document
-                </div>
+                <div className="flex items-center ">Upload Document</div>
               )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              Cancel
             </Button>
           </div>
         </form>

@@ -222,26 +222,6 @@ const DocumentsContainer: React.FC<DocumentsContainerProps> = ({ leadId }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="rounded-r-none"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-
           <Button
             onClick={handleUploadDocument}
             className="gap-2 bg-blue-600 hover:bg-blue-700"

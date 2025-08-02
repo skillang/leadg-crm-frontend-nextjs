@@ -284,95 +284,101 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">
-              Email <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              placeholder="Enter email address"
-              disabled={isLoading}
-              className={formErrors.email ? "border-red-500" : ""}
-            />
-            {formErrors.email && (
-              <p className="text-sm text-red-600">{formErrors.email}</p>
-            )}
+          <div className="flex justify-between">
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                Email <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="Enter email address"
+                disabled={isLoading}
+                className={formErrors.email ? "border-red-500" : ""}
+              />
+              {formErrors.email && (
+                <p className="text-sm text-red-600">{formErrors.email}</p>
+              )}
+            </div>
+
+            <div className="">
+              <Label htmlFor="phone">
+                Phone <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                placeholder="Enter phone number"
+                disabled={isLoading}
+                className={formErrors.phone ? "border-red-500" : ""}
+              />
+              {formErrors.phone && (
+                <p className="text-sm text-red-600">{formErrors.phone}</p>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">
-              Phone <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleInputChange("phone", e.target.value)}
-              placeholder="Enter phone number"
-              disabled={isLoading}
-              className={formErrors.phone ? "border-red-500" : ""}
-            />
-            {formErrors.phone && (
-              <p className="text-sm text-red-600">{formErrors.phone}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">
-              Role <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={formData.role}
-              onValueChange={(value) => handleInputChange("role", value)}
-              disabled={isLoading}
-            >
-              <SelectTrigger
-                className={formErrors.role ? "border-red-500" : ""}
+          <div className="flex justify-between">
+            <div className="space-y-2">
+              <Label htmlFor="role">
+                Role <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => handleInputChange("role", value)}
+                disabled={isLoading}
               >
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                {CONTACT_ROLES.map((role) => (
-                  <SelectItem key={role.value} value={role.value}>
-                    {role.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {formErrors.role && (
-              <p className="text-sm text-red-600">{formErrors.role}</p>
-            )}
-          </div>
+                <SelectTrigger
+                  className={formErrors.role ? "border-red-500" : ""}
+                >
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTACT_ROLES.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formErrors.role && (
+                <p className="text-sm text-red-600">{formErrors.role}</p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="relationship">
-              Relationship <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={formData.relationship}
-              onValueChange={(value) =>
-                handleInputChange("relationship", value)
-              }
-              disabled={isLoading}
-            >
-              <SelectTrigger
-                className={formErrors.relationship ? "border-red-500" : ""}
+            <div className="space-y-2">
+              <Label htmlFor="relationship">
+                Relationship <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.relationship}
+                onValueChange={(value) =>
+                  handleInputChange("relationship", value)
+                }
+                disabled={isLoading}
               >
-                <SelectValue placeholder="Select relationship" />
-              </SelectTrigger>
-              <SelectContent>
-                {CONTACT_RELATIONSHIPS.map((rel) => (
-                  <SelectItem key={rel.value} value={rel.value}>
-                    {rel.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {formErrors.relationship && (
-              <p className="text-sm text-red-600">{formErrors.relationship}</p>
-            )}
+                <SelectTrigger
+                  className={formErrors.relationship ? "border-red-500" : ""}
+                >
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTACT_RELATIONSHIPS.map((rel) => (
+                    <SelectItem key={rel.value} value={rel.value}>
+                      {rel.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formErrors.relationship && (
+                <p className="text-sm text-red-600">
+                  {formErrors.relationship}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -22,7 +22,9 @@ import {
   ChevronUp,
   Globe,
   Mail,
-  Shield,
+  MessageSquareText,
+  Zap,
+  Phone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,6 +55,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 // Main menu items (non-admin)
 const mainMenuItems = [
@@ -87,10 +91,28 @@ const mainMenuItems = [
     url: "#",
     icon: Settings,
   },
+];
+
+// Bulk Actions dropdown items
+const bulkActionItems = [
   {
     title: "Bulk Email",
     url: "/bulk/emails",
     icon: Mail,
+    description: "Send emails to multiple leads",
+  },
+  {
+    title: "Bulk WhatsApp",
+    url: "/bulk/whatsapp",
+    icon: MessageSquareText,
+    description: "Send WhatsApp messages to multiple leads",
+  },
+  {
+    title: "Bulk Caller",
+    url: "#",
+    icon: Phone,
+    description: "Automated calling system (Coming Soon)",
+    disabled: true,
   },
 ];
 
@@ -106,12 +128,12 @@ const userMenuItems = [
     url: "/admin/users",
     icon: UsersRound,
   },
-  {
-    title: "User Permissions",
-    url: "/admin/user-permissions",
-    icon: Shield,
-    adminOnly: true,
-  },
+  // {
+  //   title: "User Permissions",
+  //   url: "/admin/user-permissions",
+  //   icon: Shield,
+  //   adminOnly: true,
+  // },
   {
     title: "Manage Departments",
     url: "/admin/departments",
@@ -206,13 +228,48 @@ const SideNavBarComp = () => {
               {filteredMainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Bulk Actions with Collapsible Sub-Menu */}
+              <Collapsible defaultOpen={false} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className="w-full">
+                      <Zap />
+                      <span>Bulk Actions</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {bulkActionItems.map((item) => (
+                        <SidebarMenuSubItem key={item.title}>
+                          {item.disabled ? (
+                            <SidebarMenuSubButton className="opacity-50 cursor-not-allowed pointer-events-none">
+                              <item.icon />
+                              <span>{item.title}</span>
+                              <Badge className="text-xs px-1 py-0">Soon</Badge>
+                            </SidebarMenuSubButton>
+                          ) : (
+                            <SidebarMenuSubButton asChild>
+                              <Link href={item.url}>
+                                <item.icon />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          )}
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -242,10 +299,10 @@ const SideNavBarComp = () => {
                         {userMenuItems.map((item) => (
                           <SidebarMenuSubItem key={item.title}>
                             <SidebarMenuSubButton asChild>
-                              <a href={item.url}>
+                              <Link href={item.url}>
                                 <item.icon />
                                 <span>{item.title}</span>
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -269,10 +326,10 @@ const SideNavBarComp = () => {
                         {leadActionItems.map((item) => (
                           <SidebarMenuSubItem key={item.title}>
                             <SidebarMenuSubButton asChild>
-                              <a href={item.url}>
+                              <Link href={item.url}>
                                 <item.icon />
                                 <span>{item.title}</span>
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -322,10 +379,12 @@ const SideNavBarComp = () => {
                   className="w-[--radix-popper-anchor-width] min-w-[245px]"
                 >
                   {/* Profile Menu Item */}
-                  <DropdownMenuItem className="cursor-pointer">
-                    <User className="w-4 h-4 mr-2" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
+                  <Link href="/profile">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="w-4 h-4 mr-2" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                  </Link>
 
                   <DropdownMenuSeparator />
 

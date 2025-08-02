@@ -48,7 +48,12 @@ export const createBaseQueryWithReauth = (
         headers.set("accept", "application/json");
       }
 
-      headers.set("content-type", "application/json");
+      // ✅ FIXED: Don't set Content-Type manually - let RTK Query handle it
+      // RTK Query will automatically:
+      // - Set "application/json" for object bodies
+      // - Let browser set "multipart/form-data; boundary=..." for FormData
+      // This ensures FormData uploads work correctly
+
       return headers;
     },
   });

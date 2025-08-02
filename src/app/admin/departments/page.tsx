@@ -152,7 +152,7 @@ const DepartmentManagementPage = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-blue-600" />
+            <Building2 className="w-8 h-8 text-primary-600" />
             <div>
               <h1 className="text-2xl font-bold">Department Management</h1>
               <p className="text-gray-600">Manage organizational departments</p>
@@ -278,7 +278,7 @@ const DepartmentManagementPage = () => {
                     {departmentsData.total_count}
                   </p>
                 </div>
-                <Building2 className="w-8 h-8 text-blue-500" />
+                <Building2 className="w-8 h-8 text-primary-500" />
               </div>
             </CardContent>
           </Card>

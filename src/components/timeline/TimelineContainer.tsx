@@ -1,3 +1,5 @@
+// src/components/timeline/TimelineContainer.tsx
+
 "use client";
 
 import React, { useState } from "react";
@@ -7,7 +9,7 @@ import { Activity, AlertCircle, Filter, Loader2, Search } from "lucide-react";
 import { TimelineFilters } from "@/models/types/timeline";
 import {
   useGetLeadTimelineQuery,
-  useGetActivityTypesQuery,
+  useGetLeadActivityTypesQuery,
 } from "@/redux/slices/timelineApi";
 import TimelineItem from "./TimelineItem";
 import TimelineFiltersPanel from "./TimelineFiltersPanel";
@@ -24,7 +26,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // API queries
+  // API queries - using lead-specific activity types for better filtering
   const {
     data: timelineData,
     isLoading,
@@ -36,7 +38,8 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
     search: searchQuery || undefined,
   });
 
-  const { data: activityTypes } = useGetActivityTypesQuery();
+  // Get activity types specific to this lead (includes count information)
+  const { data: leadActivityTypes } = useGetLeadActivityTypesQuery(leadId);
 
   const activities = timelineData?.activities || [];
   const hasNextPage = timelineData?.has_next || false;
@@ -44,6 +47,15 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   const totalActivities = timelineData?.total || 0;
   const currentPage = timelineData?.page || 1;
   const totalPages = timelineData?.total_pages || 1;
+
+  // Convert lead activity types to the format expected by filters panel
+  const activityTypesForFilter =
+    leadActivityTypes?.map((type) => ({
+      value: type.value,
+      label: `${type.label} (${type.count})`,
+      icon: type.icon,
+      color: type.color,
+    })) || [];
 
   // Handlers
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +116,30 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Header with Activity Summary */}
+      {leadActivityTypes && leadActivityTypes.length > 0 && (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">
+            Activity Summary
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {leadActivityTypes.slice(0, 6).map((type) => (
+              <span
+                key={type.value}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+              >
+                {type.label}
+              </span>
+            ))}
+            {leadActivityTypes.length > 6 && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                +{leadActivityTypes.length - 6} more
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Filters and Search */}
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -149,7 +185,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
           <TimelineFiltersPanel
             filters={filters}
             onFilterChange={handleFilterChange}
-            activityTypes={activityTypes || []}
+            activityTypes={activityTypesForFilter}
           />
         )}
       </div>

@@ -7,13 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Phone, Mail, Calendar, Users, Clock, CheckCircle } from "lucide-react";
 import { Task } from "@/models/types/task";
-import {
-  useCompleteTaskMutation,
-  // useDeleteTaskMutation,
-} from "@/redux/slices/tasksApi";
+import { useCompleteTaskMutation } from "@/redux/slices/tasksApi";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "../common/NotificationSystem";
 
 interface TaskCardProps {
   task: Task;
@@ -31,7 +30,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   className,
 }) => {
   const [completeTask, { isLoading: isCompleting }] = useCompleteTaskMutation();
-  // const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+  const { showSuccess, showError } = useNotifications();
 
   const handleComplete = async () => {
     try {
@@ -39,9 +38,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
         taskId: task.id,
         completionData: { completion_notes: "Task completed via UI" },
       }).unwrap();
+      showSuccess(
+        `Task "${task.task_title}" has been marked as completed successfully!`,
+        "Task Completed"
+      );
     } catch (error) {
       console.error("Failed to complete task:", error);
-      alert("Failed to complete task. Please try again.");
+      showError(
+        "Failed to complete task. Please try again.",
+        "Task Completion Error"
+      );
     }
   };
 
@@ -123,7 +129,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       case "pending":
         return {
           text: "Pending",
-          className: "bg-gray-100 text-gray-700 border-gray-200",
+          className: "",
         };
       default:
         return {
@@ -172,6 +178,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const priorityBadge = getPriorityBadge(task.priority);
   const statusBadge = getStatusBadge(task.status);
   const dateInfo = formatDate(task.due_date);
+  const isOverdue = task.is_overdue && !isCompleted;
 
   return (
     <Card
@@ -179,11 +186,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
         "transition-all duration-200 hover:shadow-sm border border-gray-200 bg-white",
         isSelected && "ring-2 ring-blue-500",
         isCompleted && "opacity-75",
+        isOverdue && "border-red-200 bg-red-50",
         className
       )}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
+      <CardContent className="">
+        {/* Title Section - Outside Table */}
+        <div className="flex items-start gap-3 mb-3">
           {/* Checkbox */}
           {onSelect && (
             <Checkbox
@@ -194,40 +203,89 @@ const TaskCard: React.FC<TaskCardProps> = ({
             />
           )}
 
-          {/* Task Icon */}
-          <div className="mt-0.5">{getTaskIcon(task.task_type)}</div>
-
-          {/* Task Content */}
-          <div className="flex-1 space-y-3">
-            {/* Task Title */}
-            <h3
+          {/* Task Icon and Title */}
+          <div className="flex items-center gap-3 flex-1">
+            {getTaskIcon(task.task_type)}
+            <span
               className={cn(
                 "text-blue-600 font-medium cursor-pointer hover:underline text-sm",
-                isCompleted && "line-through text-gray-500"
+                isCompleted && "line-through text-gray-500",
+                isOverdue && "text-red-600"
               )}
               onClick={handleEdit}
             >
               {task.task_title}
-            </h3>
+            </span>
+          </div>
 
-            {/* Task Details Grid */}
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-              {/* Left Column */}
-              <div className="space-y-2">
-                <div>
-                  <span className="text-gray-500">Type:</span>
-                  <p className="font-medium text-gray-900 capitalize">
-                    {task.task_type}
-                  </p>
+          {/* Mark as Complete Button */}
+          {!isCompleted && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleComplete}
+              disabled={isCompleting}
+              className="text-green-600 hover:text-green-700 hover:bg-green-50 text-xs"
+            >
+              {isCompleting ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-1" />
+              )}
+              Mark as complete
+            </Button>
+          )}
+        </div>
+
+        {/* Details Table */}
+        <Table>
+          <TableBody>
+            {/* Type Row */}
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableCell className="py-2 text-gray-500 text-sm font-normal w-32">
+                Type:
+              </TableCell>
+              <TableCell className="py-2">
+                <span className="capitalize text-gray-900 font-medium text-sm">
+                  {task.task_type}
+                </span>
+              </TableCell>
+            </TableRow>
+
+            {/* Assigned To Row */}
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableCell className="py-2 text-gray-500 text-sm font-normal">
+                Assigned to:
+              </TableCell>
+              <TableCell className="py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-medium">
+                      {task.assigned_to_name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="font-medium text-gray-900 text-sm">
+                    {task.assigned_to_name}
+                  </span>
                 </div>
+              </TableCell>
+            </TableRow>
 
-                <div>
-                  <span className="text-gray-500">Due date:</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Calendar className="h-4 w-4 text-gray-400" />
+            {/* Due Date Row */}
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableCell className="py-2 text-gray-500 text-sm font-normal">
+                Due date:
+              </TableCell>
+              <TableCell className="py-2">
+                <div className="flex items-center gap-4">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    <Calendar className="h-4 w-4" />
                     <span
                       className={cn(
-                        "font-medium",
+                        " text-xs",
                         dateInfo.isOverdue && !isCompleted
                           ? "text-red-600"
                           : "text-gray-900"
@@ -235,83 +293,55 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     >
                       {dateInfo.text}
                     </span>
-                    <Clock className="h-4 w-4 text-gray-400 ml-2" />
-                    <span className="font-medium text-gray-900">
+                  </Badge>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    <span
+                      className={cn(
+                        "text-xs",
+                        dateInfo.isOverdue && !isCompleted
+                          ? "text-red-600"
+                          : "text-gray-900"
+                      )}
+                    >
                       {formatTime(task.due_time)}
                     </span>
-                  </div>
+                  </Badge>
                 </div>
+              </TableCell>
+            </TableRow>
 
-                <div>
-                  <span className="text-gray-500">Priority:</span>
-                  <div className="mt-1">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs font-medium",
-                        priorityBadge.className
-                      )}
-                    >
-                      {priorityBadge.text}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+            {/* Status Row */}
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableCell className="py-2 text-gray-500 text-sm font-normal">
+                Status:
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge
+                  variant="secondary"
+                  className={cn("text-xs ", statusBadge.className)}
+                >
+                  {statusBadge.text}
+                </Badge>
+              </TableCell>
+            </TableRow>
 
-              {/* Right Column */}
-              <div className="space-y-2">
-                <div>
-                  <span className="text-gray-500">Assigned to:</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-xs text-white font-medium">
-                        {task.assigned_to_name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="font-medium text-gray-900">
-                      {task.assigned_to_name}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-gray-500">Status:</span>
-                  <div className="mt-1">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs font-medium",
-                        statusBadge.className
-                      )}
-                    >
-                      {statusBadge.text}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Mark as Complete Button */}
-          {!isCompleted && (
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleComplete}
-                disabled={isCompleting}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50 text-xs"
-              >
-                {isCompleting ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                )}
-                Mark as complete
-              </Button>
-            </div>
-          )}
-        </div>
+            {/* Priority Row */}
+            <TableRow className="hover:bg-transparent">
+              <TableCell className="py-2 text-gray-500 text-sm font-normal">
+                Priority:
+              </TableCell>
+              <TableCell className="py-2">
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs font-medium", priorityBadge.className)}
+                >
+                  {priorityBadge.text}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
