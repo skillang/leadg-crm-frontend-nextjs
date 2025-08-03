@@ -25,6 +25,7 @@ import {
   MessageSquareText,
   Zap,
   Phone,
+  ChevronsLeftRightEllipsis,
 } from "lucide-react";
 import {
   Sidebar,
@@ -138,6 +139,12 @@ const userMenuItems = [
     title: "Manage Departments",
     url: "/admin/departments",
     icon: Building2,
+  },
+  {
+    title: "Tata Teli Users",
+    url: "/admin/tata-teli-user-mapping",
+    icon: ChevronsLeftRightEllipsis,
+    adminOnly: true,
   },
 ];
 

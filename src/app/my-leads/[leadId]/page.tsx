@@ -42,6 +42,8 @@ import {
 // ✅ ADD EMAIL IMPORTS
 import { openEmailDialog } from "@/redux/slices/emailSlice";
 import EmailDialog from "@/components/email/EmailDialog";
+import TataTeliModal from "@/components/calling/TataTeliModal";
+import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 
 export default function LeadDetailsPage() {
   const dispatch = useDispatch(); // ✅ ADD DISPATCH
@@ -68,21 +70,24 @@ export default function LeadDetailsPage() {
   const [updateLead] = useUpdateLeadMutation();
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  const { showSuccess, showError, showWarning } = useNotifications();
+  const { showSuccess, showError } = useNotifications();
 
   const handleBack = () => {
     router.push("/my-leads");
   };
 
   const handleCall = () => {
-    if (leadDetails?.phoneNumber) {
-      showWarning(
-        `Phone call feature is not available yet, Tata Tele coming soon`,
-        "Feature Coming soon"
-      );
-    } else {
-      showError("No phone number available for this lead", "No Phone Number");
+    if (!leadDetails?.leadId && !leadDetails?.id) {
+      showError("No lead ID available", "Error");
+      return;
     }
+
+    // Dispatch Tata Teli modal
+    dispatch(
+      openCallModal({
+        leadId: leadDetails.leadId || leadDetails.id,
+      })
+    );
   };
 
   // ✅ UPDATED EMAIL HANDLER
@@ -402,7 +407,7 @@ export default function LeadDetailsPage() {
               {/* Action Buttons */}
               <Button
                 onClick={handleCall}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                // className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Phone className="mr-2 h-4 w-4" />
                 Call
@@ -410,7 +415,7 @@ export default function LeadDetailsPage() {
               {/* ✅ UPDATED MAIL BUTTON */}
               <Button
                 onClick={handleEmail}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                // className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Mail className="mr-2 h-4 w-4" />
                 Mail
@@ -718,6 +723,7 @@ export default function LeadDetailsPage() {
           </div>
         </div>
       </div>
+      <TataTeliModal />
       <WhatsAppModal />
       <EmailDialog />
     </div>

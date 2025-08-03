@@ -74,6 +74,8 @@ import { StatusSelect } from "@/components/common/StatusSelect";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { Lead } from "@/models/types/lead";
 import { useNotifications } from "@/components/common/NotificationSystem";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import TataTeliModal from "@/components/calling/TataTeliModal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -103,6 +105,7 @@ interface DataTableProps<TData, TValue> {
   statusFilter?: string;
   onStageFilterChange?: (value: string) => void;
   onStatusFilterChange?: (value: string) => void;
+  router?: AppRouterInstance;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -124,6 +127,7 @@ export function DataTable<TData extends Lead, TValue>({
   statusFilter = "all",
   onStageFilterChange,
   onStatusFilterChange,
+  router,
 }: DataTableProps<TData, TValue>) {
   const { showWarning } = useNotifications();
   const isMobile = useIsMobile();
@@ -704,6 +708,7 @@ export function DataTable<TData extends Lead, TValue>({
           paginationMeta={paginationMeta}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
+          router={router}
         />
       ) : (
         // 🖥️ DESKTOP VIEW - Existing table structure
@@ -796,7 +801,7 @@ export function DataTable<TData extends Lead, TValue>({
           onStatusFilterChange?.(newStatusFilter);
         }}
       />
-
+      <TataTeliModal />
       <EmailDialog />
       <WhatsAppModal />
     </div>

@@ -33,6 +33,7 @@ import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { openModal } from "@/redux/slices/whatsappSlice";
+import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 
 // StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
@@ -123,19 +124,23 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 
 const ContactCell = ({ row }: { row: Row<Lead> }) => {
   const dispatch = useDispatch();
+  const { user: currentUser } = useSelector((state: RootState) => state.auth); // ✅ Single declaration
   const lead = row.original;
-  const { showError, showWarning } = useNotifications();
-  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const { showError } = useNotifications();
 
   const handleCall = () => {
-    if (lead.phoneNumber || lead.contact) {
-      showWarning(
-        `Phone call feature is not available yet, Tata Tele coming soon`,
-        "Feature Coming soon"
-      );
-    } else {
-      showError("No phone number available for this lead", "No Phone Number");
+    // ✅ No hooks inside function - use currentUser from component scope
+    if (!currentUser) {
+      showError("User data not available", "Error");
+      return;
     }
+
+    // Dispatch Tata Teli modal
+    dispatch(
+      openCallModal({
+        leadId: lead.leadId || lead.id,
+      })
+    );
   };
 
   const handleEmail = () => {

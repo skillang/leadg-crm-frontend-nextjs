@@ -316,6 +316,7 @@ export default function DemoPage() {
           statusFilter={statusFilter}
           onStageFilterChange={handleStageFilterChange}
           onStatusFilterChange={handleStatusFilterChange}
+          router={router}
         />
       )}
     </div>

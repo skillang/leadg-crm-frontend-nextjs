@@ -25,13 +25,15 @@ import emailReducer from "../slices/emailSlice";
 import { emailApi } from "../slices/emailApi";
 import permissionsReducer from "../slices/permissionsSlice";
 import { permissionsApi } from "../slices/permissionApi";
+import { tataTeliApi } from "../slices/tataTeliApi";
+import tataTeliReducer from "../slices/tataTeliSlice";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
   key: "leadg-crm",
   storage,
   whitelist: ["auth"], // Only persist auth state
-  blacklist: ["leads", "permissions"], // Don't persist leads UI state
+  blacklist: ["leads", "permissions", "tataTeli"], // Don't persist leads UI state
 };
 
 // Combine reducers
@@ -53,12 +55,14 @@ const rootReducer = combineReducers({
   [courseLevelsApi.reducerPath]: courseLevelsApi.reducer,
   [sourcesApi.reducerPath]: sourcesApi.reducer,
   [permissionsApi.reducerPath]: permissionsApi.reducer,
+  [tataTeliApi.reducerPath]: tataTeliApi.reducer,
   // UI state
   leads: leadsReducer,
   auth: authReducer,
   email: emailReducer,
   emailApi: emailApi.reducer,
   permissions: permissionsReducer,
+  tataTeli: tataTeliReducer,
 });
 
 // Create persisted reducer
@@ -102,7 +106,8 @@ export const store = configureStore({
       whatsappApi.middleware,
       sourcesApi.middleware,
       emailApi.middleware, // Add email API middleware,
-      permissionsApi.middleware
+      permissionsApi.middleware,
+      tataTeliApi.middleware
     ),
 });
 

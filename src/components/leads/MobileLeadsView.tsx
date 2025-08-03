@@ -2,6 +2,7 @@
 import React from "react";
 import { Lead } from "@/models/types/lead";
 import { MobileLeadCard } from "./MobileLeadCard";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {
   Pagination,
   PaginationContent,
@@ -36,6 +37,7 @@ interface MobileLeadsViewProps<TData> {
   };
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  router?: AppRouterInstance;
 }
 
 export const MobileLeadsView = <TData extends Lead>({
@@ -47,6 +49,7 @@ export const MobileLeadsView = <TData extends Lead>({
   paginationMeta,
   onPageChange,
   onPageSizeChange,
+  router,
 }: MobileLeadsViewProps<TData>) => {
   // Server Pagination Component (same as DataTable)
   const ServerPagination = () => {
@@ -291,6 +294,7 @@ export const MobileLeadsView = <TData extends Lead>({
               key={lead.id}
               lead={lead as Lead}
               className="transition-all duration-200 hover:scale-[1.02]"
+              router={router}
             />
           ))}
         </div>
