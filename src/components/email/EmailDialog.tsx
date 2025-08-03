@@ -188,16 +188,25 @@ const EmailDialog: React.FC = () => {
             dispatch(setActiveTab(value as "basic" | "send" | "history"))
           }
         >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 p-0">
+            <TabsTrigger
+              value="basic"
+              className="flex items-center gap-1 md:gap-2"
+            >
               <User className="h-4 w-4" />
               Basic Info
             </TabsTrigger>
-            <TabsTrigger value="send" className="flex items-center gap-2">
+            <TabsTrigger
+              value="send"
+              className="flex items-center gap-1 md:gap-2"
+            >
               <Send className="h-4 w-4" />
               Send Email
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
+            <TabsTrigger
+              value="history"
+              className="flex items-center gap-1 md:gap-2"
+            >
               <Clock className="h-4 w-4" />
               Mail History
             </TabsTrigger>

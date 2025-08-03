@@ -5,6 +5,9 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileLeadsView } from "@/components/leads/MobileLeadsView";
+import { FilterModal } from "@/components/leads/FilterModal";
 import {
   Select,
   SelectContent,
@@ -49,6 +52,8 @@ import {
   DownloadIcon,
   Grid2X2PlusIcon,
   SlidersHorizontalIcon,
+  Filter,
+  ListFilterIcon,
 } from "lucide-react";
 import {
   Pagination,
@@ -67,6 +72,8 @@ import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
 import { StageSelect } from "@/components/common/StageSelect";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
+import { Lead } from "@/models/types/lead";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -98,7 +105,7 @@ interface DataTableProps<TData, TValue> {
   onStatusFilterChange?: (value: string) => void;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends Lead, TValue>({
   columns,
   data,
   title = "Leads",
@@ -118,6 +125,9 @@ export function DataTable<TData, TValue>({
   onStageFilterChange,
   onStatusFilterChange,
 }: DataTableProps<TData, TValue>) {
+  const { showWarning } = useNotifications();
+  const isMobile = useIsMobile();
+  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -423,153 +433,206 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4">
       {/* Header Section */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        {isMobile ? (
+          // 📱 MOBILE HEADER - Title on top, Search + Filter below
+          <div className="w-full space-y-4">
+            <div className="flex items-center justify-start">
+              <h2 className="text-xl font-bold tracking-tight">{title}</h2>
+            </div>
+            <div className="flex items-center space-x-2">
+              {/* Search Input */}
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search leads..."
+                  value={searchQuery}
+                  onChange={(event) => onSearchChange?.(event.target.value)}
+                  className="pl-8 pr-16"
+                  disabled={!onSearchChange}
+                />
 
-          {/* Column Visibility MultiSelect */}
-          <div className="w-48">
-            <MultiSelect
-              options={table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => ({
-                  value: column.id,
-                  label: getColumnDisplayName(column),
-                  subtitle: column.getIsVisible() ? "Visible" : "Hidden",
-                }))}
-              value={table
-                .getAllColumns()
-                .filter(
-                  (column) => column.getCanHide() && column.getIsVisible()
-                )
-                .map((column) => column.id)}
-              onChange={(selectedColumnIds) => {
-                table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .forEach((column) => {
-                    column.toggleVisibility(
-                      selectedColumnIds.includes(column.id)
-                    );
-                  });
-              }}
-              placeholder="Customize"
-              searchPlaceholder="Search columns..."
-              emptyMessage="No columns found."
-              maxDisplayItems={2}
-              showCheckbox={true}
-              allowSingleSelect={false}
-              showSelectedBadges={false}
-              alwaysShowPlaceholder={true}
-              showIcon={true}
-              icon={<Grid2X2PlusIcon className="h-4 w-4" />}
-              buttonVariant="outline"
-              buttonSize="default"
-            />
-          </div>
-        </div>
+                {isSearching && searchQuery.length > 0 && (
+                  <div className="absolute right-8 top-2.5">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                )}
 
-        <div className="flex items-center space-x-2">
-          {/* 🔥 FIXED: Server-side search input with proper spinner logic */}
-          <div className="relative w-54">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search leads..."
-              value={searchQuery}
-              onChange={(event) => onSearchChange?.(event.target.value)}
-              className="pl-8 pr-16"
-              disabled={!onSearchChange}
-            />
-
-            {/* 🔥 FIXED: Show spinner only when actively searching */}
-            {isSearching && searchQuery.length > 0 && (
-              <div className="absolute right-8 top-2.5">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                {searchQuery && onClearSearch && !isSearching && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-6 w-6 p-0"
+                    onClick={onClearSearch}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
-            )}
 
-            {/* 🔥 FIXED: Show clear button when there's search query and not actively searching */}
-            {searchQuery && onClearSearch && !isSearching && (
+              {/* Filter Icon */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="absolute right-1 top-1 h-6 w-6 p-0"
-                onClick={onClearSearch}
+                onClick={() => setIsFilterModalOpen(true)}
+                className="relative flex-shrink-0"
               >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-
-          {/* Department Filter */}
-          {/* <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
-              <SelectItem value="marketing">Marketing</SelectItem>
-              <SelectItem value="support">Support</SelectItem>
-            </SelectContent>
-          </Select> */}
-
-          {/* Advanced Filters */}
-
-          <StageFilterSelect />
-          <StatusFilterSelect />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
-                Filters
-                {(hasActiveFilters || searchQuery) && (
-                  <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
-                    {activeFiltersCount + (searchQuery ? 1 : 0)}
-                  </Badge>
+                <Filter className="h-4 w-4" />
+                {(stageFilter !== "all" || statusFilter !== "all") && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                    {(stageFilter !== "all" ? 1 : 0) +
+                      (statusFilter !== "all" ? 1 : 0)}
+                  </span>
                 )}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={clearAllFilters}>
-                Clear all filters
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                value={dateRange}
-                onValueChange={setDateRange}
+              <Button
+                variant={"outline"}
+                size="sm"
+                onClick={() => {
+                  showWarning(
+                    "Sorting Feature is Coming Soon!",
+                    "Feature Coming Soon"
+                  );
+                }}
               >
-                <DropdownMenuRadioItem value="today">
-                  Today
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="last-7-days">
-                  Last 7 days
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="last-30-days">
-                  Last 30 days
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="all">
-                  All time
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <ListFilterIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          // 🖥️ DESKTOP HEADER - Keep Existing Full Header
+          <>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
 
-          {onExportCsv && (
-            <Button
-              variant="primaryOutline"
-              size="sm"
-              onClick={onExportCsv}
-              className="gap-2"
-            >
-              <DownloadIcon className="h-4 w-4" />
-              .csv
-            </Button>
-          )}
+              {/* Column Visibility MultiSelect */}
+              <div className="w-48">
+                <MultiSelect
+                  options={table
+                    .getAllColumns()
+                    .filter((column) => column.getCanHide())
+                    .map((column) => ({
+                      value: column.id,
+                      label: getColumnDisplayName(column),
+                      subtitle: column.getIsVisible() ? "Visible" : "Hidden",
+                    }))}
+                  value={table
+                    .getAllColumns()
+                    .filter(
+                      (column) => column.getCanHide() && column.getIsVisible()
+                    )
+                    .map((column) => column.id)}
+                  onChange={(selectedColumnIds) => {
+                    table
+                      .getAllColumns()
+                      .filter((column) => column.getCanHide())
+                      .forEach((column) => {
+                        column.toggleVisibility(
+                          selectedColumnIds.includes(column.id)
+                        );
+                      });
+                  }}
+                  placeholder="Customize"
+                  searchPlaceholder="Search columns..."
+                  emptyMessage="No columns found."
+                  maxDisplayItems={2}
+                  showCheckbox={true}
+                  allowSingleSelect={false}
+                  showSelectedBadges={false}
+                  alwaysShowPlaceholder={true}
+                  showIcon={true}
+                  icon={<Grid2X2PlusIcon className="h-4 w-4" />}
+                  buttonVariant="outline"
+                  buttonSize="default"
+                />
+              </div>
+            </div>
 
-          <NewLeadDropdown />
-        </div>
+            <div className="flex items-center space-x-2">
+              {/* Search Input */}
+              <div className="relative w-54">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search leads..."
+                  value={searchQuery}
+                  onChange={(event) => onSearchChange?.(event.target.value)}
+                  className="pl-8 pr-16"
+                  disabled={!onSearchChange}
+                />
+
+                {isSearching && searchQuery.length > 0 && (
+                  <div className="absolute right-8 top-2.5">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                )}
+
+                {searchQuery && onClearSearch && !isSearching && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-6 w-6 p-0"
+                    onClick={onClearSearch}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+
+              <StageFilterSelect />
+              <StatusFilterSelect />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
+                    Filters
+                    {(hasActiveFilters || searchQuery) && (
+                      <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
+                        {activeFiltersCount + (searchQuery ? 1 : 0)}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={clearAllFilters}>
+                    Clear all filters
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup
+                    value={dateRange}
+                    onValueChange={setDateRange}
+                  >
+                    <DropdownMenuRadioItem value="today">
+                      Today
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="last-7-days">
+                      Last 7 days
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="last-30-days">
+                      Last 30 days
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="all">
+                      All time
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {onExportCsv && (
+                <Button
+                  variant="primaryOutline"
+                  size="sm"
+                  onClick={onExportCsv}
+                  className="gap-2"
+                >
+                  <DownloadIcon className="h-4 w-4" />
+                  .csv
+                </Button>
+              )}
+
+              <NewLeadDropdown />
+            </div>
+          </>
+        )}
       </div>
 
       {description && <p className="text-muted-foreground">{description}</p>}
@@ -598,12 +661,7 @@ export function DataTable<TData, TValue>({
           {stageFilter !== "all" && (
             <Badge variant="secondary" className="gap-1">
               Stage: {getStageDisplayName(stageFilter)}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto p-0 ml-1"
-                // onClick={() => setStageFilter("all")}
-              >
+              <Button variant="ghost" size="sm" className="h-auto p-0 ml-1">
                 <X className="h-3 w-3" />
               </Button>
             </Badge>
@@ -634,86 +692,110 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
-      {/* 🔥 FIXED: Data Table with proper loading states */}
-      <div className="rounded-md border">
-        {/* 🔥 FIXED: Only show table loading overlay when loading initial data, not when searching */}
-        {isLoading && !isSearching && (
-          <div className="p-4 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-            Loading leads...
-          </div>
-        )}
+      {/* 🔥 CONDITIONAL RENDERING - MOBILE VS DESKTOP */}
+      {isMobile ? (
+        // 📱 MOBILE VIEW
+        <MobileLeadsView
+          data={data}
+          isLoading={isLoading}
+          searchQuery={searchQuery}
+          isSearching={isSearching}
+          hasActiveFilters={hasActiveFilters}
+          paginationMeta={paginationMeta}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
+      ) : (
+        // 🖥️ DESKTOP VIEW - Existing table structure
+        <div className="rounded-md border">
+          {isLoading && !isSearching && (
+            <div className="p-4 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+              Loading leads...
+            </div>
+          )}
 
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {!isLoading && data.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-muted/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : !isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  {searchQuery
-                    ? `No leads found matching "${searchQuery}"`
-                    : hasActiveFilters
-                    ? "No leads match your filters."
-                    : "No leads found."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              /* Show loading rows while searching */
-              isSearching && (
+              ))}
+            </TableHeader>
+            <TableBody>
+              {!isLoading && data.length > 0 ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-muted/50"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : !isLoading ? (
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      Searching...
-                    </div>
+                    {searchQuery
+                      ? `No leads found matching "${searchQuery}"`
+                      : hasActiveFilters
+                      ? "No leads match your filters."
+                      : "No leads found."}
                   </TableCell>
                 </TableRow>
-              )
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                isSearching && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        Searching...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              )}
+            </TableBody>
+          </Table>
 
-        {/* Pagination */}
-        {paginationMeta && <ServerPagination />}
-      </div>
+          {/* Pagination */}
+          {paginationMeta && <ServerPagination />}
+        </div>
+      )}
+
+      <FilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        currentStageFilter={stageFilter}
+        currentStatusFilter={statusFilter}
+        onApplyFilters={(newStageFilter, newStatusFilter) => {
+          onStageFilterChange?.(newStageFilter);
+          onStatusFilterChange?.(newStatusFilter);
+        }}
+      />
 
       <EmailDialog />
       <WhatsAppModal />

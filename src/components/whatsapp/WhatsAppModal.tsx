@@ -99,25 +99,28 @@ const WhatsAppModal: React.FC = () => {
         </DialogHeader>
 
         <Tabs defaultValue="basic-info" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic-info" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 p-0">
+            <TabsTrigger
+              value="basic-info"
+              className="flex items-center gap-1 md:gap-2"
+            >
               <Info className="h-4 w-4" />
-              Basic Info
+              Info
             </TabsTrigger>
             <TabsTrigger
               value="send-message"
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 md:gap-2"
             >
-              <Send className="h-4 w-4" />
-              Send Message
+              <Send className="h-2 w-2 md:h-4 md:w-4" />
+              Send Mssg
             </TabsTrigger>
             <TabsTrigger
               value="bulk-send"
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 md:gap-2"
               disabled
             >
               <Users className="h-4 w-4" />
-              Message History
+              Mssg History
             </TabsTrigger>
           </TabsList>
 

@@ -495,11 +495,6 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
       className: "w-auto",
     },
   },
-  // {
-  //   accessorKey: "email",
-  //   header: "Email",
-  //   cell: ({ row }) => <EmailCell email={row.getValue("email")} />,
-  // },
   {
     accessorKey: "source",
     header: "Source",
@@ -541,7 +536,6 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     ),
     cell: ({ row }) => <StatusSelectCell row={row} />,
   },
-
   {
     id: "view_details",
     header: "View More",
@@ -619,6 +613,42 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => <ActionsCell row={row} router={router} />,
+  },
+];
+
+export const createMobileColumns = (
+  router: AppRouterInstance
+): ColumnDef<Lead>[] => [
+  {
+    accessorKey: "name",
+    header: "Lead Name",
+    cell: ({ row }) => (
+      <div className="font-medium text-base">{row.getValue("name")}</div>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <StatusSelectCell row={row} />,
+  },
+  {
+    accessorKey: "stage",
+    header: "Stage",
+    cell: ({ row }) => <StageSelectCell row={row} />,
+  },
+  {
+    accessorKey: "contact",
+    header: "Contact",
+    cell: ({ row }) => <ContactCell row={row} />,
+    meta: {
+      className: "w-auto",
+    },
+  },
+  {
+    id: "view_details",
+    header: "View More",
+    cell: ({ row }) => <ViewDetailsCell row={row} router={router} />,
+    enableSorting: false,
   },
 ];
 
