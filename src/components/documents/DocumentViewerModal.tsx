@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, X, ExternalLink, Eye } from "lucide-react";
+import { FileText, ExternalLink, Eye } from "lucide-react";
 import { Document } from "@/models/types/documents";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import "@cyntler/react-doc-viewer/dist/index.css";

@@ -180,7 +180,7 @@ const DepartmentManagementPage = () => {
                   Create New Department
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md min-w-lg max-w-2xl max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>Create New Department</DialogTitle>
                   <DialogDescription>

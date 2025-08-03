@@ -24,6 +24,10 @@ import {
   setBulkError,
 } from "@/redux/slices/whatsappSlice";
 import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
+import { StageSelect } from "@/components/common/StageSelect";
+import { StatusSelect } from "@/components/common/StatusSelect";
+import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
+import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import {
   useGetTemplatesQuery,
   useCreateBulkWhatsAppJobMutation,
@@ -142,7 +146,11 @@ const BulkWhatsAppPage: React.FC = () => {
     page: currentPage,
     limit: 50,
     search: bulkWhatsappFilters.name,
-    lead_status:
+    stage:
+      bulkWhatsappFilters.stage !== "all"
+        ? bulkWhatsappFilters.stage
+        : undefined,
+    status:
       bulkWhatsappFilters.status !== "all"
         ? bulkWhatsappFilters.status
         : undefined,
@@ -151,16 +159,23 @@ const BulkWhatsAppPage: React.FC = () => {
   // API queries for leads
   const adminLeadsQuery = useGetLeadsQuery(queryParams, {
     skip: !isAdmin,
+    refetchOnMountOrArgChange: true,
   });
 
   const userLeadsQuery = useGetMyLeadsQuery(queryParams, {
     skip: isAdmin,
+    refetchOnMountOrArgChange: true,
   });
 
   // Select the appropriate query result
   const { data: leadsData, isLoading: leadsLoading } = isAdmin
     ? adminLeadsQuery
     : userLeadsQuery;
+
+  const { data: stagesData, isLoading: stagesLoading } =
+    useGetActiveStagesQuery({});
+  const { data: statusesData, isLoading: statusesLoading } =
+    useGetActiveStatusesQuery({});
 
   // API queries for WhatsApp
   const { data: templates, isLoading: templatesLoading } =
@@ -417,49 +432,38 @@ const BulkWhatsAppPage: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Stage</Label>
-                      <Select
-                        value={bulkWhatsappFilters.stage}
-                        onValueChange={(value) =>
-                          dispatch(setBulkWhatsappStageFilter(value))
+                      <StageSelect
+                        value={
+                          bulkWhatsappFilters.stage === "all"
+                            ? ""
+                            : bulkWhatsappFilters.stage
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All stages" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All stages</SelectItem>
-                          <SelectItem value="Lead">Lead</SelectItem>
-                          <SelectItem value="Prospect">Prospect</SelectItem>
-                          <SelectItem value="Opportunity">
-                            Opportunity
-                          </SelectItem>
-                          <SelectItem value="Customer">Customer</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        onValueChange={(value) =>
+                          dispatch(setBulkWhatsappStageFilter(value || "all"))
+                        }
+                        stages={stagesData?.stages || []}
+                        disabled={stagesLoading}
+                        isLoading={stagesLoading}
+                        className="w-full"
+                        showLabel={true}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label>Status</Label>
-                      <Select
-                        value={bulkWhatsappFilters.status}
-                        onValueChange={(value) =>
-                          dispatch(setBulkWhatsappStatusFilter(value))
+                      <StatusSelect
+                        value={
+                          bulkWhatsappFilters.status === "all"
+                            ? ""
+                            : bulkWhatsappFilters.status
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All statuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All statuses</SelectItem>
-                          <SelectItem value="New">New</SelectItem>
-                          <SelectItem value="Contacted">Contacted</SelectItem>
-                          <SelectItem value="Qualified">Qualified</SelectItem>
-                          <SelectItem value="Proposal">Proposal</SelectItem>
-                          <SelectItem value="Negotiation">
-                            Negotiation
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                        onValueChange={(value) =>
+                          dispatch(setBulkWhatsappStatusFilter(value || "all"))
+                        }
+                        statuses={statusesData?.statuses || []}
+                        disabled={statusesLoading}
+                        isLoading={statusesLoading}
+                        className="w-full"
+                        showLabel={true}
+                      />
                     </div>
                   </div>
                   <div className="flex justify-end mt-4">

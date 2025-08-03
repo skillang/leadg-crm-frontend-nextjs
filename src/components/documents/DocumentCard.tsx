@@ -193,7 +193,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         document: document,
       });
     } catch (error) {
-      showError("Failed to load document viewer.");
+      showError(`Error Due to ${error}`, "Failed to load document viewer.");
     }
   };
 
@@ -286,7 +286,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
           )}
 
           <div className="flex items-center gap-3">
-            {getFileIconForDocument(document.mime_type)}
+            {getFileIconForDocument(document.mime_type, 24, 24)}
             <div>
               <h3 className="font-semibold text-gray-900 line-clamp-1">
                 {document.filename}

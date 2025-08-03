@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, X, FileText, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, X, AlertCircle, Loader2 } from "lucide-react";
 import {
   UploadDocumentRequest,
   DOCUMENT_TYPES,
@@ -36,6 +36,15 @@ interface DocumentUploadProps {
   isOpen: boolean;
   onClose: () => void;
   leadId: string;
+}
+
+interface ApiError {
+  data?: {
+    detail?: string;
+    message?: string;
+  };
+  message?: string;
+  status?: number;
 }
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({
@@ -58,6 +67,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const [uploadError, setUploadError] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showError } = useNotifications();
 
   // ✅ FIXED: Proper document types logic
   const documentTypes = React.useMemo(() => {
@@ -199,35 +209,12 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       }
 
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload failed:", error);
-
-      // ✅ DETAILED: Log the full error details
-      console.error("Full error object:", JSON.stringify(error, null, 2));
-      if (error?.data?.detail) {
-        console.error("Validation errors:", error.data.detail);
-      }
-
-      // ✅ IMPROVED: Better error handling
-      let errorMessage = "Failed to upload document. Please try again.";
-
-      if (error?.data?.detail) {
-        if (Array.isArray(error.data.detail)) {
-          // Validation errors
-          const validationErrors = error.data.detail.map((err: any) => {
-            const location = err.loc ? err.loc.join(" -> ") : "unknown";
-            return `${location}: ${err.msg}`;
-          });
-          errorMessage = `Validation errors: ${validationErrors.join("; ")}`;
-          console.error("Parsed validation errors:", validationErrors);
-        } else {
-          errorMessage = error.data.detail;
-        }
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      setUploadError(errorMessage);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError?.data?.detail || apiError?.data?.message || apiError?.message;
+      showError(errorMessage!);
       setUploadProgress(0);
     }
   };
@@ -306,7 +293,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
               <div className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getFileIconForDocument(selectedFile.type, "h-8 w-8")}
+                    {getFileIconForDocument(selectedFile.type, 20, 20)}
                     <div>
                       <p className="font-medium text-gray-900">
                         {selectedFile.name}

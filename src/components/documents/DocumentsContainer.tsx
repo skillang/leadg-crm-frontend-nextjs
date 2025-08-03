@@ -11,14 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Upload,
-  Loader2,
-  AlertCircle,
-  FileText,
-  Grid,
-  List,
-} from "lucide-react";
+import { Upload, Loader2, AlertCircle, FileText } from "lucide-react";
 import { Document } from "@/models/types/documents";
 import {
   useGetLeadDocumentsQuery,
@@ -46,7 +39,7 @@ const DocumentsContainer: React.FC<DocumentsContainerProps> = ({ leadId }) => {
     document_type: "",
     status: "",
   });
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode] = useState<"grid" | "list">("grid");
 
   // API queries
   const {

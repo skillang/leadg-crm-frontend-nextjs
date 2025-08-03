@@ -231,7 +231,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit task" : "Create new task"}
@@ -256,7 +256,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
 
           {/* Task Type and Priority Row */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 ">
               <Label htmlFor="task_type" className="text-sm font-medium">
                 Task type *
               </Label>
@@ -270,7 +270,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
                 }
                 disabled={isLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,7 +297,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
                 }
                 disabled={isLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -406,12 +406,16 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6"
             >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading} className="px-6">
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -422,14 +426,6 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
               ) : (
                 "Create task"
               )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              Cancel
             </Button>
           </div>
         </form>

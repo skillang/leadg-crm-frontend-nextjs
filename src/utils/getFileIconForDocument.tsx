@@ -1,43 +1,41 @@
 // src/utils/getFileIconForDocument.tsx
-
 import React from "react";
 import { FileText } from "lucide-react";
+import Image from "next/image";
 
-/**
- * Returns the appropriate file icon based on MIME type
- * @param mimeType - The MIME type of the document
- * @param size - Size of the icon (default: "h-6 w-6")
- * @returns React.ReactElement - The file icon component
- */
 export const getFileIconForDocument = (
   mimeType: string,
-  size: string = "h-6 w-6"
+  width: number = 16,
+  height: number = 16
 ): React.ReactElement => {
   if (mimeType.includes("pdf")) {
     return (
-      <img
+      <Image
         src="/assets/icons/documents/pdf-icon.svg"
         alt="PDF icon"
-        className={size}
+        width={width}
+        height={height}
       />
     );
   } else if (mimeType.includes("image")) {
     return (
-      <img
+      <Image
         src="/assets/icons/documents/image-icon.svg"
         alt="Image icon"
-        className={size}
+        width={width}
+        height={height}
       />
     );
   } else if (mimeType.includes("word") || mimeType.includes("document")) {
     return (
-      <img
+      <Image
         src="/assets/icons/documents/word-doc-icon.svg"
         alt="Word document icon"
-        className={size}
+        width={width}
+        height={height}
       />
     );
   } else {
-    return <FileText className={`${size} text-gray-600`} />;
+    return <FileText className="text-gray-600" width={width} height={height} />;
   }
 };

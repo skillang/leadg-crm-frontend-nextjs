@@ -311,7 +311,7 @@ const StatusForm: React.FC<StatusFormProps> = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] min-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Status" : "Create New Status"}

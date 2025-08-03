@@ -64,6 +64,9 @@ import { useStageUtils } from "@/components/common/StageDisplay";
 import MultiSelect from "@/components/common/MultiSelect";
 import EmailDialog from "@/components/email/EmailDialog";
 import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
+import { StageSelect } from "@/components/common/StageSelect";
+import { StatusSelect } from "@/components/common/StatusSelect";
+import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -89,6 +92,10 @@ interface DataTableProps<TData, TValue> {
   onSearchChange?: (search: string) => void;
   onClearSearch?: () => void;
   isSearching?: boolean;
+  stageFilter?: string;
+  statusFilter?: string;
+  onStageFilterChange?: (value: string) => void;
+  onStatusFilterChange?: (value: string) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -106,6 +113,10 @@ export function DataTable<TData, TValue>({
   onSearchChange,
   onClearSearch,
   isSearching = false,
+  stageFilter = "all",
+  statusFilter = "all",
+  onStageFilterChange,
+  onStatusFilterChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -119,15 +130,14 @@ export function DataTable<TData, TValue>({
     pageSize: 10,
   });
 
-  // 🔥 Local filters (NOT for search - search is handled server-side)
-  const [stageFilter, setStageFilter] = React.useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
-  const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
   const [dateRange, setDateRange] = React.useState("last-7-days");
 
   // Get stages from API
   const { data: stagesData, isLoading: stagesLoading } =
     useGetActiveStagesQuery({});
+  const { data: statusData, isLoading: statusLoading } =
+    useGetActiveStatusesQuery({});
   const { getStageDisplayName } = useStageUtils();
 
   const table = useReactTable({
@@ -160,40 +170,21 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  // Apply LOCAL filters to table (not search - search is server-side)
-  React.useEffect(() => {
-    const filters: ColumnFiltersState = [];
-
-    if (stageFilter !== "all") {
-      filters.push({ id: "stage", value: stageFilter });
-    }
-
-    if (departmentFilter !== "all") {
-      filters.push({ id: "department", value: departmentFilter });
-    }
-
-    if (statusFilter.length > 0) {
-      filters.push({ id: "status", value: statusFilter });
-    }
-
-    setColumnFilters(filters);
-  }, [stageFilter, departmentFilter, statusFilter]);
-
   const hasActiveFilters =
     stageFilter !== "all" ||
     departmentFilter !== "all" ||
-    statusFilter.length > 0;
+    statusFilter !== "all";
 
   const activeFiltersCount = [
     stageFilter !== "all" ? 1 : 0,
     departmentFilter !== "all" ? 1 : 0,
-    statusFilter.length > 0 ? 1 : 0,
+    statusFilter !== "all" ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
   const clearAllFilters = () => {
-    setStageFilter("all");
+    onStageFilterChange?.("all"); // ADD THIS
+    onStatusFilterChange?.("all");
     setDepartmentFilter("all");
-    setStatusFilter([]);
     // 🔥 Also clear search when clearing all filters
     if (onClearSearch) {
       onClearSearch();
@@ -356,25 +347,35 @@ export function DataTable<TData, TValue>({
     }
 
     return (
-      <Select value={stageFilter} onValueChange={setStageFilter}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Filter by stage" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Stages</SelectItem>
-          {stagesData?.stages.map((stage) => (
-            <SelectItem key={stage.id} value={stage.name}>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: stage.color }}
-                />
-                <span>{stage.display_name}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <StageSelect
+        value={stageFilter === "all" ? "" : stageFilter}
+        onValueChange={(value) => onStageFilterChange?.(value || "all")}
+        stages={stagesData?.stages || []}
+        disabled={stagesLoading}
+        isLoading={stagesLoading}
+        placeholder="All Stages"
+        showLabel={false}
+      />
+    );
+  };
+
+  const StatusFilterSelect = () => {
+    if (stagesLoading) {
+      return (
+        <div className="w-[180px] h-10 bg-gray-200 rounded animate-pulse" />
+      );
+    }
+
+    return (
+      <StatusSelect
+        value={stageFilter === "all" ? "" : stageFilter}
+        onValueChange={(value) => onStatusFilterChange?.(value || "all")}
+        statuses={statusData?.statuses || []}
+        disabled={statusLoading}
+        isLoading={statusLoading}
+        placeholder="All Status"
+        showLabel={false}
+      />
     );
   };
 
@@ -501,7 +502,7 @@ export function DataTable<TData, TValue>({
           </div>
 
           {/* Department Filter */}
-          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+          {/* <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Department" />
             </SelectTrigger>
@@ -511,9 +512,13 @@ export function DataTable<TData, TValue>({
               <SelectItem value="marketing">Marketing</SelectItem>
               <SelectItem value="support">Support</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
 
           {/* Advanced Filters */}
+
+          <StageFilterSelect />
+          <StatusFilterSelect />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -551,11 +556,14 @@ export function DataTable<TData, TValue>({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <StageFilterSelect />
-
           {onExportCsv && (
-            <Button variant="outline" size="sm" onClick={onExportCsv}>
-              <DownloadIcon className="mr-2 h-4 w-4" />
+            <Button
+              variant="primaryOutline"
+              size="sm"
+              onClick={onExportCsv}
+              className="gap-2"
+            >
+              <DownloadIcon className="h-4 w-4" />
               .csv
             </Button>
           )}
@@ -594,7 +602,7 @@ export function DataTable<TData, TValue>({
                 variant="ghost"
                 size="sm"
                 className="h-auto p-0 ml-1"
-                onClick={() => setStageFilter("all")}
+                // onClick={() => setStageFilter("all")}
               >
                 <X className="h-3 w-3" />
               </Button>

@@ -671,7 +671,7 @@ const CourseLevelManagementPage = () => {
 
       {/* Create Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] min-w-xl max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Create New Course Level</DialogTitle>
             <DialogDescription>
@@ -784,7 +784,7 @@ const CourseLevelManagementPage = () => {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] min-w-xl max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Edit Course Level</DialogTitle>
             <DialogDescription>

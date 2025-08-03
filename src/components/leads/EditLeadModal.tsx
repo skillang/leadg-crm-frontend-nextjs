@@ -249,8 +249,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
   const { data: assignableUsersResponse } =
     useGetAssignableUsersWithDetailsQuery();
-  const { data: categoriesResponse, isLoading: isLoadingCategories } =
-    useGetCategoriesQuery({});
+  const { data: categoriesResponse } = useGetCategoriesQuery({});
   const { data: stagesResponse, isLoading: isLoadingStages } =
     useGetActiveStagesQuery({});
   const { data: statusesResponse, isLoading: isLoadingStatuses } =
@@ -574,7 +573,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] min-w-xl overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Edit Lead
@@ -617,12 +616,13 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     <Input
                       id="name"
                       value={formData.name}
+                      disabled
                       onChange={(e) =>
                         handleInputChange("name", e.target.value)
                       }
                       placeholder="Enter lead name"
                       className={errors.name ? "border-red-500" : ""}
-                      disabled={isUpdating}
+                      // disabled={isUpdating}
                     />
                     {errors.name && (
                       <p className="text-sm text-red-500">{errors.name}</p>
@@ -640,7 +640,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       }
                       placeholder="Enter email address"
                       className={errors.email ? "border-red-500" : ""}
-                      disabled={isUpdating}
+                      disabled
                     />
                     {errors.email && (
                       <p className="text-sm text-red-500">{errors.email}</p>
@@ -661,7 +661,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       }
                       placeholder="Enter contact number"
                       className={errors.contact_number ? "border-red-500" : ""}
-                      disabled={isUpdating}
+                      disabled
                     />
                     {errors.contact_number && (
                       <p className="text-sm text-red-500">
@@ -712,7 +712,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       }
                       disabled={isUpdating}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select nationality" />
                       </SelectTrigger>
                       <SelectContent>
@@ -759,50 +759,21 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       }
                       label="Course Level"
                       placeholder="Select course level"
+                      className="w-full"
                       required={false}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="source">Source</Label>
-                  <SourceDropdown
-                    value={formData.source}
-                    onValueChange={(value) =>
-                      handleInputChange("source", value)
-                    }
-                    disabled={isUpdating}
-                    placeholder="Select source"
-                  />
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Countries of Interest</Label>
-                    <MultiSelect
-                      options={STUDY_DESTINATIONS}
-                      value={formData.country_of_interest}
-                      onChange={(value) =>
-                        handleInputChange("country_of_interest", value)
-                      }
-                      disabled={isUpdating}
-                      placeholder="Select countries..."
-                      searchPlaceholder="Search countries..."
-                      emptyMessage="No countries found."
-                      maxDisplayItems={3}
-                      showCheckbox={true}
-                      allowSingleSelect={false}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
+                    <Label htmlFor="category">Category *</Label>
                     <Select
                       value={formData.category}
                       onValueChange={(value) =>
                         handleInputChange("category", value)
                       }
-                      disabled={isUpdating || isLoadingCategories}
+                      disabled
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
@@ -816,6 +787,36 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="source">Source *</Label>
+                    <SourceDropdown
+                      value={formData.source}
+                      onValueChange={(value) =>
+                        handleInputChange("source", value)
+                      }
+                      disabled
+                      placeholder="Select source"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Countries of Interest</Label>
+                  <MultiSelect
+                    options={STUDY_DESTINATIONS}
+                    value={formData.country_of_interest}
+                    onChange={(value) =>
+                      handleInputChange("country_of_interest", value)
+                    }
+                    disabled={isUpdating}
+                    placeholder="Select countries..."
+                    searchPlaceholder="Search countries..."
+                    emptyMessage="No countries found."
+                    maxDisplayItems={3}
+                    showCheckbox={true}
+                    allowSingleSelect={false}
+                  />
                 </div>
               </TabsContent>
 

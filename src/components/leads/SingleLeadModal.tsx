@@ -574,7 +574,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl  max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl min-w-xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Add Lead</DialogTitle>
         </DialogHeader>
@@ -594,7 +594,10 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
             <div className="mt-6 max-h-[calc(90vh-200px)] overflow-y-auto">
               {/* Details Tab */}
-              <TabsContent value="details" className="space-y-4 mt-0">
+              <TabsContent
+                value="details"
+                className="space-y-4 mt-0 overflow-x-hidden"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">
@@ -616,7 +619,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -634,7 +637,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="contact_number">
                       Contact Number <span className="text-red-500">*</span>
@@ -683,7 +686,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                         handleInputChange("experience", value)
                       }
                       label="Experience Level"
-                      placeholder="Select experience level"
+                      placeholder="Select exp level"
                       disabled={isCreating}
                     />
                   </div>
@@ -744,7 +747,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="source">Source</Label>
+                    <Label htmlFor="source">Source *</Label>
                     <SourceDropdown
                       value={formData.source}
                       onValueChange={(value) =>

@@ -72,7 +72,7 @@ const mainMenuItems = [
   },
   {
     title: "My Tasks",
-    url: "#",
+    url: "/my-tasks",
     icon: NotebookText,
   },
   {

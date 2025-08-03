@@ -1,4 +1,4 @@
-// 🔥 CORRECTED PAGE.TSX
+// 🔥 CORRECTED PAGE.TSX WITH CLEARING STATE FIX
 "use client";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { createColumns } from "./columns";
@@ -43,6 +43,9 @@ export default function DemoPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isClearingFilters, setIsClearingFilters] = useState(false);
 
   const isAdmin = useAppSelector(selectIsAdmin);
   const columns = useMemo(() => createColumns(router), [router]);
@@ -55,6 +58,13 @@ export default function DemoPage() {
     setCurrentPage(1);
   }, [debouncedSearchQuery]);
 
+  // 🔥 FIXED: Reset clearing state when API responds
+  useEffect(() => {
+    if (isClearingFilters && !isLoading) {
+      setIsClearingFilters(false);
+    }
+  }, [isClearingFilters]);
+
   // API calls with proper search parameters
   const {
     data: adminLeadsResponse,
@@ -66,6 +76,8 @@ export default function DemoPage() {
       page: currentPage,
       limit: pageSize,
       search: debouncedSearchQuery.trim() || undefined,
+      stage: stageFilter !== "all" ? stageFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
     },
     {
       skip: !isAdmin,
@@ -83,6 +95,8 @@ export default function DemoPage() {
       page: currentPage,
       limit: pageSize,
       search: debouncedSearchQuery.trim() || undefined,
+      stage: stageFilter !== "all" ? stageFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
     },
     {
       skip: isAdmin,
@@ -146,7 +160,36 @@ export default function DemoPage() {
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
-  }, []);
+    if (stageFilter !== "all" || statusFilter !== "all") {
+      setIsClearingFilters(true);
+    }
+  }, [stageFilter, statusFilter]);
+
+  const handleStageFilterChange = useCallback(
+    (value: string) => {
+      if (
+        value === "all" &&
+        (stageFilter !== "all" || statusFilter !== "all")
+      ) {
+        setIsClearingFilters(true);
+      }
+      setStageFilter(value);
+    },
+    [stageFilter, statusFilter]
+  );
+
+  const handleStatusFilterChange = useCallback(
+    (value: string) => {
+      if (
+        value === "all" &&
+        (stageFilter !== "all" || statusFilter !== "all")
+      ) {
+        setIsClearingFilters(true);
+      }
+      setStatusFilter(value);
+    },
+    [stageFilter, statusFilter]
+  );
 
   // Helper function to extract error message
   const getErrorMessage = (error: unknown): string => {
@@ -206,8 +249,13 @@ export default function DemoPage() {
 
   return (
     <div className="container mx-auto space-y-6">
-      {/* No Data State */}
-      {finalLeads.length === 0 && !debouncedSearchQuery ? (
+      {/* No Data State - 🔥 FIXED: Added isClearingFilters check */}
+      {finalLeads.length === 0 &&
+      !debouncedSearchQuery &&
+      stageFilter === "all" &&
+      statusFilter === "all" &&
+      !isLoading &&
+      !isClearingFilters ? (
         <div className="bg-white rounded-lg shadow border p-12 text-center">
           <div className="text-gray-400 mb-4">
             <svg
@@ -264,41 +312,11 @@ export default function DemoPage() {
           onSearchChange={handleSearchChange}
           onClearSearch={handleClearSearch}
           isSearching={isSearching}
+          stageFilter={stageFilter}
+          statusFilter={statusFilter}
+          onStageFilterChange={handleStageFilterChange}
+          onStatusFilterChange={handleStatusFilterChange}
         />
-      )}
-
-      {/* No search results message */}
-      {finalLeads.length === 0 && debouncedSearchQuery && (
-        <div className="bg-white rounded-lg shadow border p-8 text-center">
-          <div className="text-gray-400 mb-4">
-            <svg
-              className="h-8 w-8 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No results found
-          </h3>
-          <p className="text-gray-600 mb-4">
-            No leads match your search for &quot;{debouncedSearchQuery}&quot;.
-            Try different keywords.
-          </p>
-          <button
-            onClick={handleClearSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Clear Search
-          </button>
-        </div>
       )}
     </div>
   );

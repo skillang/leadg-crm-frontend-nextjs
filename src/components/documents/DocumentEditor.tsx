@@ -125,7 +125,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl min-w-xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Edit Document Details</DialogTitle>
         </DialogHeader>
@@ -169,7 +169,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
               }
               disabled={isLoading}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select document type" />
               </SelectTrigger>
               <SelectContent>
@@ -215,12 +215,16 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6"
             >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading} className=" px-6">
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -229,14 +233,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
               ) : (
                 "Update Document"
               )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              Cancel
             </Button>
           </div>
         </form>

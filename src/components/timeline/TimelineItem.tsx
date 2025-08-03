@@ -66,7 +66,10 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
 
   // Complete icon mapping for all Lucide React icons used
   const getIcon = (iconName: string) => {
-    const iconMap: Record<string, React.ComponentType<any>> = {
+    const iconMap: Record<
+      string,
+      React.ComponentType<React.SVGProps<SVGSVGElement>>
+    > = {
       Phone,
       Mail,
       Users,
@@ -100,73 +103,6 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
   };
 
   const IconComponent = getIcon(typeConfig.icon || "Activity");
-
-  // Color mapping for activity types - always use blue for consistency
-  // const getActivityColors = (color: string) => {
-  //   const colorMap: Record<
-  //     string,
-  //     { bg: string; border: string; icon: string; title: string }
-  //   > = {
-  //     blue: {
-  //       bg: "bg-blue-50",
-  //       border: "border-blue-200",
-  //       icon: "text-blue-600",
-  //       title: "text-blue-600",
-  //     },
-  //     green: {
-  //       bg: "bg-green-50",
-  //       border: "border-green-200",
-  //       icon: "text-green-600",
-  //       title: "text-green-600",
-  //     },
-  //     purple: {
-  //       bg: "bg-purple-50",
-  //       border: "border-purple-200",
-  //       icon: "text-purple-600",
-  //       title: "text-purple-600",
-  //     },
-  //     orange: {
-  //       bg: "bg-orange-50",
-  //       border: "border-orange-200",
-  //       icon: "text-orange-600",
-  //       title: "text-orange-600",
-  //     },
-  //     yellow: {
-  //       bg: "bg-yellow-50",
-  //       border: "border-yellow-200",
-  //       icon: "text-yellow-600",
-  //       title: "text-yellow-600",
-  //     },
-  //     red: {
-  //       bg: "bg-red-50",
-  //       border: "border-red-200",
-  //       icon: "text-red-600",
-  //       title: "text-red-600",
-  //     },
-  //     indigo: {
-  //       bg: "bg-indigo-50",
-  //       border: "border-indigo-200",
-  //       icon: "text-indigo-600",
-  //       title: "text-indigo-600",
-  //     },
-  //     pink: {
-  //       bg: "bg-pink-50",
-  //       border: "border-pink-200",
-  //       icon: "text-pink-600",
-  //       title: "text-pink-600",
-  //     },
-  //     gray: {
-  //       bg: "bg-gray-50",
-  //       border: "border-gray-200",
-  //       icon: "text-gray-600",
-  //       title: "text-gray-600",
-  //     },
-  //   };
-
-  //   return colorMap[color] || colorMap.blue; // Default to blue for consistency
-  // };
-
-  // const colors = getActivityColors(typeConfig.color || "blue");
 
   // Format timestamp
   const formatTimestamp = (timestamp: string) => {
@@ -278,17 +214,17 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
           <span className="font-medium">File:</span>
           <div className="flex items-center gap-2">
             {metadata.file_names && Array.isArray(metadata.file_names) ? (
-              metadata.file_names.map((fileName: any, index: number) => (
+              metadata.file_names.map((fileName: string, index: number) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs"
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-primary-700 rounded text-xs"
                 >
                   <FileText className="h-3 w-3" />
                   {String(fileName)}
                 </span>
               ))
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-primary-700 rounded text-xs">
                 <FileText className="h-3 w-3" />
                 {metadata.file_name}
               </span>

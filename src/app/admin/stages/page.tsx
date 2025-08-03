@@ -606,7 +606,7 @@ const StageManagementPage = () => {
 
       {/* Create Stage Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] min-w-xl max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Create New Stage</DialogTitle>
             <DialogDescription>
@@ -614,7 +614,7 @@ const StageManagementPage = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="display_name">Display Name *</Label>
               <Input
                 id="display_name"
@@ -630,7 +630,7 @@ const StageManagementPage = () => {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="name">Internal Name (Auto-generated)</Label>
               <Input
                 id="name"
@@ -645,7 +645,7 @@ const StageManagementPage = () => {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -662,7 +662,7 @@ const StageManagementPage = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="color">Color</Label>
                 <Select
                   value={createFormData.color}
@@ -688,7 +688,7 @@ const StageManagementPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="sort_order">Sort Order</Label>
                 <Input
                   id="sort_order"
@@ -749,14 +749,14 @@ const StageManagementPage = () => {
 
       {/* Edit Stage Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] min-w-xl max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Edit Stage</DialogTitle>
             <DialogDescription>Update stage information</DialogDescription>
           </DialogHeader>
           {editingStage && (
             <div className="space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="edit_display_name">Display Name *</Label>
                 <Input
                   id="edit_display_name"
@@ -771,7 +771,7 @@ const StageManagementPage = () => {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="edit_name">
                   Internal Name (Cannot be changed)
                 </Label>
@@ -786,7 +786,7 @@ const StageManagementPage = () => {
                 </p>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="edit_description">Description</Label>
                 <Textarea
                   id="edit_description"
@@ -802,7 +802,7 @@ const StageManagementPage = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="edit_color">Color</Label>
                   <Select
                     value={editingStage.color}
@@ -812,7 +812,7 @@ const StageManagementPage = () => {
                       )
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select color" />
                     </SelectTrigger>
                     <SelectContent>
@@ -830,7 +830,7 @@ const StageManagementPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="edit_sort_order">Sort Order</Label>
                   <Input
                     id="edit_sort_order"

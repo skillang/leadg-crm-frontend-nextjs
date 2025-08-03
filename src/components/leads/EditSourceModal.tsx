@@ -166,12 +166,12 @@ const EditSourceModal: React.FC<EditSourceModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-scroll">
         <DialogHeader>
           <DialogTitle>Edit Source</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 ">
           {/* Display Name - First Field */}
           <div className="space-y-2">
             <Label htmlFor="display_name">
@@ -195,35 +195,36 @@ const EditSourceModal: React.FC<EditSourceModalProps> = ({
               </div>
             )}
           </div>
+          <div className="flex gap-2">
+            {/* Auto-generated Internal Name - Read Only */}
+            <div className="space-y-2 w-1/2">
+              <Label htmlFor="name">Name - Auto Generated</Label>
+              <Input
+                id="name"
+                type="text"
+                value={formData.name}
+                disabled
+                className="bg-gray-50 text-gray-600"
+              />
+              <p className="text-xs text-gray-500">
+                Automatically generated from display name
+              </p>
+            </div>
 
-          {/* Auto-generated Internal Name - Read Only */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Name (Internal) - Auto Generated</Label>
-            <Input
-              id="name"
-              type="text"
-              value={formData.name}
-              disabled
-              className="bg-gray-50 text-gray-600"
-            />
-            <p className="text-xs text-gray-500">
-              Automatically generated from display name
-            </p>
-          </div>
-
-          {/* Short Form - Read Only for consistency */}
-          <div className="space-y-2">
-            <Label htmlFor="short_form">Short Form (Cannot be changed)</Label>
-            <Input
-              id="short_form"
-              type="text"
-              value={formData.short_form}
-              disabled
-              className="bg-gray-50 text-gray-600"
-            />
-            <p className="text-xs text-gray-500">
-              Short form cannot be changed to maintain lead ID consistency
-            </p>
+            {/* Short Form - Read Only for consistency */}
+            <div className="space-y-2 w-1/2">
+              <Label htmlFor="short_form">Short Form (Cannot be changed)</Label>
+              <Input
+                id="short_form"
+                type="text"
+                value={formData.short_form}
+                disabled
+                className="bg-gray-50 text-gray-600"
+              />
+              <p className="text-xs text-gray-500">
+                Short form cannot be changed to maintain lead ID consistency
+              </p>
+            </div>
           </div>
 
           {/* Description */}
