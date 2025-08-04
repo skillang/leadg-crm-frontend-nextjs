@@ -64,6 +64,9 @@ const authSlice = createSlice({
         localStorage.setItem("refresh_token", action.payload.refresh_token); // ✅ FIXED
         localStorage.setItem("user_data", JSON.stringify(action.payload.user));
         localStorage.setItem("token_created_at", now.toString());
+        // console.log("🔥 AUTH STORED:", {
+        //    user: action.payload.user,
+        // });
       }
     },
 
@@ -74,6 +77,9 @@ const authSlice = createSlice({
         const refreshToken = localStorage.getItem("refresh_token"); // ✅ FIXED
         const userData = localStorage.getItem("user_data");
         const tokenCreatedAt = localStorage.getItem("token_created_at");
+        // console.log("🔥 AUTH LOADED FROM CACHE:", {
+        //   userData,
+        // });
 
         if (token && userData) {
           state.isAuthenticated = true;
@@ -98,6 +104,25 @@ const authSlice = createSlice({
       // Update localStorage
       if (typeof window !== "undefined") {
         localStorage.setItem("user_data", JSON.stringify(action.payload));
+      }
+    },
+
+    // Update user data with permissions (from /auth/me endpoint)
+    updateUserWithPermissions: (
+      state,
+      action: PayloadAction<CurrentUserResponse>
+    ) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+
+      // Update localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("user_data", JSON.stringify(action.payload));
+        // 🔥 ADD LOGGING TO SEE PERMISSIONS CACHED:
+        // console.log("🔥 USER UPDATED WITH PERMISSIONS:", {
+        //   user: action.payload,
+        //   permissions: action.payload.permissions,
+        // });
       }
     },
 
@@ -176,6 +201,7 @@ export const {
   setAuthState, // For API login response
   setAuthFromStorage, // For localStorage initialization
   setUserData,
+  updateUserWithPermissions,
   clearAuthState,
   updateUser,
   updateTokens,

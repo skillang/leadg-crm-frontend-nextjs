@@ -13,7 +13,9 @@ import {
   setAuthFromStorage,
   clearAuthState,
   setLoading,
+  updateUserWithPermissions,
 } from "@/redux/slices/authSlice";
+import { useGetCurrentUserQuery } from "@/redux/slices/authApi";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -26,11 +28,21 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Get authentication state from Redux store
-  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, loading, token } = useAppSelector(
+    (state) => state.auth
+  );
+
+  const {
+    data: currentUserData,
+    error: userFetchError,
+    refetch: refetchUser,
+  } = useGetCurrentUserQuery(undefined, {
+    skip: !token || !isAuthenticated, // Only fetch when we have a token
+  });
 
   // Initialize authentication from localStorage only once
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       dispatch(setLoading(true));
 
       try {
@@ -38,7 +50,19 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         const userData = localStorage.getItem("user_data");
 
         if (token && userData) {
+          // First, set auth from storage
           dispatch(setAuthFromStorage());
+          try {
+            const result = await refetchUser();
+            if (result.data) {
+              // Update cache with full user data including permissions
+              dispatch(updateUserWithPermissions(result.data));
+              console.log("✅ User data updated with permissions");
+            }
+          } catch (fetchError) {
+            console.error("⚠️ Failed to fetch user permissions:", fetchError);
+            // Continue with cached data - don't break the app
+          }
         } else {
           // No valid auth data found
           dispatch(clearAuthState());
@@ -76,6 +100,32 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
       router.replace("/login");
     }
   }, [isAuthenticated, pathname, router, isInitialized, loading]);
+
+  // 🔥 ADD THIS NEW useEffect: Fetch permissions after login
+  useEffect(() => {
+    const fetchPermissionsAfterLogin = async () => {
+      // Only run if:
+      // 1. User is authenticated
+      // 2. App is initialized
+      // 3. We have a token
+      // 4. User object exists but might not have permissions
+      if (isAuthenticated && isInitialized && token && !loading) {
+        console.log("🔄 Fetching user permissions after login...");
+
+        try {
+          const result = await refetchUser();
+          if (result.data) {
+            dispatch(updateUserWithPermissions(result.data));
+            console.log("✅ Permissions updated after login");
+          }
+        } catch (error) {
+          console.error("⚠️ Failed to fetch permissions after login:", error);
+        }
+      }
+    };
+
+    fetchPermissionsAfterLogin();
+  }, [isAuthenticated, isInitialized, token, loading, refetchUser, dispatch]);
 
   // Show loading during initialization
   if (!isInitialized || loading) {

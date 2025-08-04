@@ -14,6 +14,7 @@ import {
   usePreviewRoundRobinAssignmentQuery,
 } from "@/redux/slices/leadsApi";
 import MultiSelect, { SelectOption } from "@/components/common/MultiSelect";
+import { useAuth } from "@/redux/hooks/useAuth";
 
 interface AssignmentDropdownProps {
   leadId?: string;
@@ -49,10 +50,18 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
   mode = "edit",
 }) => {
   // RTK Query hooks
+  const { isAdmin, user, userName, userEmail } = useAuth();
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
   const { data: assignableUsersData, isLoading: isLoadingUsers } =
-    useGetAssignableUsersWithDetailsQuery();
-  const { data: roundRobinPreview } = usePreviewRoundRobinAssignmentQuery({});
+    useGetAssignableUsersWithDetailsQuery(undefined, {
+      skip: !isAdmin,
+    });
+  const { data: roundRobinPreview } = usePreviewRoundRobinAssignmentQuery(
+    {},
+    {
+      skip: !isAdmin,
+    }
+  );
 
   const [selectedOption, setSelectedOption] = useState<string>("unassigned");
   const [showUserSelection, setShowUserSelection] = useState(false);
@@ -61,29 +70,47 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
   const assignableUsers = assignableUsersData?.users || [];
 
   // Define assignment options
-  const assignmentOptions: AssignmentOption[] = [
-    {
-      value: "unassigned",
-      label: "Unassign Lead",
-      description: "Remove assignment from this lead",
-      icon: <UserX className="h-4 w-4" />,
-      type: "unassigned",
-    },
-    {
-      value: "selective_round_robin",
-      label: "Selected Counselors Only",
-      description: "Round robin among selected counselors",
-      icon: <RotateCcw className="h-4 w-4" />,
-      type: "selective_round_robin",
-    },
-    {
-      value: "manual",
-      label: "Manual Assignment",
-      description: "Select specific counselor",
-      icon: <User className="h-4 w-4" />,
-      type: "manual",
-    },
-  ];
+  const assignmentOptions: AssignmentOption[] = isAdmin
+    ? [
+        {
+          value: "unassigned",
+          label: "Unassign Lead",
+          description: "Remove assignment from this lead",
+          icon: <UserX className="h-4 w-4" />,
+          type: "unassigned",
+        },
+        {
+          value: "selective_round_robin",
+          label: "Selected Counselors Only",
+          description: "Round robin among selected counselors",
+          icon: <RotateCcw className="h-4 w-4" />,
+          type: "selective_round_robin",
+        },
+        {
+          value: "manual",
+          label: "Manual Assignment",
+          description: "Select specific counselor",
+          icon: <User className="h-4 w-4" />,
+          type: "manual",
+        },
+      ]
+    : [
+        // 🔥 NON-ADMIN: Only show manual assignment to self
+        {
+          value: "unassigned",
+          label: "Unassign Lead",
+          description: "Remove assignment from this lead",
+          icon: <UserX className="h-4 w-4" />,
+          type: "unassigned",
+        },
+        {
+          value: "manual",
+          label: "Assign to Me",
+          description: "Assign this lead to yourself",
+          icon: <User className="h-4 w-4" />,
+          type: "manual",
+        },
+      ];
 
   // Initialize current assignment
   useEffect(() => {
@@ -129,7 +156,17 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
 
       case "manual":
         setShowUserSelection(true);
-        setSelectedUsers([]); // Reset selection
+        if (!isAdmin) {
+          setSelectedUsers([userEmail]);
+          // Also trigger the assignment immediately
+          onAssignmentChange?.({
+            type: "manual",
+            assigned_to: userEmail,
+            assigned_users: [userEmail],
+          });
+        } else {
+          setSelectedUsers([]); // Reset selection for admins
+        }
         break;
     }
   };
@@ -160,7 +197,22 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
 
         case "manual":
           setShowUserSelection(true);
-          setSelectedUsers([]);
+          if (!isAdmin) {
+            setSelectedUsers([userEmail]);
+            // Also make the API call immediately
+            await updateLead({
+              lead_id: leadId,
+              assigned_to: userEmail,
+            }).unwrap();
+
+            onAssignmentChange?.({
+              type: "manual",
+              assigned_to: userEmail,
+              assigned_users: [userEmail],
+            });
+          } else {
+            setSelectedUsers([]); // Reset selection for admins
+          }
           break;
       }
     } catch (error) {
@@ -220,13 +272,24 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
   };
 
   // Convert assignable users to SelectOption format for MultiSelect
-  const userOptions: SelectOption[] = assignableUsers.map((user) => ({
-    value: user.email,
-    label: `${user.name} `,
-    subtitle: `${user.current_lead_count || 0} leads`,
-    icon: undefined,
-    disabled: false,
-  }));
+  const userOptions: SelectOption[] = isAdmin
+    ? assignableUsers.map((user) => ({
+        value: user.email,
+        label: `${user.name}`,
+        subtitle: `${user.current_lead_count || 0} leads`,
+        icon: undefined,
+        disabled: false,
+      }))
+    : [
+        // 🔥 NON-ADMIN: Only show current user
+        {
+          value: userEmail,
+          label: userName,
+          subtitle: "Assign to yourself",
+          icon: undefined,
+          disabled: false,
+        },
+      ];
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -283,9 +346,13 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
           <Label className="text-sm font-medium">Select Counselors</Label>
           <MultiSelect
             options={userOptions}
-            value={selectedUsers}
-            onChange={handleUserSelectionChange}
-            disabled={disabled || isLoadingUsers || isUpdating}
+            value={isAdmin ? selectedUsers : [userEmail]}
+            onChange={
+              isAdmin
+                ? handleUserSelectionChange
+                : (values) => handleUserSelectionChange([userEmail])
+            } // 🔥 Force self-assignment
+            disabled={disabled || isLoadingUsers || isUpdating || !isAdmin}
             placeholder={
               selectedOption === "selective_round_robin"
                 ? "Select counselors for round robin..."
@@ -313,6 +380,13 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
               </p>
             </div>
           )}
+        </div>
+      )}
+      {!isAdmin && selectedOption === "manual" && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-700">
+            Lead will be assigned to you ({userName}).
+          </p>
         </div>
       )}
 

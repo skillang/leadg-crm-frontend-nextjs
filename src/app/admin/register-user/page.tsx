@@ -298,8 +298,8 @@ const AdminRegisterUserPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🔥 Form submission started");
-    console.log("Current form data:", formData);
+    // console.log("🔥 Form submission started");
+    // console.log("Current form data:", formData);
 
     // Mark all fields as touched
     setTouched(
@@ -314,7 +314,7 @@ const AdminRegisterUserPage = () => {
 
     // Validate form
     if (!validateForm()) {
-      console.log("❌ Form validation failed:", errors);
+      // console.log("❌ Form validation failed:", errors);
       showError(
         "Please fix the form errors before submitting.",
         "Validation Error"
@@ -322,7 +322,7 @@ const AdminRegisterUserPage = () => {
       return;
     }
 
-    console.log("✅ Form validation passed");
+    // console.log("✅ Form validation passed");
 
     try {
       const result = await adminRegisterUser({
@@ -336,7 +336,7 @@ const AdminRegisterUserPage = () => {
         departments: formData.departments,
       }).unwrap();
 
-      console.log("✅ User created successfully:", result);
+      // console.log("✅ User created successfully:", result);
 
       // Refetch departments to include the new user
       refetchDepartments();

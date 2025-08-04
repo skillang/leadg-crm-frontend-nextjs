@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/collapsible";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 // Main menu items (non-admin)
 const mainMenuItems = [
@@ -211,13 +212,15 @@ const SideNavBarComp = () => {
     <Sidebar>
       {/* Header */}
       <SidebarHeader className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">L</span>
-            </div>
-            <span className="font-semibold text-lg">LeadG CRM</span>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Image
+            src="/logo.png"
+            alt="LeadG CRM Logo"
+            className=" logo-sidebar-img"
+            width={95}
+            height={15}
+          />
+          {/* <span className="font-bold text-2xl ml-2 text-gray-600">CRM</span> */}
         </div>
       </SidebarHeader>
 

@@ -41,6 +41,7 @@ import { Lead } from "@/models/types/lead";
 import CourseLevelDropdown from "../common/CourseLevelDropdown";
 import ExperienceLevelDropdown from "../common/ExperienceLevelDropdown";
 import SourceDropdown from "../common/SourceDropdown";
+import { useAuth } from "@/redux/hooks/useAuth";
 
 // Constants - ✅ FIXED: Match backend enum values
 export const COURSE_LEVEL_OPTIONS = [
@@ -241,6 +242,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
   const [selectedCoAssignees, setSelectedCoAssignees] = useState<string[]>([]);
   const [multiAssignReason, setMultiAssignReason] = useState("");
 
+  const { isAdmin, userEmail } = useAuth();
   // API hooks - Fixed: Removed unused variables
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
   const [assignToMultiple, { isLoading: isAssigningMultiple }] =
@@ -260,6 +262,9 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
   const categories = categoriesResponse?.categories || [];
   const stages = stagesResponse?.stages || [];
   const statuses = statusesResponse?.statuses || [];
+  const availableUsers = isAdmin
+    ? assignableUsers
+    : assignableUsers.filter((user) => user.email === userEmail);
 
   // Initialize form data when lead changes
   useEffect(() => {
@@ -537,7 +542,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
   };
 
   const getAvailableUsers = () => {
-    return assignableUsers.filter(
+    return availableUsers.filter(
       (user) =>
         user.email !== formData.assigned_to &&
         !selectedCoAssignees.includes(user.email)
@@ -1026,7 +1031,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {assignableUsers.map((user) => (
+                        {availableUsers.map((user) => (
                           <SelectItem key={user.email} value={user.email}>
                             {user.name} ({user.current_lead_count} leads)
                           </SelectItem>
@@ -1034,20 +1039,22 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>&nbsp;</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        setShowMultiAssignment(!showMultiAssignment)
-                      }
-                      className="w-full"
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      {showMultiAssignment ? "Hide" : "Add"} Co-Assignees
-                    </Button>
-                  </div>
+                  {isAdmin && (
+                    <div className="space-y-2">
+                      <Label>&nbsp;</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          setShowMultiAssignment(!showMultiAssignment)
+                        }
+                        className="w-full"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {showMultiAssignment ? "Hide" : "Add"} Co-Assignees
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Multi-Assignment Section */}

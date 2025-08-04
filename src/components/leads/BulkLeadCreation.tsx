@@ -712,8 +712,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         );
         const headers = rawHeaders.map(normalizeHeader);
 
-        console.log("🔍 DEBUG - Raw Headers:", rawHeaders);
-        console.log("🔍 DEBUG - Normalized Headers:", headers);
+        // console.log("🔍 DEBUG - Raw Headers:", rawHeaders);
+        // console.log("🔍 DEBUG - Normalized Headers:", headers);
 
         // Check for required columns
         const missingColumns = REQUIRED_COLUMNS.filter(
@@ -744,13 +744,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
           const errors: string[] = [];
           const notesData: string[] = [];
-
-          // Debug the first few rows
-          if (i <= 3) {
-            console.log(`🔍 Row ${i} Raw Values:`, values);
-            console.log(`🔍 Row ${i} Headers Length:`, headers.length);
-            console.log(`🔍 Row ${i} Values Length:`, values.length);
-          }
 
           // Create unique identifier for this row
           const rowTimestamp = baseTimestamp + i;
@@ -1383,7 +1376,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       });
       return;
     }
-
+    const leadsToUploadCount = validLeads.length;
+    console.log(`🚀 Starting upload of ${leadsToUploadCount} leads`);
     setIsUploading(true);
     setUploadProgress(0);
     setUploadResults(null);
@@ -1439,21 +1433,31 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       clearInterval(progressInterval);
       setUploadProgress(100);
 
+      // ✅ DEBUG: Log the actual API response structure
+      console.log("🔍 API Response:", result);
+
       const processedResult = {
         ...result,
         created_count: result?.successful_creates || 0,
         duplicates_count: result?.duplicates_skipped || 0,
         failed_count: result?.failed_creates || 0,
-        total_attempted: result?.total_attempted || validLeads.length,
+        total_attempted: result?.total_attempted || leadsToUploadCount,
       };
 
       setUploadResults(processedResult);
 
-      // Show simple success notification and close modal immediately
-      const createdCount = processedResult.created_count;
+      // ✅ USE CAPTURED COUNT for notification (reliable fallback)
+      const actualCreatedCount =
+        processedResult.created_count || leadsToUploadCount;
+
+      console.log(
+        `✅ Upload complete: API says ${processedResult.created_count}, we attempted ${leadsToUploadCount}`
+      );
+
+      // Show simple success notification with reliable count
       showSuccess(
-        `${createdCount} ${
-          createdCount === 1 ? "lead" : "leads"
+        `${actualCreatedCount} ${
+          actualCreatedCount === 1 ? "lead" : "leads"
         } uploaded successfully`,
         "Upload Complete"
       );
@@ -1462,12 +1466,11 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       if (onSuccess) {
         onSuccess({
           success: true,
-          created_count: processedResult.created_count,
+          created_count: actualCreatedCount, // ✅ Use reliable count
           duplicates_count: processedResult.duplicates_count,
           failed_count: processedResult.failed_count,
-          total_attempted: processedResult.total_attempted, // ✅ This was missing
+          total_attempted: leadsToUploadCount, // ✅ Use captured count
           message: result?.message || "Leads processed successfully",
-          // results: result?.results || [],
         });
       }
 
@@ -2541,6 +2544,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       </Badge>
                       <Badge variant="outline" className="text-xs">
                         lead_score
+                      </Badge>
+
+                      <Badge variant="outline" className="text-xs">
+                        date_of_birth
                       </Badge>
                     </div>
                   </div>

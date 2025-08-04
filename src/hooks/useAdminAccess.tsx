@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/redux/hooks";
 import AccessDeniedCard from "@/components/common/AccessDeniedCard";
-import type { ApiUser } from "@/models/types/auth"; // ✅ Use your existing ApiUser type
+import type { CurrentUserResponse } from "@/models/types/auth"; // ✅ Use your existing CurrentUserResponse type
 
 interface UseAdminAccessOptions {
   redirectPath?: string;
@@ -14,7 +14,7 @@ interface UseAdminAccessOptions {
 interface UseAdminAccessReturn {
   isAdmin: boolean;
   hasAccess: boolean;
-  user: ApiUser | null;
+  user: CurrentUserResponse | null;
   AccessDeniedComponent: React.ReactNode | null;
 }
 

@@ -108,6 +108,30 @@ export const useAuth = () => {
   // Helper function to check if user is admin
   const isAdmin = auth.user?.role?.toLowerCase() === "admin";
 
+  // Helper function to get user permissions
+  const userPermissions = auth.user?.permissions || null;
+
+  // Helper functions to check specific permissions
+  const canCreateSingleLead =
+    auth.user?.permissions?.can_create_single_lead || false;
+  const canCreateBulkLeads =
+    auth.user?.permissions?.can_create_bulk_leads || false;
+
+  // Helper function to check if user has any lead creation permissions
+  const canCreateLeads = canCreateSingleLead || canCreateBulkLeads;
+
+  // Helper function to get permission metadata
+  const getPermissionInfo = () => {
+    if (!userPermissions) return null;
+
+    return {
+      grantedBy: userPermissions.granted_by,
+      grantedAt: userPermissions.granted_at,
+      lastModifiedBy: userPermissions.last_modified_by,
+      lastModifiedAt: userPermissions.last_modified_at,
+    };
+  };
+
   return {
     // Auth state
     isAuthenticated: auth.isAuthenticated,
@@ -120,6 +144,13 @@ export const useAuth = () => {
     userName: getUserFullName(),
     userEmail: auth.user?.email || "",
     isAdmin,
+
+    // PERMISSION HELPERS:
+    permissions: userPermissions,
+    canCreateSingleLead,
+    canCreateBulkLeads,
+    canCreateLeads,
+    getPermissionInfo,
 
     // Auth actions
     logout,

@@ -397,7 +397,7 @@ const AdminUsersPage = () => {
                           size="sm"
                           onClick={() => {
                             // Debug log to check user data structure
-                            console.log("User data:", user);
+                            // console.log("User data:", user);
                             // Navigate using the correct ID field
                             router.push(
                               `/admin/users/${user.user_id}/permissions`
