@@ -78,7 +78,10 @@ const TataTeliMappings: React.FC = () => {
   const [createMapping, { isLoading: isCreating }] =
     useCreateUserMappingMutation();
 
-  const handleInputChange = (field: keyof CreateMappingForm, value: any) => {
+  const handleInputChange = (
+    field: keyof CreateMappingForm,
+    value: string | boolean
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -115,9 +118,16 @@ const TataTeliMappings: React.FC = () => {
         auto_create_agent: false,
       });
       setErrors({});
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.detail || error?.message || "Failed to create mapping";
+    } catch (error: unknown) {
+      let errorMessage = "Failed to create mapping";
+
+      if (error && typeof error === "object" && "data" in error) {
+        errorMessage =
+          (error as { data?: { detail?: string } }).data?.detail ||
+          errorMessage;
+      } else if (error && typeof error === "object" && "message" in error) {
+        errorMessage = (error as { message: string }).message;
+      }
       showError(errorMessage);
     }
   };

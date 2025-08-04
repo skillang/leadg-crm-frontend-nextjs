@@ -81,7 +81,7 @@ export const MobileLeadsView = <TData extends Lead>({
     const showEndEllipsis = visiblePages[visiblePages.length - 1] < totalPages;
 
     return (
-      <div className="flex flex-col space-y-4 px-4 py-4 border-t bg-white">
+      <div className="flex flex-col space-y-4 px-2 py-4">
         {/* Results info and page size selector - stacked on mobile */}
         <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="text-sm text-muted-foreground text-center sm:text-left">

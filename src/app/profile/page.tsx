@@ -21,9 +21,10 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  PhoneCall,
+  Settings,
 } from "lucide-react";
-import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { UserWithDetails } from "@/models/types/lead";
+import { CurrentUserResponse } from "@/models/types/auth"; // ✅ Single interface
 
 export default function ProfilePage() {
   // Get current user from Redux state
@@ -37,17 +38,24 @@ export default function ProfilePage() {
     refetch,
   } = useGetCurrentUserQuery();
 
-  // Get computed permissions
-  const {
-    canCreateSingleLead,
-    canCreateBulkLeads,
-    // canCreateAnyLead,
-    // hasLeadPermissions,
-    permissionLevel,
-    isAdmin,
-  } = useUserPermissions();
+  // ✅ FIX: Use only CurrentUserResponse interface
+  const displayUser = (freshUserData || currentUser) as CurrentUserResponse;
 
-  const displayUser = (freshUserData || currentUser) as UserWithDetails;
+  // ✅ SIMPLIFIED: Get permissions directly from user object
+  const canCreateSingleLead =
+    displayUser?.permissions?.can_create_single_lead || false;
+  const canCreateBulkLeads =
+    displayUser?.permissions?.can_create_bulk_leads || false;
+  const isAdmin = displayUser?.role === "admin";
+
+  // ✅ SIMPLIFIED: Compute permission level inline
+  const getPermissionLevel = () => {
+    if (isAdmin) return 3; // Admin has highest level
+    if (canCreateBulkLeads) return 2; // Bulk leads
+    if (canCreateSingleLead) return 1; // Single leads
+    return 0; // No permissions
+  };
+  const permissionLevel = getPermissionLevel();
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "Not available";
@@ -64,7 +72,7 @@ export default function ProfilePage() {
     return (
       <div className="flex items-center justify-between p-3 border rounded-lg">
         <span className="text-sm font-medium">{label}</span>
-        <Badge variant={hasPermission ? "default" : "secondary"}>
+        <Badge variant={hasPermission ? "success" : "destructive"}>
           {hasPermission ? (
             <>
               <CheckCircle className="w-3 h-3 mr-1" />
@@ -79,6 +87,36 @@ export default function ProfilePage() {
         </Badge>
       </div>
     );
+  };
+
+  // ✅ NEW: Get calling status information
+  const getCallingStatusColor = (status?: string | null) => {
+    switch (status) {
+      case "already_synced":
+      case "synced":
+        return "bg-green-500";
+      case "pending":
+        return "bg-yellow-500";
+      case "failed":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  const getCallingStatusText = (status?: string | null) => {
+    switch (status) {
+      case "already_synced":
+        return "Synced";
+      case "synced":
+        return "Synced";
+      case "pending":
+        return "Pending";
+      case "failed":
+        return "Failed";
+      default:
+        return "Unknown";
+    }
   };
 
   if (isLoading) {
@@ -112,7 +150,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto  space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -127,7 +165,7 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Basic Information */}
         <Card>
           <CardHeader>
@@ -187,16 +225,17 @@ export default function ProfilePage() {
                 </Badge>
               </div>
 
-              {displayUser.departments && (
+              {/* ✅ FIX: Handle department as string array */}
+              {displayUser.department && displayUser.department.length > 0 && (
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-gray-500" />
                   <span className="text-sm font-medium">Departments:</span>
                   <div className="flex gap-1">
-                    {/* {displayUser.departments.map((dept: string) => (
+                    {displayUser.department.map((dept: string) => (
                       <Badge key={dept} variant="outline" className="text-xs">
                         {dept}
                       </Badge>
-                    ))} */}
+                    ))}
                   </div>
                 </div>
               )}
@@ -216,7 +255,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Account Status</span>
               <Badge
-                variant={displayUser.is_active ? "default" : "destructive"}
+                variant={displayUser.is_active ? "success" : "destructive"}
               >
                 {displayUser.is_active ? "Active" : "Inactive"}
               </Badge>
@@ -238,15 +277,6 @@ export default function ProfilePage() {
                 </label>
                 <p className="text-sm">{formatDate(displayUser.last_login)}</p>
               </div>
-
-              {displayUser.login_count && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Total Logins
-                  </label>
-                  <p className="text-sm">{displayUser.login_count}</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -262,7 +292,7 @@ export default function ProfilePage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium">Permission Level</span>
-              <Badge variant="outline">
+              <Badge>
                 Level {permissionLevel}
                 {isAdmin && " (Admin)"}
               </Badge>
@@ -271,7 +301,7 @@ export default function ProfilePage() {
             <div className="space-y-2">
               {getPermissionBadge(canCreateSingleLead, "Single Lead Creation")}
               {getPermissionBadge(canCreateBulkLeads, "Bulk Lead Creation")}
-              {getPermissionBadge(isAdmin, "Admin Access")}
+              {/* {getPermissionBadge(isAdmin, "Admin Access")} */}
             </div>
 
             {/* Show permission details if available */}
@@ -284,7 +314,11 @@ export default function ProfilePage() {
                       <Clock className="h-3 w-3" />
                       <span>
                         Granted by {displayUser.permissions.granted_by} on{" "}
-                        {formatDate(displayUser.permissions.granted_at)}
+                        {formatDate(
+                          displayUser.permissions.granted_at
+                            ? displayUser.permissions.granted_at
+                            : "None"
+                        )}
                       </span>
                     </div>
                   )}
@@ -294,13 +328,122 @@ export default function ProfilePage() {
                       <span>
                         Last modified by{" "}
                         {displayUser.permissions.last_modified_by} on{" "}
-                        {formatDate(displayUser.permissions.last_modified_at)}
+                        {formatDate(
+                          displayUser.permissions.last_modified_at
+                            ? displayUser.permissions.last_modified_at
+                            : "None"
+                        )}
                       </span>
                     </div>
                   )}
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* ✅ NEW: Calling System Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PhoneCall className="h-5 w-5" />
+              Calling System Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Calling Enabled Status */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Calling Enabled</span>
+              <Badge
+                variant={
+                  displayUser.calling_enabled ? "success" : "destructive"
+                }
+              >
+                {displayUser.calling_enabled ? (
+                  <>
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Enabled
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3 h-3 mr-1" />
+                    Disabled
+                  </>
+                )}
+              </Badge>
+            </div>
+
+            <Separator />
+
+            {/* Calling Details */}
+            <div className="space-y-3">
+              {displayUser.tata_extension && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Extension:</span>
+                  <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                    {displayUser.tata_extension}
+                  </span>
+                </div>
+              )}
+
+              {displayUser.smartflo_agent_id && (
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Agent ID:</span>
+                  <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                    {displayUser.smartflo_agent_id}
+                  </span>
+                </div>
+              )}
+
+              {/* Sync Status */}
+              {displayUser.sync_status && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-2 h-2 rounded-full ${getCallingStatusColor(
+                        displayUser.sync_status
+                      )}`}
+                    />
+                    <span className="text-sm font-medium">Sync Status:</span>
+                    <Badge variant="outline" className="text-xs">
+                      {getCallingStatusText(displayUser.sync_status)}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Ready to Call Status */}
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <span className="text-sm font-medium">Ready to Call</span>
+                <Badge
+                  variant={
+                    displayUser.calling_enabled &&
+                    displayUser.sync_status === "already_synced" &&
+                    displayUser.tata_extension &&
+                    displayUser.smartflo_agent_id
+                      ? "success"
+                      : "destructive"
+                  }
+                >
+                  {displayUser.calling_enabled &&
+                  displayUser.sync_status === "already_synced" &&
+                  displayUser.tata_extension &&
+                  displayUser.smartflo_agent_id ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Ready
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Not Ready
+                    </>
+                  )}
+                </Badge>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

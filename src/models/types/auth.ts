@@ -1,4 +1,6 @@
-// src/models/auth.ts
+// src/models/types/auth.ts
+
+import { UserPermissions } from "./permissions";
 
 // =============== AUTH TYPES ===============
 export interface LoginRequest {
@@ -12,7 +14,7 @@ export interface LoginResponse {
   refresh_token: string;
   token_type: string;
   expires_in: number;
-  user: ApiUser; // Reference the user interface
+  user: CurrentUserResponse; // ✅ Changed from ApiUser to CurrentUserResponse
 }
 
 export interface RegisterRequest {
@@ -54,22 +56,9 @@ export interface RefreshTokenResponse {
 }
 
 // =============== USER TYPES ===============
-export interface ApiUser {
-  id: string;
-  email: string;
-  name?: string;
-  first_name: string;
-  last_name: string;
-  role: "admin" | "user";
-  username: string;
-  is_active: boolean;
-  department: string;
-  phone: string;
-  created_at: string;
-  last_login?: string;
-}
 
 export interface CurrentUserResponse {
+  // ✅ Core required fields
   id: string;
   email: string;
   username: string;
@@ -78,9 +67,39 @@ export interface CurrentUserResponse {
   role: "admin" | "user";
   is_active: boolean;
   phone: string;
-  department: string;
+  department: string[]; // Always array format
   created_at: string;
   last_login: string;
+  permissions?: UserPermissions;
+
+  // ✅ Calling system fields
+  tata_extension?: string | null;
+  smartflo_agent_id?: string | null; // Maps to tata_agent_id from backend
+  calling_enabled?: boolean;
+  sync_status?: string | null; // Maps to tata_sync_status from backend
+
+  // ✅ Additional backend fields (optional)
+  assigned_leads?: string[];
+  total_assigned_leads?: number;
+  login_count?: number;
+  full_name?: string; // Backend generates this
+  created_by?: string;
+  updated_at?: string;
+  failed_login_attempts?: number;
+  last_activity?: string;
+  locked_until?: string | null;
+  last_tata_sync?: string;
+  routing_method?: string | null;
+  tata_agent_pool?: string[];
+  calling_status?: string; // Different from sync_status
+  calling_setup_date?: string | null;
+
+  // ✅ Backward compatibility (in case some components still expect these)
+  extension_number?: string | null; // Alias for tata_extension
+  smartflo_user_id?: string | null; // If backend provides this
+
+  // ✅ Computed field for ready to call status
+  ready_to_call?: boolean;
 }
 
 export interface AdminRegisterRequest {
@@ -124,7 +143,7 @@ export interface AuthState {
   token: string | null;
   accessToken: string | null;
   refreshToken: string | null;
-  user?: ApiUser | null;
+  user?: CurrentUserResponse | null; // ✅ Changed from ApiUser to CurrentUserResponse
   loading: boolean;
   error: string | null;
   expiresIn: number | null;

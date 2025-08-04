@@ -1,7 +1,7 @@
 // src/redux/slices/authSlice.ts
 
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AuthState, ApiUser } from "@/models/types/auth";
+import { AuthState, CurrentUserResponse } from "@/models/types/auth";
 
 // Define the initial state
 const initialState: AuthState = {
@@ -42,7 +42,7 @@ const authSlice = createSlice({
       action: PayloadAction<{
         access_token: string;
         refresh_token: string;
-        user: ApiUser;
+        user: CurrentUserResponse;
         expires_in: number;
       }>
     ) => {
@@ -91,7 +91,7 @@ const authSlice = createSlice({
     },
 
     // Set user data
-    setUserData: (state, action: PayloadAction<ApiUser>) => {
+    setUserData: (state, action: PayloadAction<CurrentUserResponse>) => {
       state.user = action.payload;
       state.isAuthenticated = true;
 
@@ -123,7 +123,10 @@ const authSlice = createSlice({
     },
 
     // Update user data
-    updateUser: (state, action: PayloadAction<Partial<ApiUser>>) => {
+    updateUser: (
+      state,
+      action: PayloadAction<Partial<CurrentUserResponse>>
+    ) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }

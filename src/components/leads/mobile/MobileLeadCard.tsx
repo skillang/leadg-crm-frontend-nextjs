@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/accordion";
 import { StageSelect } from "@/components/common/StageSelect";
 import { StatusSelect } from "@/components/common/StatusSelect";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
