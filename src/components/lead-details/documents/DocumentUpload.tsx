@@ -29,7 +29,7 @@ import {
   useGetDocumentTypesQuery,
 } from "@/redux/slices/documentsApi";
 import { cn } from "@/lib/utils";
-import { useNotifications } from "../common/NotificationSystem";
+import { useNotifications } from "../../common/NotificationSystem";
 import { getFileIconForDocument } from "@/utils/getFileIconForDocument";
 
 interface DocumentUploadProps {

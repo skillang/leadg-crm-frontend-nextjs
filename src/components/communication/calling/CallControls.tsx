@@ -36,7 +36,7 @@ import {
 import { useClickToCallMutation } from "@/redux/slices/tataTeliApi";
 import { CallValidation } from "@/models/types/tatatTeli";
 import { Lead } from "@/models/types/lead";
-import { useNotifications } from "../common/NotificationSystem";
+import { useNotifications } from "../../common/NotificationSystem";
 
 interface CallControlsProps {
   leadDetails: Lead; // Lead details from API

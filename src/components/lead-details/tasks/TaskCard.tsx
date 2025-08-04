@@ -12,7 +12,7 @@ import { Phone, Mail, Calendar, Users, Clock, CheckCircle } from "lucide-react";
 import { Task } from "@/models/types/task";
 import { useCompleteTaskMutation } from "@/redux/slices/tasksApi";
 import { cn } from "@/lib/utils";
-import { useNotifications } from "../common/NotificationSystem";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface TaskCardProps {
   task: Task;

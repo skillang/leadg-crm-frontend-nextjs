@@ -10,6 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -38,24 +45,13 @@ import {
   useGetUserMappingsQuery,
   useCreateUserMappingMutation,
 } from "@/redux/slices/tataTeliApi";
-import { useGetAssignableUsersWithDetailsQuery } from "@/redux/slices/leadsApi";
+import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi"; // ✅ CHANGED: Use this instead
 import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface CreateMappingForm {
   crm_user_id: string;
   tata_email: string;
   auto_create_agent: boolean;
-}
-
-// Define the possible input value types
-type FormInputValue = string | boolean;
-
-// Define interface for API error handling
-interface ApiError {
-  data?: {
-    detail?: string;
-  };
-  message?: string;
 }
 
 const TataTeliMappings: React.FC = () => {
@@ -77,15 +73,12 @@ const TataTeliMappings: React.FC = () => {
     refetch: refetchMappings,
   } = useGetUserMappingsQuery();
 
-  const { data: users } = useGetAssignableUsersWithDetailsQuery();
+  const { data: users } = useGetUserLeadStatsQuery(); // ✅ CHANGED: Use this API
 
   const [createMapping, { isLoading: isCreating }] =
     useCreateUserMappingMutation();
 
-  const handleInputChange = (
-    field: keyof CreateMappingForm,
-    value: FormInputValue
-  ) => {
+  const handleInputChange = (field: keyof CreateMappingForm, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -114,7 +107,7 @@ const TataTeliMappings: React.FC = () => {
 
     try {
       await createMapping(formData).unwrap();
-      showSuccess("User mapping created successfully!");
+      showSuccess("", "User mapping created successfully!");
       setIsCreateModalOpen(false);
       setFormData({
         crm_user_id: "",
@@ -122,12 +115,9 @@ const TataTeliMappings: React.FC = () => {
         auto_create_agent: false,
       });
       setErrors({});
-    } catch (error: unknown) {
-      const apiError = error as ApiError;
+    } catch (error: any) {
       const errorMessage =
-        apiError?.data?.detail ||
-        apiError?.message ||
-        "Failed to create mapping";
+        error?.data?.detail || error?.message || "Failed to create mapping";
       showError(errorMessage);
     }
   };
@@ -237,21 +227,31 @@ const TataTeliMappings: React.FC = () => {
                 {/* User Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="user">CRM User *</Label>
-                  <select
-                    id="user"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  <Select
                     value={formData.crm_user_id}
-                    onChange={(e) =>
-                      handleInputChange("crm_user_id", e.target.value)
+                    onValueChange={(value) =>
+                      handleInputChange("crm_user_id", value)
                     }
                   >
-                    <option value="">Select a user</option>
-                    {users?.users?.map((user, index) => (
-                      <option key={user.id || `user-${index}`} value={user.id}>
-                        {user.first_name} {user.last_name} ({user.email})
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users?.user_stats?.map((user, index) => (
+                        <SelectItem
+                          key={user.user_id || `user-${index}`}
+                          value={user.user_id}
+                        >
+                          <div className="flex gap-2">
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-sm text-gray-500">
+                              ({user.email})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.crm_user_id && (
                     <p className="text-sm text-red-600">{errors.crm_user_id}</p>
                   )}
@@ -279,8 +279,9 @@ const TataTeliMappings: React.FC = () => {
                   <Checkbox
                     id="auto_create_agent"
                     checked={formData.auto_create_agent}
+                    disabled
                     onCheckedChange={(checked) =>
-                      handleInputChange("auto_create_agent", checked as boolean)
+                      handleInputChange("auto_create_agent", checked)
                     }
                   />
                   <Label htmlFor="auto_create_agent" className="text-sm">
@@ -363,11 +364,11 @@ const TataTeliMappings: React.FC = () => {
                       <TableCell>
                         {getCanCallBadge(mapping.can_make_calls)}
                       </TableCell>
-                      {/* <TableCell>
+                      <TableCell>
                         {mapping.last_synced
                           ? new Date(mapping.last_synced).toLocaleDateString()
                           : "Never"}
-                      </TableCell> */}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -36,7 +36,7 @@ import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
 } from "@/redux/slices/tasksApi";
-import { useNotifications } from "../common/NotificationSystem";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface TaskEditorProps {
   isOpen: boolean;

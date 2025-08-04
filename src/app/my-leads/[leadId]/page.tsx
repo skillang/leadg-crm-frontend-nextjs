@@ -20,17 +20,16 @@ import {
   useStageUtils,
 } from "@/components/common/StageDisplay";
 import { Lead } from "@/models/types/lead";
-import WhatsAppButton from "@/components/whatsapp/WhatsAppButton";
-import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
+import WhatsAppButton from "@/components/communication/whatsapp/WhatsAppButton";
+import WhatsAppModal from "@/components/communication/whatsapp/WhatsAppModal";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
-import NotesContainer from "@/components/notes/NotesContainer";
-import TasksContainer from "@/components/tasks/TasksContainer";
-import DocumentsContainer from "@/components/documents/DocumentsContainer";
-import TimelineContainer from "@/components/timeline/TimelineContainer";
-import ContactsContainer from "@/components/contacts/ContactsContainer";
+import NotesContainer from "@/components/lead-details/notes/NotesContainer";
+import DocumentsContainer from "@/components/lead-details/documents/DocumentsContainer";
+import TimelineContainer from "@/components/lead-details/timeline/TimelineContainer";
+import ContactsContainer from "@/components/lead-details/contacts/ContactsContainer";
 import { formatDate } from "@/utils/formatDate";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { StageSelect } from "@/components/common/StageSelect";
@@ -41,9 +40,10 @@ import {
 } from "@/constants/leadDetailsConfig";
 // ✅ ADD EMAIL IMPORTS
 import { openEmailDialog } from "@/redux/slices/emailSlice";
-import EmailDialog from "@/components/email/EmailDialog";
-import TataTeliModal from "@/components/calling/TataTeliModal";
+import EmailDialog from "@/components/communication/email/EmailDialog";
+import TataTeliModal from "@/components/communication/calling/TataTeliModal";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
+import TasksContainer from "@/components/lead-details/tasks/TasksContainer";
 
 export default function LeadDetailsPage() {
   const dispatch = useDispatch(); // ✅ ADD DISPATCH

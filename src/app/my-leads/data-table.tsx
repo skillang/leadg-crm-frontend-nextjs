@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MobileLeadsView } from "@/components/leads/MobileLeadsView";
-import { FilterModal } from "@/components/leads/FilterModal";
+import { MobileLeadsView } from "@/components/leads/mobile/MobileLeadsView";
+import { FilterModal } from "@/components/leads/mobile/FilterModal";
 import {
   Select,
   SelectContent,
@@ -67,15 +67,15 @@ import {
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
 import MultiSelect from "@/components/common/MultiSelect";
-import EmailDialog from "@/components/email/EmailDialog";
-import WhatsAppModal from "@/components/whatsapp/WhatsAppModal";
+import EmailDialog from "@/components/communication/email/EmailDialog";
+import WhatsAppModal from "@/components/communication/whatsapp/WhatsAppModal";
 import { StageSelect } from "@/components/common/StageSelect";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { Lead } from "@/models/types/lead";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import TataTeliModal from "@/components/calling/TataTeliModal";
+import TataTeliModal from "@/components/communication/calling/TataTeliModal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

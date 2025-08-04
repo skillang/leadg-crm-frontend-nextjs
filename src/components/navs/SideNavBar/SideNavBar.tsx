@@ -129,14 +129,8 @@ const userMenuItems = [
     url: "/admin/users",
     icon: UsersRound,
   },
-  // {
-  //   title: "User Permissions",
-  //   url: "/admin/user-permissions",
-  //   icon: Shield,
-  //   adminOnly: true,
-  // },
   {
-    title: "Manage Departments",
+    title: "User Departments",
     url: "/admin/departments",
     icon: Building2,
   },

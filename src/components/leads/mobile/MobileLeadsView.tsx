@@ -279,7 +279,7 @@ export const MobileLeadsView = <TData extends Lead>({
   );
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="">
       {/* Loading State */}
       {isLoading && !isSearching && <LoadingSkeleton />}
 
@@ -288,7 +288,7 @@ export const MobileLeadsView = <TData extends Lead>({
 
       {/* Data State */}
       {!isLoading && data.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 p-4">
+        <div className="grid grid-cols-1 gap-3 ">
           {data.map((lead) => (
             <MobileLeadCard
               key={lead.id}

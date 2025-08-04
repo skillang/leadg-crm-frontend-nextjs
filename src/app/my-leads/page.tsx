@@ -292,17 +292,17 @@ export default function DemoPage() {
           columns={columns}
           data={finalLeads}
           title={isAdmin ? "All Leads" : "Leads"}
-          description={
-            debouncedSearchQuery.trim()
-              ? `${
-                  paginationMeta?.total || finalLeads.length
-                } leads found for "${debouncedSearchQuery}"`
-              : `${
-                  isAdmin
-                    ? "Comprehensive view of all leads in the system"
-                    : "Your assigned leads with real-time updates"
-                } with sorting, filtering, and actions`
-          }
+          // description={
+          //   debouncedSearchQuery.trim()
+          //     ? `${
+          //         paginationMeta?.total || finalLeads.length
+          //       } leads found for "${debouncedSearchQuery}"`
+          //     : `${
+          //         isAdmin
+          //           ? "Comprehensive view of all leads in the system"
+          //           : "Your assigned leads with real-time updates"
+          //       } with sorting, filtering, and actions`
+          // }
           onExportCsv={() => console.log("Export CSV from DataTable")}
           paginationMeta={paginationMeta}
           onPageChange={handlePageChange}

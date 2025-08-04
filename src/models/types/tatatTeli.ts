@@ -49,6 +49,7 @@ export interface UserMappingResponse {
   can_make_calls: boolean;
   sync_status: string;
   is_active: boolean;
+  last_synced: string | null;
 }
 
 // =============== UI STATE TYPES ===============
