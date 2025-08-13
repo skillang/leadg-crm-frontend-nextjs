@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -77,12 +76,6 @@ const WhatsAppModal: React.FC = () => {
             <MessageSquare className="mr-2 h-5 w-5 text-green-600" />
             WhatsApp Communication
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="h-8 w-8 p-0"
-          ></Button>
         </DialogHeader>
 
         <Tabs defaultValue="send-message" className="w-full">
@@ -222,6 +215,10 @@ const WhatsAppModal: React.FC = () => {
                           <p className="text-sm text-muted-foreground">
                             Send a custom text message
                           </p>
+                          <p className="text-xs text-muted-foreground">
+                            ( Channel is open only when the customer texts first
+                            )
+                          </p>
                         </div>
                       </Label>
                     </div>
@@ -240,7 +237,7 @@ const WhatsAppModal: React.FC = () => {
                         </div>
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 border rounded-lg opacity-50">
+                    {/* <div className="flex items-center space-x-3 p-3 border rounded-lg opacity-50">
                       <RadioGroupItem value="document" id="document" disabled />
                       <Label
                         htmlFor="document"
@@ -254,7 +251,7 @@ const WhatsAppModal: React.FC = () => {
                           </p>
                         </div>
                       </Label>
-                    </div>
+                    </div> */}
                   </RadioGroup>
                 </div>
 

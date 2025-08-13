@@ -140,20 +140,46 @@ const WhatsAppTemplateMessage: React.FC = () => {
         lead_name: templateParameters.lead_name || currentLead.name || "",
       };
 
-      await sendTemplate(sendRequest).unwrap();
-      showSuccess("WhatsApp template message sent successfully!");
-      dispatch(closeModal());
+      const result = await sendTemplate(sendRequest);
+
+      // 🔥 CHANGED: Check if it's an error response first
+      if ("error" in result) {
+        // This is an RTK Query network/server error
+        const errorData = (result.error as ApiError)?.data;
+        const errorMessage =
+          errorData?.message ||
+          errorData?.error ||
+          "Failed to send template message";
+        showError(errorMessage, "Failed to send template message");
+        return;
+      }
+
+      // 🔥 CHANGED: Check the backend's success field
+      const responseData = result.data;
+      if (responseData?.success === false) {
+        // Backend returned success: false
+        const errorMessage =
+          responseData.message ||
+          responseData.error ||
+          "Failed to send template message";
+        showError(errorMessage);
+        return;
+      }
+
+      // 🔥 SUCCESS: Only show success if backend returned success: true
+      if (responseData?.success === true) {
+        showSuccess(
+          responseData.message || "WhatsApp template message sent successfully!"
+        );
+        dispatch(closeModal());
+      } else {
+        // Fallback for unexpected response format
+        showError("Unexpected response format");
+      }
     } catch (error: unknown) {
-      // Type-safe error handling
-      const apiError = error as ApiError;
-      const errorMessage =
-        apiError?.data?.detail ||
-        apiError?.data?.message ||
-        apiError?.data?.error ||
-        apiError?.message ||
-        "Failed to send WhatsApp message. Please try again.";
-      showError(errorMessage);
-      console.error("Failed to send template:", error);
+      // This shouldn't happen now since we're not using unwrap()
+      console.error("Unexpected error in handleSend:", error);
+      showError("An unexpected error occurred");
     } finally {
       dispatch(setSending(false));
     }

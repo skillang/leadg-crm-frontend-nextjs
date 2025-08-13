@@ -11,6 +11,8 @@ import {
   useDeleteStageMutation,
   useReorderStagesMutation,
   useSetupDefaultStagesMutation,
+  useActivateStageMutation,
+  useDeactivateStageMutation,
 } from "@/redux/slices/stagesApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -123,8 +125,8 @@ const StageManagementPage = () => {
   const [createStage] = useCreateStageMutation();
   const [updateStage] = useUpdateStageMutation();
   const [deleteStage] = useDeleteStageMutation();
-  // const [activateStage] = useActivateStageMutation();
-  // const [deactivateStage] = useDeactivateStageMutation();
+  const [activateStage] = useActivateStageMutation();
+  const [deactivateStage] = useDeactivateStageMutation();
   const [reorderStages] = useReorderStagesMutation();
   const [setupDefaultStages] = useSetupDefaultStagesMutation();
 
@@ -258,15 +260,15 @@ const StageManagementPage = () => {
     currentlyActive: boolean
   ) => {
     try {
-      // let result;
+      let result;
       if (currentlyActive) {
         // Currently active, so deactivate it
-        // result = await deactivateStage(stageId).unwrap();
+        result = await deactivateStage(stageId).unwrap();
         showSuccess("Stage deactivated successfully!");
       } else {
         // Currently inactive, so activate it
-        // result = await activateStage(stageId).unwrap();
-        showSuccess("Stage activated successfully!");
+        result = await activateStage(stageId).unwrap();
+        showSuccess(result.message, "Stage activated successfully!");
       }
     } catch (error: unknown) {
       console.error("Toggle stage status error:", error);

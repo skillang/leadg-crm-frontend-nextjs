@@ -4,7 +4,7 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Pen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -44,12 +44,14 @@ import EmailDialog from "@/components/communication/email/EmailDialog";
 import TataTeliModal from "@/components/communication/calling/TataTeliModal";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 import TasksContainer from "@/components/lead-details/tasks/TasksContainer";
+import EditLeadModal from "@/components/leads/EditLeadModal";
 
 export default function LeadDetailsPage() {
   const dispatch = useDispatch(); // ✅ ADD DISPATCH
   const [activeTab, setActiveTab] = useState("tasks");
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const params = useParams();
   const router = useRouter();
@@ -88,6 +90,14 @@ export default function LeadDetailsPage() {
         leadId: leadDetails.leadId || leadDetails.id,
       })
     );
+  };
+
+  const handleEditLead = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
   };
 
   // ✅ UPDATED EMAIL HANDLER
@@ -351,9 +361,16 @@ export default function LeadDetailsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleEditLead}
+                >
+                  <Pen className="h-4 w-4 text-gray-600" />
+                </Button>
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
 
-                {/* Priority Badge */}
                 {leadDetails.priority && (
                   <Badge
                     className={`text-sm ${getPriorityColor(
@@ -726,6 +743,11 @@ export default function LeadDetailsPage() {
       <TataTeliModal />
       <WhatsAppModal />
       <EmailDialog />
+      <EditLeadModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        lead={leadId ? leadDetails : null}
+      />
     </div>
   );
 }

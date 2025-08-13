@@ -46,7 +46,7 @@ export const stagesApi = createApi({
         const params = new URLSearchParams();
         if (include_lead_count) params.append("include_lead_count", "true");
         if (!active_only) params.append("active_only", "false");
-        return `/stages/?${params.toString()}`; // 🔥 FIXED: Added trailing slash
+        return `/stages/?${params.toString()}`;
       },
       transformResponse: (response: unknown): StagesResponse => {
         const parsed = response as {
@@ -155,7 +155,7 @@ export const stagesApi = createApi({
       { stageId: string; stageData: UpdateStageRequest }
     >({
       query: ({ stageId, stageData }) => ({
-        url: `/stages/${stageId}/`, // 🔥 FIXED: Added trailing slash
+        url: `/stages/${stageId}`, // 🔥 FIXED: Added trailing slash
         method: "PUT",
         body: stageData,
       }),
@@ -189,7 +189,7 @@ export const stagesApi = createApi({
     // Activate stage (Admin only)
     activateStage: builder.mutation<{ message: string }, string>({
       query: (stageId) => ({
-        url: `/stages/${stageId}/activate/`, // 🔥 FIXED: Added trailing slash
+        url: `/stages/${stageId}/activate`, // 🔥 FIXED: Added trailing slash
         method: "PATCH",
       }),
       async onQueryStarted(stageId, { queryFulfilled }) {
@@ -211,7 +211,7 @@ export const stagesApi = createApi({
     // Deactivate stage (Admin only)
     deactivateStage: builder.mutation<{ message: string }, string>({
       query: (stageId) => ({
-        url: `/stages/${stageId}/deactivate/`, // 🔥 FIXED: Added trailing slash
+        url: `/stages/${stageId}/deactivate`, // 🔥 FIXED: Added trailing slash
         method: "PATCH",
       }),
       async onQueryStarted(stageId, { queryFulfilled }) {
@@ -234,7 +234,7 @@ export const stagesApi = createApi({
     reorderStages: builder.mutation<{ message: string }, StageReorderRequest[]>(
       {
         query: (reorderData) => ({
-          url: "/stages/reorder/", // 🔥 FIXED: Added trailing slash
+          url: "/stages/reorder", // 🔥 FIXED: Added trailing slash
           method: "PATCH",
           body: reorderData,
         }),
@@ -248,7 +248,7 @@ export const stagesApi = createApi({
     // Setup default stages (Admin only)
     setupDefaultStages: builder.mutation<string, void>({
       query: () => ({
-        url: "/stages/setup/defaults/", // 🔥 FIXED: Added trailing slash
+        url: "/stages/setup/defaults", // 🔥 FIXED: Added trailing slash
         method: "POST",
       }),
       invalidatesTags: [

@@ -19,7 +19,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
 }) => {
   // Replace template placeholders with actual parameters
   const getPreviewText = (): string => {
-    let previewText = template.template || "";
+    let previewText = template.template || template.body || "";
 
     // Get parameters array, fallback to empty array if undefined
     const templateParams = template.parameters || [];
@@ -42,21 +42,21 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
     (param) => !parameters[param]?.trim()
   );
 
-  // Handle case where template might not have a template string
-  if (!template.template) {
-    return (
-      <div className="space-y-2">
-        <Label>Preview:</Label>
-        <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
-          <div className="bg-background rounded-lg p-3 shadow-sm border-l-4 border-gray-500">
-            <p className="text-sm text-muted-foreground italic">
-              No template content available for preview
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // // Handle case where template might not have a template string
+  // if (!template.template) {
+  //   return (
+  //     <div className="space-y-2">
+  //       <Label>Preview:</Label>
+  //       <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
+  //         <div className="bg-background rounded-lg p-3 shadow-sm border-l-4 border-gray-500">
+  //           <p className="text-sm text-muted-foreground italic">
+  //             No template content available for preview
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-2">

@@ -135,7 +135,11 @@ const TataTeliModal: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="call" className="mt-6">
-            <CallControls leadDetails={leadDetails} validation={validation} />
+            <CallControls
+              leadDetails={leadDetails}
+              validation={validation}
+              // refetch={refetch}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">

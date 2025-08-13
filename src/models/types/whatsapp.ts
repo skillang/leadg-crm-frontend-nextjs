@@ -26,7 +26,7 @@ export interface WhatsAppTemplate {
   name?: string; // For backward compatibility
   template_name?: string; // From backend API
   display_name: string;
-  description?: string;
+  body?: string;
   parameters?: string[];
   template?: string;
   category?: string;
