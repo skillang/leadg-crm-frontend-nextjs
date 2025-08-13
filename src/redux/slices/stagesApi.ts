@@ -175,7 +175,7 @@ export const stagesApi = createApi({
         const params = new URLSearchParams();
         if (force) params.append("force", "true");
         return {
-          url: `/stages/${stageId}/?${params.toString()}`, // 🔥 FIXED: Added trailing slash
+          url: `/stages/${stageId}${params.toString()}`, // 🔥 FIXED: Added trailing slash
           method: "DELETE",
         };
       },

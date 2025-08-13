@@ -34,6 +34,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { openModal } from "@/redux/slices/whatsappSlice";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
+import { formatContactDate, formatDate } from "@/utils/formatDate";
 
 // StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
@@ -475,18 +476,12 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     ),
   },
   {
-    accessorKey: "createdOn",
+    accessorKey: "createdAt",
     header: "Created On",
     cell: ({ row }) => {
-      const date = row.getValue("createdOn") as string;
+      const date = row.getValue("createdAt") as string;
       return (
-        <div className="text-gray-600">
-          {date ? new Date(date).toLocaleDateString() : "N/A"}
-          {/* <div className="font-medium">
-            {row.getValue("createdAt") as string}
-          </div> */}
-          {/* {formatDate(leadDetails.createdAt)} */}
-        </div>
+        <div className="text-gray-600">{date ? formatDate(date) : "N/A"}</div>
       );
     },
   },
@@ -548,13 +543,29 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     enableSorting: false,
   },
   {
-    accessorKey: "lastActivity",
-    header: "Last Activity",
+    accessorKey: "lastContacted",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Last Contacted
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => {
-      const date = row.getValue("lastActivity") as string;
+      const lastContacted = row.getValue("lastContacted") as string;
       return (
-        <div className="text-gray-600 text-sm">
-          {date ? new Date(date).toLocaleDateString() : "N/A"}
+        <div className="text-sm">
+          {lastContacted ? (
+            <span className="text-gray-900">
+              {formatContactDate(lastContacted)}
+            </span>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Never
+            </Badge>
+          )}
         </div>
       );
     },

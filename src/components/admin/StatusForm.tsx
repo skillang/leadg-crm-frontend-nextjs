@@ -105,12 +105,10 @@ const colorOptions = [
 // Utility function to generate internal name from display name
 const generateInternalName = (displayName: string): string => {
   return displayName
-    .toLowerCase()
     .trim()
-    .replace(/\s+/g, "-") // Replace spaces with underscores for status names
-    .replace(/[^a-z0-9_]/g, "") // Remove any character that's not lowercase letter, number, or underscore
-    .replace(/-+/g, "-") // Replace multiple consecutive underscores with single underscore
-    .replace(/^-|-$/g, ""); // Remove leading and trailing underscores
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
 };
 
 // Utility function to convert RGB to Hex

@@ -30,7 +30,7 @@ import NotesContainer from "@/components/lead-details/notes/NotesContainer";
 import DocumentsContainer from "@/components/lead-details/documents/DocumentsContainer";
 import TimelineContainer from "@/components/lead-details/timeline/TimelineContainer";
 import ContactsContainer from "@/components/lead-details/contacts/ContactsContainer";
-import { formatDate } from "@/utils/formatDate";
+import { formatContactDate, formatDate } from "@/utils/formatDate";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { StageSelect } from "@/components/common/StageSelect";
 import {
@@ -642,8 +642,8 @@ export default function LeadDetailsPage() {
                       <TableCell className="py-3 px-6">
                         <span className="text-gray-900">
                           {leadDetails.lastContacted
-                            ? formatDate(leadDetails.lastContacted)
-                            : "Never"}
+                            ? formatContactDate(leadDetails.lastContacted)
+                            : "Never contacted"}
                         </span>
                       </TableCell>
                     </TableRow>

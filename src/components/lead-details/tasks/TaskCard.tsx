@@ -13,6 +13,7 @@ import { Task } from "@/models/types/task";
 import { useCompleteTaskMutation } from "@/redux/slices/tasksApi";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/components/common/NotificationSystem";
+import { twoTileDateTime } from "@/utils/formatDate";
 
 interface TaskCardProps {
   task: Task;
@@ -139,45 +140,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  // Format date to show Today/Yesterday/Date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isToday = date.toDateString() === today.toDateString();
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-
-    if (isToday) {
-      return { text: "Today", isOverdue: false };
-    } else if (isYesterday) {
-      return { text: "Yesterday", isOverdue: task.is_overdue };
-    } else {
-      return {
-        text: date.toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "short",
-        }),
-        isOverdue: task.is_overdue,
-      };
-    }
-  };
-
-  // Format time to 12-hour format
-  const formatTime = (timeString: string) => {
-    if (!timeString) return "";
-    const [hours, minutes] = timeString.split(":");
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
   const isCompleted = task.status === "completed";
   const priorityBadge = getPriorityBadge(task.priority);
   const statusBadge = getStatusBadge(task.status);
-  const dateInfo = formatDate(task.due_date);
+  const { dateText, timeText } = twoTileDateTime(task.due_date);
   const isOverdue = task.is_overdue && !isCompleted;
 
   return (
@@ -285,13 +251,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     <Calendar className="h-4 w-4" />
                     <span
                       className={cn(
-                        " text-xs",
-                        dateInfo.isOverdue && !isCompleted
+                        "text-xs",
+                        isOverdue && !isCompleted
                           ? "text-red-600"
                           : "text-gray-900"
                       )}
                     >
-                      {dateInfo.text}
+                      {dateText}
                     </span>
                   </Badge>
                   <Badge variant="outline" className="flex items-center gap-1">
@@ -299,12 +265,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     <span
                       className={cn(
                         "text-xs",
-                        dateInfo.isOverdue && !isCompleted
+                        isOverdue && !isCompleted
                           ? "text-red-600"
                           : "text-gray-900"
                       )}
                     >
-                      {formatTime(task.due_time)}
+                      {timeText}
                     </span>
                   </Badge>
                 </div>

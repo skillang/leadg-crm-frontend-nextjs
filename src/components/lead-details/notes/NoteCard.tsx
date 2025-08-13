@@ -13,6 +13,7 @@ import { useDeleteNoteMutation } from "@/redux/slices/notesApi";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { cn } from "@/lib/utils";
+import { twoTileDateTime } from "@/utils/formatDate";
 
 interface NoteCardProps {
   note: Note;
@@ -68,36 +69,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const isToday = date.toDateString() === today.toDateString();
-
-    if (isToday) {
-      return {
-        dateText: "Today",
-        timeText: date.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }),
-      };
-    } else {
-      return {
-        dateText: date.toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "short",
-        }),
-        timeText: date.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }),
-      };
-    }
-  };
-
-  const { dateText, timeText } = formatDate(note.updated_at);
+  const { dateText, timeText } = twoTileDateTime(note.updated_at);
 
   const truncateContent = (content: string, maxLength: number = 150) => {
     if (content.length <= maxLength)

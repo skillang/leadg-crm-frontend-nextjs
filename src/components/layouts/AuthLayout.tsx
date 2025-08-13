@@ -33,8 +33,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   );
 
   const {
-    data: currentUserData,
-    error: userFetchError,
+    // data: currentUserData,
+    // error: userFetchError,
     refetch: refetchUser,
   } = useGetCurrentUserQuery(undefined, {
     skip: !token || !isAuthenticated, // Only fetch when we have a token
@@ -83,7 +83,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
     if (!isInitialized) {
       initializeAuth();
     }
-  }, [dispatch, isInitialized]);
+  }, [dispatch, isInitialized, refetchUser]);
 
   // Handle navigation after authentication changes
   useEffect(() => {

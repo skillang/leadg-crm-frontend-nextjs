@@ -50,7 +50,7 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
   mode = "edit",
 }) => {
   // RTK Query hooks
-  const { isAdmin, user, userName, userEmail } = useAuth();
+  const { isAdmin, userName, userEmail } = useAuth();
   const [updateLead, { isLoading: isUpdating }] = useUpdateLeadMutation();
   const { data: assignableUsersData, isLoading: isLoadingUsers } =
     useGetAssignableUsersWithDetailsQuery(undefined, {
@@ -350,7 +350,7 @@ const LeadAssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
             onChange={
               isAdmin
                 ? handleUserSelectionChange
-                : (values) => handleUserSelectionChange([userEmail])
+                : () => handleUserSelectionChange([userEmail])
             } // 🔥 Force self-assignment
             disabled={disabled || isLoadingUsers || isUpdating || !isAdmin}
             placeholder={

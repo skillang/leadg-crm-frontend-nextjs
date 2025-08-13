@@ -34,6 +34,7 @@ import { useAppSelector } from "@/redux/hooks";
 import { selectIsAdmin } from "@/redux/selectors";
 import { cn } from "@/lib/utils";
 import DocumentViewerModal from "./DocumentViewerModal";
+import { twoTileDateTime } from "@/utils/formatDate";
 
 interface DocumentCardProps {
   document: Document;
@@ -211,24 +212,6 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Not available";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    if (!dateString) return "Not available";
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
   };
 
   // ✅ UPDATED: Now uses Badge variants instead of custom className
@@ -420,21 +403,29 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 <div className="flex items-center gap-2">Upload date:</div>
               </TableCell>
               <TableCell className="py-2">
-                <div className="flex items-center gap-4 text-sm">
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    <Calendar className="h-4 w-4" />
-                    <span className="font-medium">
-                      {formatDate(document.uploaded_at)}
-                    </span>
-                  </Badge>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatTime(document.uploaded_at)}</span>
-                  </Badge>
-                </div>
+                {(() => {
+                  const { dateText, timeText } = twoTileDateTime(
+                    document.uploaded_at
+                  );
+                  return (
+                    <div className="flex items-center gap-4 text-sm">
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        <span className="font-medium">{dateText}</span>
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-1"
+                      >
+                        <Clock className="h-4 w-4" />
+                        <span>{timeText}</span>
+                      </Badge>
+                    </div>
+                  );
+                })()}
               </TableCell>
             </TableRow>
 
@@ -451,15 +442,29 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                     <TableCell className="py-2">
                       <div className="flex items-center gap-4 text-sm">
                         <Badge variant="primary-ghost">{approvedByName}</Badge>
-                        {approvedAt && (
-                          <Badge
-                            variant="outline"
-                            className="flex items-center gap-1 text-xs"
-                          >
-                            <Calendar className="h-3 w-3" />
-                            <span>{formatDate(approvedAt)}</span>
-                          </Badge>
-                        )}
+                        {approvedAt &&
+                          (() => {
+                            const { dateText, timeText } =
+                              twoTileDateTime(approvedAt);
+                            return (
+                              <>
+                                <Badge
+                                  variant="outline"
+                                  className="flex items-center gap-1 text-xs"
+                                >
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{dateText}</span>
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="flex items-center gap-1 text-xs"
+                                >
+                                  <Clock className="h-3 w-3" />
+                                  <span>{timeText}</span>
+                                </Badge>
+                              </>
+                            );
+                          })()}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -514,7 +519,9 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 >
                   <Calendar className="h-4 w-4" />
                   <span>
-                    {expiryDate ? formatDate(expiryDate) : "Not Mentioned"}
+                    {expiryDate
+                      ? twoTileDateTime(expiryDate).dateText
+                      : "Not Mentioned"}
                   </span>
                 </Badge>
               </TableCell>

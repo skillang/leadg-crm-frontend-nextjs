@@ -336,7 +336,7 @@ const AdminRegisterUserPage = () => {
         departments: formData.departments,
       }).unwrap();
 
-      // console.log("✅ User created successfully:", result);
+      console.log("✅ User created successfully:", result);
 
       // Refetch departments to include the new user
       refetchDepartments();

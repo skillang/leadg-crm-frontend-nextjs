@@ -12,6 +12,9 @@ const initialState: LeadsState = {
     department: "",
     source: "",
     assignedTo: "",
+    category: "", // Category filter
+    dateFrom: "",
+    dateTo: "",
     includeMultiAssigned: false,
     assignedToMe: false,
   },
@@ -52,6 +55,26 @@ const leadsSlice = createSlice({
 
     setAssignedToMeFilter: (state, action: PayloadAction<boolean>) => {
       state.filters.assignedToMe = action.payload;
+    },
+
+    setCategoryFilter: (state, action: PayloadAction<string>) => {
+      state.filters.category = action.payload;
+    },
+
+    setDateFromFilter: (state, action: PayloadAction<string>) => {
+      state.filters.dateFrom = action.payload;
+    },
+
+    setDateToFilter: (state, action: PayloadAction<string>) => {
+      state.filters.dateTo = action.payload;
+    },
+
+    setDateRangeFilter: (
+      state,
+      action: PayloadAction<{ from?: string; to?: string }>
+    ) => {
+      state.filters.dateFrom = action.payload.from;
+      state.filters.dateTo = action.payload.to;
     },
 
     clearFilters: (state) => {

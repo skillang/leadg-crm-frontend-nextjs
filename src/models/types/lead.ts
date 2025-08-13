@@ -47,6 +47,9 @@ export interface LeadFilters {
   assignedTo?: string;
   includeMultiAssigned?: boolean;
   assignedToMe?: boolean;
+  category?: string; // Category filter
+  dateFrom?: string; // Start date (YYYY-MM-DD format)
+  dateTo?: string;
 }
 
 // Enhanced lead creation interface
@@ -340,6 +343,7 @@ export interface ApiLead {
   stage?: string;
   status?: string;
   created_at?: string;
+  created_by?: string;
   updated_at?: string;
   lead_score?: number;
   contact_number?: string;
@@ -705,7 +709,7 @@ export const transformApiLead = (apiLead: ApiLead): Lead => ({
   countryOfInterest: apiLead.country_of_interest || "",
   notes: apiLead.notes || "",
   createdAt: apiLead.created_at || "",
-  createdBy: apiLead.created_at || "",
+  createdBy: apiLead.created_by || "",
   updatedAt: apiLead.updated_at || "",
   lastContacted: apiLead.last_contacted || null,
   leadCategory: apiLead.category || "",

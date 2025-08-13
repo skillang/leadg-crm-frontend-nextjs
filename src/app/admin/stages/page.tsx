@@ -65,12 +65,10 @@ interface ApiError {
 // Function to generate internal name from display name
 const generateInternalName = (displayName: string): string => {
   return displayName
-    .toLowerCase()
     .trim()
-    .replace(/\s+/g, "_") // Replace spaces with underscores for stage names
-    .replace(/[^a-z0-9_]/g, "") // Remove any character that's not lowercase letter, number, or underscore
-    .replace(/_+/g, "_") // Replace multiple consecutive underscores with single underscore
-    .replace(/^_|_$/g, ""); // Remove leading and trailing underscores
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
 };
 
 const StageManagementPage = () => {

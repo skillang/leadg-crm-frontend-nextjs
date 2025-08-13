@@ -40,6 +40,7 @@ import {
   formatActivityTypeLabel,
 } from "@/models/types/timeline";
 import { cn } from "@/lib/utils";
+import { twoTileDateTime } from "@/utils/formatDate";
 
 interface TimelineItemProps {
   activity: TimelineActivity;
@@ -104,36 +105,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
 
   const IconComponent = getIcon(typeConfig.icon || "Activity");
 
-  // Format timestamp
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const isYesterday =
-      date.toDateString() === new Date(now.getTime() - 86400000).toDateString();
+  // const { date, time } = formatTimestamp(activity.timestamp);
 
-    const timeStr = date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-    if (isToday) {
-      return { date: "Today", time: timeStr };
-    } else if (isYesterday) {
-      return { date: "Yesterday", time: timeStr };
-    } else {
-      const dateStr = date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-      });
-      return { date: dateStr, time: timeStr };
-    }
-  };
-
-  const { date, time } = formatTimestamp(activity.timestamp);
-
+  const { dateText, timeText } = twoTileDateTime(activity.timestamp);
   // Format metadata for display
   const getMetadataInfo = () => {
     if (!activity.metadata || Object.keys(activity.metadata).length === 0) {
@@ -365,14 +339,14 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
                     className="flex items-center gap-1"
                   >
                     <Calendar className="h-3 w-3" />
-                    <span>{date}</span>
+                    <span>{dateText}</span>
                   </Badge>
                   <Badge
                     variant="outline"
                     className="flex items-center gap-1 mt-1"
                   >
                     <Clock className="h-3 w-3" />
-                    <span>{time}</span>
+                    <span>{timeText}</span>
                   </Badge>
                 </div>
               </div>
