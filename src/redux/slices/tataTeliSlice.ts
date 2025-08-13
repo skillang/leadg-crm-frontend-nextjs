@@ -10,7 +10,7 @@ import {
 
 const initialState: TataTeliState = {
   isModalOpen: false,
-  activeTab: "validate",
+  activeTab: "call",
   currentLeadId: null,
 
   // Validation cache
@@ -41,7 +41,7 @@ const tataTeliSlice = createSlice({
     openModal: (state, action: PayloadAction<OpenCallModalPayload>) => {
       state.isModalOpen = true;
       state.currentLeadId = action.payload.leadId;
-      state.activeTab = "validate";
+      state.activeTab = "call";
       state.callError = null;
       // Reset validation cache when opening new modal
       state.validation = {
@@ -59,7 +59,7 @@ const tataTeliSlice = createSlice({
     closeModal: (state) => {
       state.isModalOpen = false;
       state.currentLeadId = null;
-      state.activeTab = "validate";
+      state.activeTab = "call";
       state.callError = null;
       // Reset form data
       state.callNotes = "";

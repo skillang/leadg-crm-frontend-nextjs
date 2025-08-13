@@ -52,6 +52,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { EmailTabType } from "@/models/types/email";
 
 const EmailDialog: React.FC = () => {
   const dispatch = useDispatch();
@@ -59,7 +60,7 @@ const EmailDialog: React.FC = () => {
   const {
     emailDialogOpen,
     currentLeadId,
-    activeTab,
+    // activeTab,
     selectedTemplateKey,
     selectedSenderPrefix,
     isScheduled,
@@ -183,9 +184,9 @@ const EmailDialog: React.FC = () => {
         </DialogHeader>
 
         <Tabs
-          value={activeTab}
+          defaultValue="send" // Only use defaultValue
           onValueChange={(value) =>
-            dispatch(setActiveTab(value as "basic" | "send" | "history"))
+            dispatch(setActiveTab(value as EmailTabType))
           }
         >
           <TabsList className="grid w-full grid-cols-3 p-0">

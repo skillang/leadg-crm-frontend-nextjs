@@ -13,21 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import {
-  X,
-  MessageSquare,
-  FileText,
-  File,
-  Info,
-  Send,
-  Users,
-} from "lucide-react";
+import { MessageSquare, FileText, File, Info, Send, Users } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import { closeModal, setMessageType } from "@/redux/slices/whatsappSlice";
-import {
-  useCheckAccountStatusQuery,
-  useValidateContactMutation,
-} from "@/redux/slices/whatsappApi";
+import { useCheckAccountStatusQuery } from "@/redux/slices/whatsappApi";
 import WhatsAppTextMessage from "./WhatsAppTextMessage";
 import WhatsAppTemplateMessage from "./WhatsAppTemplateMessage";
 import ContactValidator from "./ContactValidator";
@@ -35,15 +24,13 @@ import { MessageType } from "@/models/types/whatsapp";
 
 const WhatsAppModal: React.FC = () => {
   const dispatch = useDispatch();
-  const { isModalOpen, messageType, currentLead, contactValidation } =
-    useSelector((state: RootState) => state.whatsapp);
+  const { isModalOpen, messageType, currentLead } = useSelector(
+    (state: RootState) => state.whatsapp
+  );
 
   // Check WhatsApp account status
   const { data: accountStatus, isLoading: isCheckingStatus } =
     useCheckAccountStatusQuery();
-
-  // Contact validation mutation
-  const [validateContact] = useValidateContactMutation();
 
   const handleClose = () => {
     dispatch(closeModal());
@@ -53,12 +40,12 @@ const WhatsAppModal: React.FC = () => {
     dispatch(setMessageType(value));
   };
 
-  // Validate contact when modal opens
   useEffect(() => {
-    if (isModalOpen && currentLead?.phoneNumber) {
-      validateContact(currentLead.phoneNumber);
+    if (isModalOpen) {
+      // Reset validation state when modal opens
+      dispatch({ type: "whatsapp/resetContactValidation" });
     }
-  }, [isModalOpen, currentLead?.phoneNumber, validateContact]);
+  }, [isModalOpen, dispatch]);
 
   if (!isModalOpen || !currentLead) {
     return null;
@@ -98,7 +85,7 @@ const WhatsAppModal: React.FC = () => {
           ></Button>
         </DialogHeader>
 
-        <Tabs defaultValue="basic-info" className="w-full">
+        <Tabs defaultValue="send-message" className="w-full">
           <TabsList className="grid w-full grid-cols-3 p-0">
             <TabsTrigger
               value="basic-info"
@@ -210,90 +197,74 @@ const WhatsAppModal: React.FC = () => {
             {/* Send Message Tab */}
             <TabsContent value="send-message" className="space-y-6 mt-0">
               {/* Connection Check */}
-              {!contactValidation.isValid ? (
-                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-4 rounded-lg">
-                  <p className="text-sm text-red-700 dark:text-red-300 mb-2 flex items-center">
-                    <X className="mr-2 h-4 w-4" />
-                    Contact validation required
-                  </p>
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    Please check the &quot;Basic Info&quot; tab to wait for
-                    contact before sending messages.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Message Type Selection */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-foreground flex items-center">
-                      <Send className="mr-2 h-4 w-4" />
-                      Select Message Type
-                    </h3>
-                    <RadioGroup
-                      value={messageType}
-                      onValueChange={handleMessageTypeChange}
-                      className="grid grid-cols-1 gap-3"
-                    >
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <RadioGroupItem value="text" id="text" />
-                        <Label
-                          htmlFor="text"
-                          className="flex items-center cursor-pointer flex-1"
-                        >
-                          <MessageSquare className="mr-3 h-4 w-4 text-blue-600" />
-                          <div>
-                            <p className="font-medium">Text Message</p>
-                            <p className="text-sm text-muted-foreground">
-                              Send a custom text message
-                            </p>
-                          </div>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <RadioGroupItem value="template" id="template" />
-                        <Label
-                          htmlFor="template"
-                          className="flex items-center cursor-pointer flex-1"
-                        >
-                          <FileText className="mr-3 h-4 w-4 text-purple-600" />
-                          <div>
-                            <p className="font-medium">Template Message</p>
-                            <p className="text-sm text-muted-foreground">
-                              Use pre-approved templates
-                            </p>
-                          </div>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg opacity-50">
-                        <RadioGroupItem
-                          value="document"
-                          id="document"
-                          disabled
-                        />
-                        <Label
-                          htmlFor="document"
-                          className="flex items-center cursor-pointer flex-1"
-                        >
-                          <File className="mr-3 h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="font-medium">Document Message</p>
-                            <p className="text-sm text-muted-foreground">
-                              Send files and documents (Coming Soon)
-                            </p>
-                          </div>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
 
-                  {/* Message Content */}
-                  {messageType && (
-                    <div className="border-t pt-6">
-                      {renderMessageTypeContent()}
+              <>
+                {/* Message Type Selection */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-foreground flex items-center">
+                    <Send className="mr-2 h-4 w-4" />
+                    Select Message Type
+                  </h3>
+                  <RadioGroup
+                    value={messageType}
+                    onValueChange={handleMessageTypeChange}
+                    className="grid grid-cols-1 gap-3"
+                  >
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <RadioGroupItem value="text" id="text" />
+                      <Label
+                        htmlFor="text"
+                        className="flex items-center cursor-pointer flex-1"
+                      >
+                        <MessageSquare className="mr-3 h-4 w-4 text-blue-600" />
+                        <div>
+                          <p className="font-medium">Text Message</p>
+                          <p className="text-sm text-muted-foreground">
+                            Send a custom text message
+                          </p>
+                        </div>
+                      </Label>
                     </div>
-                  )}
-                </>
-              )}
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <RadioGroupItem value="template" id="template" />
+                      <Label
+                        htmlFor="template"
+                        className="flex items-center cursor-pointer flex-1"
+                      >
+                        <FileText className="mr-3 h-4 w-4 text-purple-600" />
+                        <div>
+                          <p className="font-medium">Template Message</p>
+                          <p className="text-sm text-muted-foreground">
+                            Use pre-approved templates
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg opacity-50">
+                      <RadioGroupItem value="document" id="document" disabled />
+                      <Label
+                        htmlFor="document"
+                        className="flex items-center cursor-pointer flex-1"
+                      >
+                        <File className="mr-3 h-4 w-4 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Document Message</p>
+                          <p className="text-sm text-muted-foreground">
+                            Send files and documents (Coming Soon)
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Message Content */}
+                {messageType && (
+                  <div className="border-t pt-6">
+                    {renderMessageTypeContent()}
+                  </div>
+                )}
+              </>
             </TabsContent>
 
             {/* Bulk Send Tab (Coming Soon) */}
