@@ -664,6 +664,19 @@ export default function LeadDetailsPage() {
                         </span>
                       </TableCell>
                     </TableRow>
+
+                    <TableRow>
+                      <TableCell className="font-medium text-gray-500 py-3 px-6">
+                        Last updated at:
+                      </TableCell>
+                      <TableCell className="py-3 px-6">
+                        <span className="text-gray-900">
+                          {leadDetails.updatedAt
+                            ? formatContactDate(leadDetails.updatedAt)
+                            : "Never updated"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </CardContent>

@@ -571,6 +571,34 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     },
   },
   {
+    accessorKey: "updatedAt",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Last Updated
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const updatedAt = row.getValue("updatedAt") as string;
+      return (
+        <div className="text-sm">
+          {updatedAt ? (
+            <span className="text-gray-900">
+              {formatContactDate(updatedAt)}
+            </span>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Never
+            </Badge>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "assignedTo",
     header: ({ column }) => (
       <Button
