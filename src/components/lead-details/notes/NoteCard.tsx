@@ -1,4 +1,4 @@
-// src/components/notes/NoteCard.tsx (UPDATED with Notification System)
+// src/components/notes/NoteCard.tsx (UPDATED to Handle Optional Content)
 
 "use client";
 
@@ -7,7 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pen, Trash, Calendar, Clock } from "lucide-react";
+import { Pen, Trash, Calendar, Clock, FileText } from "lucide-react";
 import { Note } from "@/models/types/note";
 import { useDeleteNoteMutation } from "@/redux/slices/notesApi";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -31,11 +31,8 @@ const NoteCard: React.FC<NoteCardProps> = ({
   className,
 }) => {
   const [deleteNote, { isLoading: isDeleting }] = useDeleteNoteMutation();
-
-  // ✅ NEW: Use simplified notification system
   const { showError, showConfirm, showWarning } = useNotifications();
 
-  // ✅ UPDATED: Replaced window.confirm with notification dialog
   const handleDelete = () => {
     showConfirm({
       title: "Delete Note",
@@ -71,13 +68,39 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
   const { dateText, timeText } = twoTileDateTime(note.updated_at);
 
-  const truncateContent = (content: string, maxLength: number = 150) => {
-    if (content.length <= maxLength)
-      return { text: content, isTruncated: false };
-    return { text: content.substring(0, maxLength), isTruncated: true };
+  // ✅ UPDATED: Handle optional content properly
+  const getContentDisplay = (content?: string) => {
+    const trimmedContent = content?.trim();
+
+    if (!trimmedContent) {
+      return {
+        text: "No description provided",
+        isEmpty: true,
+        isTruncated: false,
+      };
+    }
+
+    const maxLength = 150;
+    if (trimmedContent.length <= maxLength) {
+      return {
+        text: trimmedContent,
+        isEmpty: false,
+        isTruncated: false,
+      };
+    }
+
+    return {
+      text: trimmedContent.substring(0, maxLength),
+      isEmpty: false,
+      isTruncated: true,
+    };
   };
 
-  const { text: truncatedContent, isTruncated } = truncateContent(note.content);
+  const {
+    text: displayContent,
+    isEmpty: isContentEmpty,
+    isTruncated,
+  } = getContentDisplay(note.content);
 
   return (
     <Card
@@ -172,27 +195,43 @@ const NoteCard: React.FC<NoteCardProps> = ({
               </TableRow>
             )}
 
-            {/* Content row */}
+            {/* Content row - ✅ UPDATED: Handle optional content */}
             <TableRow>
               <TableCell className="py-2 text-gray-500 text-sm font-normal align-top">
-                Content:
+                Description:
               </TableCell>
               <TableCell className="py-2">
-                <div className="text-gray-700 text-sm leading-relaxed">
-                  <span>{truncatedContent}</span>
-                  {isTruncated && (
-                    <>
-                      <span>... </span>
-                      <button
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                        onClick={() => {
-                          // Could expand content or open full view
-                          // console.log("Read all clicked");
-                        }}
-                      >
-                        read all
-                      </button>
-                    </>
+                <div
+                  className={cn(
+                    "text-sm leading-relaxed",
+                    isContentEmpty ? "text-gray-400 italic" : "text-gray-700"
+                  )}
+                >
+                  {isContentEmpty ? (
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span>{displayContent}</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span>{displayContent}</span>
+                      {isTruncated && (
+                        <>
+                          <span>... </span>
+                          <button
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                            onClick={() => {
+                              // Could expand content or open full view
+                              // For now, just show the full content in a simple alert
+                              // In a real app, you might open a modal or expand inline
+                              console.log("Full content:", note.content);
+                            }}
+                          >
+                            read all
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               </TableCell>

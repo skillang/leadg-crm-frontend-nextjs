@@ -1,4 +1,4 @@
-// src/components/notes/NoteEditor.tsx (UPDATED with Notification System)
+// src/components/notes/NoteEditor.tsx (UPDATED with Optional Content)
 
 "use client";
 
@@ -25,8 +25,8 @@ import {
   useCreateNoteMutation,
   useUpdateNoteMutation,
 } from "@/redux/slices/notesApi";
-import { useNotifications } from "@/components/common/NotificationSystem"; // ✅ New import
-import { PREDEFINED_TAGS } from "@/constants/tagsConfig"; // Import predefined tags
+import { useNotifications } from "@/components/common/NotificationSystem";
+import { PREDEFINED_TAGS } from "@/constants/tagsConfig";
 
 interface NoteEditorProps {
   isOpen: boolean;
@@ -44,7 +44,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [createNote, { isLoading: isCreating }] = useCreateNoteMutation();
   const [updateNote, { isLoading: isUpdating }] = useUpdateNoteMutation();
 
-  // ✅ NEW: Use simplified notification system
   const { showSuccess, showError } = useNotifications();
 
   const [formData, setFormData] = useState<{
@@ -70,7 +69,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         // Editing existing note
         setFormData({
           title: note.title,
-          content: note.content,
+          content: note.content || "", // ✅ Handle optional content
           tags: [...note.tags],
         });
       } else {
@@ -134,22 +133,27 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }));
   };
 
+  // ✅ UPDATED: Only validate title, content is optional
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
       newErrors.title = "Note title is required";
+    } else if (formData.title.trim().length < 3) {
+      newErrors.title = "Title must be at least 3 characters long";
+    } else if (formData.title.trim().length > 200) {
+      newErrors.title = "Title must be less than 200 characters";
     }
 
-    if (!formData.content.trim()) {
-      newErrors.content = "Note content is required";
+    // ✅ UPDATED: Content validation is optional
+    if (formData.content && formData.content.trim().length > 5000) {
+      newErrors.content = "Content must be less than 5000 characters";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ UPDATED: Replaced alert() with notification system
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -160,7 +164,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         // Update existing note
         const updateData: UpdateNoteRequest = {
           title: formData.title.trim(),
-          content: formData.content.trim(),
+          content: formData.content.trim() || undefined, // ✅ Send undefined if empty
           tags: formData.tags,
         };
 
@@ -177,7 +181,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         // Create new note
         const createData: CreateNoteRequest = {
           title: formData.title.trim(),
-          content: formData.content.trim(),
+          content: formData.content.trim() || undefined, // ✅ Send undefined if empty
           tags: formData.tags,
         };
 
@@ -229,14 +233,15 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             )}
           </div>
 
-          {/* Content */}
+          {/* Content - ✅ UPDATED: Made optional */}
           <div className="space-y-2">
             <Label htmlFor="content">
-              Content <span className="text-red-500">*</span>
+              Description{" "}
+              <span className="text-gray-500 text-sm">(optional)</span>
             </Label>
             <Textarea
               id="content"
-              placeholder="Write your note here..."
+              placeholder="Write your note description here (optional)..."
               value={formData.content}
               onChange={(e) => handleInputChange("content", e.target.value)}
               rows={6}
@@ -245,6 +250,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             {errors.content && (
               <p className="text-sm text-red-500">{errors.content}</p>
             )}
+            <p className="text-xs text-gray-500">
+              You can create a note with just a title if needed.
+            </p>
           </div>
 
           {/* Tags */}

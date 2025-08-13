@@ -3,7 +3,7 @@
 export interface Note {
   id: string;
   title: string;
-  content: string;
+  content?: string;
   tags: string[];
   lead_id: string;
   created_by: string;
@@ -16,7 +16,7 @@ export interface Note {
 
 export interface CreateNoteRequest {
   title: string;
-  content: string;
+  content?: string;
   tags: string[];
 }
 
@@ -81,7 +81,7 @@ export interface DeleteNoteResponse {
 export const transformNote = (apiNote: ApiNote): Note => ({
   id: apiNote.id || apiNote._id || "",
   title: apiNote.title,
-  content: apiNote.content,
+  content: apiNote.content || "",
   tags: apiNote.tags || [],
   lead_id: apiNote.lead_id,
   created_by: apiNote.created_by,
@@ -102,10 +102,8 @@ export const validateNoteData = (note: CreateNoteRequest): string[] => {
     errors.push("Title must be at least 3 characters long");
   }
 
-  if (!note.content?.trim()) {
-    errors.push("Content is required");
-  } else if (note.content.trim().length < 10) {
-    errors.push("Content must be at least 10 characters long");
+  if (note.content && note.content.trim().length > 5000) {
+    errors.push("Content must be less than 5000 characters");
   }
 
   return errors;
@@ -156,7 +154,7 @@ export const searchNotes = (notes: Note[], searchTerm: string): Note[] => {
   return notes.filter(
     (note) =>
       note.title.toLowerCase().includes(term) ||
-      note.content.toLowerCase().includes(term) ||
+      note.content?.toLowerCase().includes(term) ||
       note.tags.some((tag) => tag.toLowerCase().includes(term))
   );
 };
