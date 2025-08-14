@@ -9,14 +9,37 @@ import {
   setSelectedTemplate,
   setTemplateParameter,
   setPreviewMode,
+  // 💬 NEW: Chat actions
+  setChatHistory,
+  setLoadingHistory,
+  setChatError,
+  addChatMessage,
+  clearChatHistory,
+  // 🔄 NEW: Real-time actions
+  setUnreadCount,
+  // setConnectionStatus,
+  // updateUnreadCounts,
+  // clearUnreadCounts,
 } from "@/redux/slices/whatsappSlice";
-import { type MessageType } from "@/models/types/whatsapp";
+import {
+  type MessageType,
+  // 💬 NEW: Chat types
+  type ChatMessage,
+  type ChatHistoryResponse,
+  type SendChatMessageRequest,
+  // type SendChatMessageResponse,
+  type ConnectionStatus,
+  type MessageStatus,
+} from "@/models/types/whatsapp";
 import {
   useCheckAccountStatusQuery,
   useValidateContactMutation,
   useGetTemplatesQuery,
   useSendTemplateMutation,
   useSendTextMessageMutation,
+  // 💬 NEW: Chat API hooks
+  useSendChatMessageMutation,
+  useGetActiveChatsQuery,
 } from "@/redux/slices/whatsappApi";
 import {
   formatPhoneNumber,
@@ -32,7 +55,7 @@ import {
 } from "@/models/types/whatsapp";
 
 interface UseWhatsAppReturn {
-  // State
+  // Existing state
   isModalOpen: boolean;
   messageType: MessageType;
   contactValidation: {
@@ -49,13 +72,24 @@ interface UseWhatsAppReturn {
   accountStatus: AccountStatusResponse | undefined;
   templates: WhatsAppTemplate[] | undefined;
 
+  // 💬 NEW: Chat state
+  chatHistory: ChatMessage[];
+  isLoadingHistory: boolean;
+  chatError: string | null;
+
+  // 🔄 NEW: Real-time state
+  unreadCounts: { [leadId: string]: number };
+  connectionStatus: ConnectionStatus;
+  isConnected: boolean;
+
   // Loading states
   isCheckingStatus: boolean;
   isLoadingTemplates: boolean;
   isSendingTemplate: boolean;
   isSendingText: boolean;
+  isSendingChatMessage: boolean;
 
-  // Actions
+  // Existing actions
   openWhatsAppModal: (lead: LeadData, user: UserData) => void;
   closeWhatsAppModal: () => void;
   changeMessageType: (type: MessageType) => void;
@@ -63,7 +97,19 @@ interface UseWhatsAppReturn {
   updateTemplateParameter: (key: string, value: string) => void;
   togglePreview: () => void;
 
-  // API calls
+  // 💬 NEW: Chat actions
+  loadChatHistory: (leadId: string, autoMarkRead?: boolean) => Promise<void>;
+  sendChatMessage: (leadId: string, message: string) => Promise<void>;
+  refreshChatHistory: (leadId: string) => void;
+  clearChat: () => void;
+
+  // 🔄 NEW: Real-time actions
+  updateUnreadCount: (leadId: string, count: number) => void;
+  markLeadAsRead: (leadId: string) => void;
+  getUnreadCount: (leadId: string) => number;
+  hasUnreadMessages: (leadId: string) => boolean;
+
+  // Existing API calls
   validatePhoneNumber: (
     phoneNumber: string
   ) => Promise<ContactValidationResponse>;
@@ -78,7 +124,7 @@ interface UseWhatsAppReturn {
     message: string
   ) => Promise<SendTextResponse>;
 
-  // Helper functions
+  // Existing helper functions
   canSendMessage: () => boolean;
   getSelectedTemplateData: () => WhatsAppTemplate | null;
   areAllParametersFilled: () => boolean;
@@ -89,7 +135,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
   const dispatch = useDispatch();
   const whatsappState = useSelector((state: RootState) => state.whatsapp);
 
-  // RTK Query hooks
+  // Existing RTK Query hooks
   const { data: accountStatus, isLoading: isCheckingStatus } =
     useCheckAccountStatusQuery();
   const { data: templates, isLoading: isLoadingTemplates } =
@@ -100,7 +146,11 @@ const useWhatsApp = (): UseWhatsAppReturn => {
   const [sendTextMessage, { isLoading: isSendingText }] =
     useSendTextMessageMutation();
 
-  // Modal actions
+  // 💬 NEW: Chat RTK Query hooks
+  const [sendChatMessageMutation, { isLoading: isSendingChatMessage }] =
+    useSendChatMessageMutation();
+
+  // Existing modal actions
   const openWhatsAppModal = useCallback(
     (lead: LeadData, user: UserData) => {
       if (!lead?.phoneNumber) {
@@ -115,9 +165,11 @@ const useWhatsApp = (): UseWhatsAppReturn => {
 
   const closeWhatsAppModal = useCallback(() => {
     dispatch(closeModal());
+    // Clear chat history when modal closes
+    dispatch(clearChatHistory());
   }, [dispatch]);
 
-  // Message type actions
+  // Existing message type actions
   const changeMessageType = useCallback(
     (type: MessageType) => {
       dispatch(setMessageType(type));
@@ -125,7 +177,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     [dispatch]
   );
 
-  // Template actions
+  // Existing template actions
   const selectTemplate = useCallback(
     (templateName: string) => {
       dispatch(setSelectedTemplate(templateName));
@@ -144,7 +196,148 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     dispatch(setPreviewMode(!whatsappState.isPreviewMode));
   }, [dispatch, whatsappState.isPreviewMode]);
 
-  // Contact validation
+  // 💬 NEW: Chat history functions
+  const loadChatHistory = useCallback(
+    async (leadId: string, autoMarkRead = true): Promise<void> => {
+      try {
+        dispatch(setLoadingHistory(true));
+        dispatch(setChatError(null));
+
+        // Get auth token from localStorage or Redux state
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Authentication required");
+        }
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+        // Use RTK Query to fetch chat history
+        const response = await fetch(
+          `${API_BASE_URL}/whatsapp/lead-messages/${leadId}?auto_mark_read=${autoMarkRead}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to load chat history");
+        }
+
+        const data: ChatHistoryResponse = await response.json();
+
+        if (data.success) {
+          dispatch(setChatHistory(data.messages));
+
+          // Update unread count
+          dispatch(
+            setUnreadCount({
+              leadId,
+              count: data.unread_count,
+            })
+          );
+        } else {
+          throw new Error("Failed to load chat history");
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to load chat history";
+        console.error("Error loading chat history:", error);
+        dispatch(setChatError(errorMessage));
+      } finally {
+        dispatch(setLoadingHistory(false));
+      }
+    },
+    [dispatch]
+  );
+
+  const sendChatMessageHandler = useCallback(
+    async (leadId: string, message: string): Promise<void> => {
+      if (!message?.trim()) {
+        throw new Error("Message cannot be empty");
+      }
+
+      try {
+        const request: SendChatMessageRequest = { message: message.trim() };
+
+        const result = await sendChatMessageMutation({
+          leadId,
+          request,
+        }).unwrap();
+
+        if (result.success) {
+          // Add message to local chat history
+          const newMessage: ChatMessage = {
+            id: result.message_id || `temp_${Date.now()}`,
+            message_id: result.message_id || `temp_${Date.now()}`,
+            direction: "outgoing",
+            message_type: "text",
+            content: message.trim(),
+            timestamp: result.timestamp || new Date().toISOString(),
+            status: (result.status as MessageStatus) || "sent",
+            is_read: true,
+            sent_by_name: whatsappState.currentUser
+              ? `${whatsappState.currentUser.firstName} ${whatsappState.currentUser.lastName}`
+              : "You",
+          };
+
+          dispatch(addChatMessage(newMessage));
+        } else {
+          throw new Error("Failed to send message");
+        }
+      } catch (error) {
+        console.error("Failed to send chat message:", error);
+        throw error;
+      }
+    },
+    [sendChatMessageMutation, dispatch, whatsappState.currentUser]
+  );
+
+  const refreshChatHistory = useCallback(
+    (leadId: string) => {
+      loadChatHistory(leadId, false); // Don't auto-mark as read on refresh
+    },
+    [loadChatHistory]
+  );
+
+  const clearChat = useCallback(() => {
+    dispatch(clearChatHistory());
+  }, [dispatch]);
+
+  // 🔄 NEW: Real-time notification functions
+  const updateUnreadCount = useCallback(
+    (leadId: string, count: number) => {
+      dispatch(setUnreadCount({ leadId, count }));
+    },
+    [dispatch]
+  );
+
+  const markLeadAsRead = useCallback(
+    (leadId: string) => {
+      dispatch(setUnreadCount({ leadId, count: 0 }));
+    },
+    [dispatch]
+  );
+
+  const getUnreadCount = useCallback(
+    (leadId: string): number => {
+      return whatsappState.unreadCounts[leadId] || 0;
+    },
+    [whatsappState.unreadCounts]
+  );
+
+  const hasUnreadMessages = useCallback(
+    (leadId: string): boolean => {
+      return getUnreadCount(leadId) > 0;
+    },
+    [getUnreadCount]
+  );
+
+  // Existing contact validation
   const validatePhoneNumber = useCallback(
     async (phoneNumber: string): Promise<ContactValidationResponse> => {
       if (!phoneNumber) {
@@ -167,7 +360,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     [validateContact]
   );
 
-  // Send messages
+  // Existing send messages
   const sendWhatsAppTemplate = useCallback(
     async (
       templateName: string,
@@ -211,7 +404,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     [sendTextMessage]
   );
 
-  // Helper functions
+  // Existing helper functions
   const canSendMessage = useCallback((): boolean => {
     return !!(
       whatsappState.currentLead?.phoneNumber &&
@@ -265,17 +458,19 @@ const useWhatsApp = (): UseWhatsAppReturn => {
   );
 
   return {
-    // State
+    // Existing state
     ...whatsappState,
     accountStatus,
     templates,
+
     // Loading states
     isCheckingStatus,
     isLoadingTemplates,
     isSendingTemplate,
     isSendingText,
+    isSendingChatMessage,
 
-    // Actions
+    // Existing actions
     openWhatsAppModal,
     closeWhatsAppModal,
     changeMessageType,
@@ -283,12 +478,24 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     updateTemplateParameter,
     togglePreview,
 
-    // API calls
+    // 💬 NEW: Chat actions
+    loadChatHistory,
+    sendChatMessage: sendChatMessageHandler,
+    refreshChatHistory,
+    clearChat,
+
+    // 🔄 NEW: Real-time actions
+    updateUnreadCount,
+    markLeadAsRead,
+    getUnreadCount,
+    hasUnreadMessages,
+
+    // Existing API calls
     validatePhoneNumber,
     sendWhatsAppTemplate,
     sendWhatsAppText,
 
-    // Helper functions
+    // Existing helper functions
     canSendMessage,
     getSelectedTemplateData,
     areAllParametersFilled,

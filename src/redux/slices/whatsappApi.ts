@@ -16,6 +16,10 @@ import type {
   // CancelBulkJobRequest,
   BulkWhatsAppStatsResponse,
   ValidatePhoneNumbersResponse,
+  ChatHistoryResponse,
+  SendChatMessageRequest,
+  SendChatMessageResponse,
+  ActiveChatsResponse,
 } from "@/models/types/whatsapp";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
@@ -164,6 +168,57 @@ export const whatsappApi = createApi({
       }),
     }),
 
+    getChatHistory: builder.query<
+      ChatHistoryResponse,
+      {
+        leadId: string;
+        limit?: number;
+        offset?: number;
+        autoMarkRead?: boolean;
+      }
+    >({
+      query: ({ leadId, limit = 50, offset = 0, autoMarkRead = true }) => ({
+        url: `/whatsapp/lead-messages/${leadId}`,
+        params: {
+          limit: limit.toString(),
+          offset: offset.toString(),
+          auto_mark_read: autoMarkRead.toString(),
+        },
+      }),
+      providesTags: (result, error, { leadId }) => [
+        { type: "WhatsAppStatus", id: leadId },
+        "WhatsAppStatus",
+      ],
+    }),
+
+    // 💬 Send message in chat conversation
+    sendChatMessage: builder.mutation<
+      SendChatMessageResponse,
+      {
+        leadId: string;
+        request: SendChatMessageRequest;
+      }
+    >({
+      query: ({ leadId, request }) => ({
+        url: `/whatsapp/leads/${leadId}/send`,
+        method: "POST",
+        body: request,
+      }),
+      invalidatesTags: (result, error, { leadId }) => [
+        { type: "WhatsAppStatus", id: leadId },
+        "WhatsAppStatus",
+      ],
+    }),
+
+    // 🔄 Get active WhatsApp chats (for real-time)
+    getActiveChats: builder.query<ActiveChatsResponse, { limit?: number }>({
+      query: ({ limit = 20 }) => ({
+        url: "/whatsapp/active-chats",
+        params: { limit: limit.toString() },
+      }),
+      providesTags: ["WhatsAppStatus"],
+    }),
+
     // Health check for bulk WhatsApp service
     // getWhatsAppHealth: builder.query<any, void>({
     //   query: () => "/bulk-whatsapp/health",
@@ -184,4 +239,7 @@ export const {
   useGetBulkWhatsAppStatsQuery,
   useGetActiveWhatsAppJobsQuery,
   useValidatePhoneNumbersMutation,
+  useGetChatHistoryQuery,
+  useSendChatMessageMutation,
+  useGetActiveChatsQuery,
 } = whatsappApi;

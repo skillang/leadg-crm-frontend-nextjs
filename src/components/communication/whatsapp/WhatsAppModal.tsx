@@ -1,7 +1,7 @@
 // src/components/whatsapp/WhatsAppModal.tsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Dialog,
@@ -20,6 +20,13 @@ import WhatsAppTextMessage from "./WhatsAppTextMessage";
 import WhatsAppTemplateMessage from "./WhatsAppTemplateMessage";
 import ContactValidator from "./ContactValidator";
 import { MessageType } from "@/models/types/whatsapp";
+import { MessageCircle } from "lucide-react";
+import useWhatsApp from "@/hooks/useWhatsApp";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { useGetChatHistoryQuery } from "@/redux/slices/whatsappApi";
+import { setChatHistory, setUnreadCount } from "@/redux/slices/whatsappSlice";
+import { Input } from "@/components/ui/input";
 
 const WhatsAppModal: React.FC = () => {
   const dispatch = useDispatch();
@@ -68,6 +75,207 @@ const WhatsAppModal: React.FC = () => {
     }
   };
 
+  const ChatHistoryTab: React.FC = () => {
+    const dispatch = useDispatch();
+    const { chatHistory, sendChatMessage, currentLead, hasUnreadMessages } =
+      useWhatsApp();
+
+    const [newMessage, setNewMessage] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    // 🔧 FIX: Use RTK Query instead of manual fetch
+    const {
+      data: chatHistoryData,
+      isLoading: isLoadingHistory,
+      error: chatQueryError,
+      refetch: refetchChatHistory,
+    } = useGetChatHistoryQuery(
+      {
+        leadId: currentLead?.leadId || "",
+        limit: 50,
+        offset: 0,
+        autoMarkRead: true,
+      },
+      {
+        skip: !currentLead?.leadId, // Only fetch when we have a leadId
+      }
+    );
+
+    // Update Redux state when chat history data changes
+    useEffect(() => {
+      if (chatHistoryData?.success && chatHistoryData.messages) {
+        dispatch(setChatHistory(chatHistoryData.messages));
+        dispatch(
+          setUnreadCount({
+            leadId: currentLead?.leadId || "",
+            count: chatHistoryData.unread_count,
+          })
+        );
+      }
+    }, [chatHistoryData, dispatch, currentLead?.leadId]);
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+      if (scrollAreaRef.current && chatHistory.length > 0) {
+        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      }
+    }, [chatHistory]);
+
+    const handleSendMessage = async () => {
+      if (!newMessage.trim() || !currentLead?.leadId || isSending) return;
+
+      try {
+        setIsSending(true);
+        await sendChatMessage(currentLead.leadId, newMessage.trim());
+        setNewMessage("");
+      } catch (error) {
+        console.error("Failed to send message:", error);
+      } finally {
+        setIsSending(false);
+      }
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    };
+
+    const handleRetry = () => {
+      refetchChatHistory();
+    };
+
+    // Convert RTK Query error to string
+    const getErrorMessage = () => {
+      if (chatQueryError) {
+        if ("status" in chatQueryError) {
+          return `API Error: ${chatQueryError.status}`;
+        } else if ("message" in chatQueryError) {
+          return chatQueryError.message;
+        }
+        return "Failed to load chat history";
+      }
+      return null;
+    };
+
+    if (isLoadingHistory) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span className="ml-3">Loading chat history...</span>
+        </div>
+      );
+    }
+
+    const errorMessage = getErrorMessage();
+    if (errorMessage) {
+      return (
+        <div className="text-center py-8 text-red-600">
+          <p>Error loading chat history: {errorMessage}</p>
+          <Button variant="outline" onClick={handleRetry} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col h-[500px] border rounded-lg">
+        {/* Chat Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50 dark:bg-gray-900 rounded-t-lg">
+          <div className="flex items-center">
+            <MessageCircle className="h-5 w-5 text-green-600 mr-2" />
+            <div>
+              <h3 className="font-medium">{currentLead?.name}</h3>
+              <p className="text-sm text-gray-500">
+                {currentLead?.phoneNumber}
+              </p>
+            </div>
+          </div>
+          {hasUnreadMessages(currentLead?.leadId || "") && (
+            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+          )}
+        </div>
+
+        {/* Messages Area */}
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+          <div className="space-y-4">
+            {chatHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No messages yet. Start a conversation!</p>
+              </div>
+            ) : (
+              chatHistory.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.direction === "outgoing"
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[70%] p-3 rounded-lg ${
+                      message.direction === "outgoing"
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs opacity-70">
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </span>
+                      {message.direction === "outgoing" && (
+                        <span className="text-xs opacity-70">
+                          {message.status === "sent"
+                            ? "✓"
+                            : message.status === "delivered"
+                            ? "✓✓"
+                            : message.status === "read"
+                            ? "✓✓"
+                            : "⏳"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Message Input */}
+        <div className="p-4 border-t bg-gray-50 dark:bg-gray-900 rounded-b-lg">
+          <div className="flex space-x-2">
+            <Input
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={isSending}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || isSending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isSending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -95,9 +303,8 @@ const WhatsAppModal: React.FC = () => {
               Send Mssg
             </TabsTrigger>
             <TabsTrigger
-              value="bulk-send"
+              value="chat-history"
               className="flex items-center gap-1 md:gap-2"
-              disabled
             >
               <Users className="h-4 w-4" />
               Mssg History
@@ -264,30 +471,8 @@ const WhatsAppModal: React.FC = () => {
               </>
             </TabsContent>
 
-            {/* Bulk Send Tab (Coming Soon) */}
-            <TabsContent value="bulk-send" className="space-y-6 mt-0">
-              <div className="text-center py-12 text-muted-foreground">
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 border-2 border-dashed border-gray-200 dark:border-gray-700">
-                  <Users className="mx-auto h-16 w-16 mb-4 text-gray-400" />
-                  <h3 className="text-lg font-medium mb-2">Bulk Messaging</h3>
-                  <p className="text-sm max-w-md mx-auto mb-4">
-                    Send WhatsApp messages to multiple leads simultaneously.
-                    Perfect for campaigns, announcements, and bulk
-                    communications.
-                  </p>
-                  <div className="space-y-2 text-xs text-muted-foreground max-w-sm mx-auto">
-                    <p>• Send to multiple contacts at once</p>
-                    <p>• Template-based bulk messaging</p>
-                    <p>• Campaign tracking and analytics</p>
-                    <p>• Delivery status monitoring</p>
-                  </div>
-                  <div className="mt-6">
-                    <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
+            <TabsContent value="chat-history" className="space-y-6 mt-0">
+              <ChatHistoryTab />
             </TabsContent>
           </div>
         </Tabs>

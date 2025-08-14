@@ -9,6 +9,7 @@ import SideNavBarComp from "@/components/navs/SideNavBar/SideNavBar";
 import TopBarComp from "@/components/navs/TopBar/TopBar";
 import LoginPage from "@/all-pages/LoginPage";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
+import useRealtime from "@/hooks/useRealtime";
 import {
   setAuthFromStorage,
   clearAuthState,
@@ -21,11 +22,12 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
+const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
+  const { connectionStatus, isConnected } = useRealtime();
 
   // Get authentication state from Redux store
   const { isAuthenticated, loading, token } = useAppSelector(
@@ -39,6 +41,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   } = useGetCurrentUserQuery(undefined, {
     skip: !token || !isAuthenticated, // Only fetch when we have a token
   });
+
+  useEffect(() => {
+    console.log("🔄 Real-time connection status:", connectionStatus);
+  }, [connectionStatus]);
 
   // Initialize authentication from localStorage only once
   useEffect(() => {

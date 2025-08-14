@@ -6,6 +6,8 @@ import {
   OpenModalPayload,
   SetTemplateParameterPayload,
   TemplateParameters,
+  ChatMessage,
+  ConnectionStatus,
   // CreateBulkWhatsAppJobRequest,
   // CreateBulkWhatsAppJobResponse,
   // BulkWhatsAppJobsResponse,
@@ -57,6 +59,15 @@ const initialState: WhatsAppState = {
   // Bulk UI states
   bulkIsLoading: false,
   bulkError: null,
+
+  chatHistory: [],
+  isLoadingHistory: false,
+  chatError: null,
+
+  // 🔄 NEW: Real-time States (ADD THESE)
+  unreadCounts: {},
+  connectionStatus: "disconnected",
+  isConnected: false,
 };
 
 const whatsappSlice = createSlice({
@@ -274,6 +285,62 @@ const whatsappSlice = createSlice({
       state.selectedLeadsForBulk = [];
       state.bulkError = null;
     },
+    // 💬 Chat History Actions (ADD TO REDUCERS)
+    setChatHistory: (state, action: PayloadAction<ChatMessage[]>) => {
+      state.chatHistory = action.payload;
+      state.isLoadingHistory = false;
+      state.chatError = null;
+    },
+
+    setLoadingHistory: (state, action: PayloadAction<boolean>) => {
+      state.isLoadingHistory = action.payload;
+      if (action.payload) {
+        state.chatError = null;
+      }
+    },
+
+    setChatError: (state, action: PayloadAction<string | null>) => {
+      state.chatError = action.payload;
+      state.isLoadingHistory = false;
+    },
+
+    addChatMessage: (state, action: PayloadAction<ChatMessage>) => {
+      state.chatHistory.push(action.payload);
+    },
+
+    clearChatHistory: (state) => {
+      state.chatHistory = [];
+      state.chatError = null;
+    },
+
+    // 🔄 Real-time Notification Actions (ADD TO REDUCERS)
+    setUnreadCount: (
+      state,
+      action: PayloadAction<{ leadId: string; count: number }>
+    ) => {
+      const { leadId, count } = action.payload;
+      if (count === 0) {
+        delete state.unreadCounts[leadId];
+      } else {
+        state.unreadCounts[leadId] = count;
+      }
+    },
+
+    setConnectionStatus: (state, action: PayloadAction<ConnectionStatus>) => {
+      state.connectionStatus = action.payload;
+      state.isConnected = action.payload === "connected";
+    },
+
+    updateUnreadCounts: (
+      state,
+      action: PayloadAction<{ [leadId: string]: number }>
+    ) => {
+      state.unreadCounts = { ...state.unreadCounts, ...action.payload };
+    },
+
+    clearUnreadCounts: (state) => {
+      state.unreadCounts = {};
+    },
   },
 });
 
@@ -305,8 +372,16 @@ export const {
   setBulkLoading,
   setBulkError,
   resetBulkWhatsappForm,
-  setBulkWhatsappNameFilter, // ← YOU WERE MISSING THIS
-  setBulkWhatsappStageFilter,
+  setBulkWhatsappNameFilter,
+  setChatHistory,
+  setLoadingHistory,
+  setChatError,
+  addChatMessage,
+  clearChatHistory,
+  setUnreadCount,
+  setConnectionStatus,
+  updateUnreadCounts,
+  clearUnreadCounts,
 } = whatsappSlice.actions;
 
 export default whatsappSlice.reducer;

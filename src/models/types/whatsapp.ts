@@ -158,18 +158,158 @@ export interface TemplateParameters {
   [key: string]: string;
 }
 
+// ============================================================================
+// 💬 CHAT HISTORY TYPES (NEW ADDITIONS)
+// ============================================================================
+
+// Message Direction
+export type MessageDirection = "incoming" | "outgoing";
+
+// Message Status
+export type MessageStatus = "sent" | "delivered" | "read" | "failed";
+
+// Chat Message Interface
+export interface ChatMessage {
+  id: string;
+  message_id: string;
+  direction: MessageDirection;
+  message_type: string;
+  content: string;
+  timestamp: string;
+  status: MessageStatus;
+  is_read: boolean;
+  sent_by_name?: string;
+}
+
+// Chat History API Response
+export interface ChatHistoryResponse {
+  success: boolean;
+  lead_id: string;
+  lead_name: string;
+  phone_number: string;
+  messages: ChatMessage[];
+  total_messages: number;
+  unread_count: number;
+  last_activity: string | null;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    has_more: boolean;
+  };
+}
+
+// Send Message Request
+export interface SendChatMessageRequest {
+  message: string;
+}
+
+// Send Message Response
+export interface SendChatMessageResponse {
+  success: boolean;
+  message_id?: string;
+  timestamp?: string;
+  status?: string;
+  error?: string;
+}
+
+// ============================================================================
+// 🔄 REAL-TIME NOTIFICATION TYPES (NEW ADDITIONS)
+// ============================================================================
+
+// Real-time Event Types
+export type RealtimeEventType =
+  | "new_whatsapp_message"
+  | "lead_marked_read"
+  | "heartbeat"
+  | "connected"
+  | "unread_leads_sync"
+  | "error";
+
+// Connection Status
+export type ConnectionStatus =
+  | "connected"
+  | "connecting"
+  | "disconnected"
+  | "error";
+
+// Real-time Notification
+export interface RealtimeNotification {
+  type: RealtimeEventType;
+  timestamp: string;
+  data: Record<string, unknown>;
+}
+
+// New Message Notification
+export interface NewMessageNotification {
+  type: "new_whatsapp_message";
+  lead_id: string;
+  lead_name: string;
+  message_preview: string;
+  timestamp: string;
+  unread_count: number;
+}
+
+// Mark Read Notification
+export interface MarkReadNotification {
+  type: "lead_marked_read";
+  lead_id: string;
+  timestamp: string;
+}
+
+export interface ActiveChatsResponse {
+  success: boolean;
+  chats: Array<{
+    lead_id: string;
+    lead_name: string;
+    phone_number: string;
+    last_message: {
+      content: string;
+      timestamp: string;
+      direction: string;
+    };
+    unread_count: number;
+    last_activity: string;
+    assigned_to_name: string;
+  }>;
+  total_count: number;
+}
+
+// ============================================================================
+// UPDATED WHATSAPP STATE WITH CHAT & REAL-TIME
+// ============================================================================
+
 export interface WhatsAppState {
+  // Modal states
   isModalOpen: boolean;
   messageType: MessageType;
+
+  // Contact validation
   contactValidation: ContactValidation;
+
+  // Template selection
   selectedTemplate: string | null;
   templateParameters: TemplateParameters;
+
+  // UI states
   isPreviewMode: boolean;
   isSending: boolean;
+
+  // Current context
   currentLead: LeadData | null;
   currentUser: UserData | null;
 
-  // Bulk WhatsApp states (NEW)
+  // 💬 NEW: Chat History States
+  chatHistory: ChatMessage[];
+  isLoadingHistory: boolean;
+  chatError: string | null;
+
+  // 🔄 NEW: Real-time States
+  unreadCounts: { [leadId: string]: number };
+  connectionStatus: ConnectionStatus;
+  isConnected: boolean;
+
+  // Bulk WhatsApp states
   bulkWhatsappFilters: BulkWhatsAppFilters;
   selectedLeadsForBulk: string[];
   bulkJobName: string;
@@ -181,7 +321,7 @@ export interface WhatsAppState {
   bulkBatchSize: number;
   bulkDelayBetweenMessages: number;
 
-  // Bulk UI states (NEW)
+  // Bulk UI states
   bulkIsLoading: boolean;
   bulkError: string | null;
 }
@@ -210,27 +350,6 @@ export interface WhatsAppError {
   timestamp: string;
 }
 
-export interface WhatsAppState {
-  // Modal states
-  isModalOpen: boolean;
-  messageType: MessageType;
-
-  // Contact validation
-  contactValidation: ContactValidation;
-
-  // Template selection
-  selectedTemplate: string | null;
-  templateParameters: TemplateParameters;
-
-  // UI states
-  isPreviewMode: boolean;
-  isSending: boolean;
-
-  // Current context
-  currentLead: LeadData | null;
-  currentUser: UserData | null;
-}
-
 // =============== PAYLOAD TYPES FOR SLICE ACTIONS ===============
 export interface OpenModalPayload {
   lead: LeadData;
@@ -249,7 +368,7 @@ export interface TemplateApiResponse {
 }
 
 // ============================================================================
-// BULK WHATSAPP TYPES (ADD TO EXISTING FILE)
+// BULK WHATSAPP TYPES
 // ============================================================================
 
 export type WhatsAppJobStatus =
@@ -371,7 +490,7 @@ export interface ValidatePhoneNumbersResponse {
 }
 
 // ============================================================================
-// BULK STATE TYPES (ADD TO EXISTING WhatsAppState)
+// BULK STATE TYPES
 // ============================================================================
 
 export interface BulkWhatsAppFilters {
