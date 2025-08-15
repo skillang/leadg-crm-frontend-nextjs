@@ -13,7 +13,7 @@ import {
   setConnectionStatus,
   setUnreadCount,
   updateUnreadCounts,
-  clearUnreadCounts,
+  // clearUnreadCounts,
 } from "@/redux/slices/whatsappSlice";
 import { useGetBulkUnreadStatusQuery } from "@/redux/slices/whatsappApi";
 import {
@@ -68,8 +68,8 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
   // 🆕 Fetch initial unread counts on mount
   const {
     data: bulkUnreadData,
-    isLoading: isLoadingUnread,
-    error: unreadError,
+    // isLoading: isLoadingUnread,
+    // error: unreadError,
   } = useGetBulkUnreadStatusQuery(undefined, {
     // Only fetch if user is logged in
     skip: !localStorage.getItem("token"),

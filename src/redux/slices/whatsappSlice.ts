@@ -64,6 +64,14 @@ const initialState: WhatsAppState = {
   isLoadingHistory: false,
   chatError: null,
 
+  chatPagination: {
+    totalMessages: 0,
+    currentOffset: 0,
+    messagesPerBatch: 20,
+    hasMoreMessages: true,
+    isLoadingMore: false,
+  },
+
   // 🔄 NEW: Real-time States (ADD THESE)
   unreadCounts: {},
   connectionStatus: "disconnected",
@@ -341,6 +349,70 @@ const whatsappSlice = createSlice({
     clearUnreadCounts: (state) => {
       state.unreadCounts = {};
     },
+
+    setPaginationTotalMessages: (state, action: PayloadAction<number>) => {
+      state.chatPagination.totalMessages = action.payload;
+    },
+
+    setCurrentOffset: (state, action: PayloadAction<number>) => {
+      state.chatPagination.currentOffset = action.payload;
+    },
+
+    setHasMoreMessages: (state, action: PayloadAction<boolean>) => {
+      state.chatPagination.hasMoreMessages = action.payload;
+    },
+
+    setLoadingMore: (state, action: PayloadAction<boolean>) => {
+      state.chatPagination.isLoadingMore = action.payload;
+    },
+
+    // 🆕 NEW: Enhanced Chat Actions for Pagination
+    initializeChatHistory: (
+      state,
+      action: PayloadAction<{
+        messages: ChatMessage[];
+        totalMessages: number;
+        messagesPerBatch: number;
+      }>
+    ) => {
+      const { messages, totalMessages, messagesPerBatch } = action.payload;
+      state.chatHistory = messages;
+      state.chatPagination.totalMessages = totalMessages;
+      state.chatPagination.currentOffset = messagesPerBatch;
+      state.chatPagination.hasMoreMessages =
+        messages.length >= messagesPerBatch;
+      state.isLoadingHistory = false;
+      state.chatError = null;
+    },
+
+    appendChatHistory: (
+      state,
+      action: PayloadAction<{
+        messages: ChatMessage[];
+        newOffset: number;
+      }>
+    ) => {
+      const { messages, newOffset } = action.payload;
+      // Prepend older messages to the beginning of the array
+      state.chatHistory = [...messages, ...state.chatHistory];
+      state.chatPagination.currentOffset = newOffset;
+      state.chatPagination.hasMoreMessages =
+        messages.length >= state.chatPagination.messagesPerBatch;
+      state.chatPagination.isLoadingMore = false;
+    },
+
+    resetChatPagination: (state) => {
+      state.chatHistory = [];
+      state.chatPagination = {
+        totalMessages: 0,
+        currentOffset: 0,
+        messagesPerBatch: 20,
+        hasMoreMessages: true,
+        isLoadingMore: false,
+      };
+      state.isLoadingHistory = false;
+      state.chatError = null;
+    },
   },
 });
 
@@ -383,6 +455,13 @@ export const {
   setConnectionStatus,
   updateUnreadCounts,
   clearUnreadCounts,
+  setPaginationTotalMessages,
+  setCurrentOffset,
+  setHasMoreMessages,
+  setLoadingMore,
+  initializeChatHistory,
+  appendChatHistory,
+  resetChatPagination,
 } = whatsappSlice.actions;
 
 export default whatsappSlice.reducer;

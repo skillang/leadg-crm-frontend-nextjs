@@ -225,6 +225,29 @@ export const whatsappApi = createApi({
       providesTags: ["WhatsAppStatus"],
     }),
 
+    loadMoreChatHistory: builder.query<
+      ChatHistoryResponse,
+      {
+        leadId: string;
+        limit?: number;
+        offset: number;
+        autoMarkRead?: boolean;
+      }
+    >({
+      query: ({ leadId, limit = 20, offset, autoMarkRead = false }) => ({
+        url: `/whatsapp/lead-messages/${leadId}`,
+        params: {
+          limit: limit.toString(),
+          offset: offset.toString(),
+          auto_mark_read: autoMarkRead.toString(),
+        },
+      }),
+      // Different cache key than getChatHistory to avoid conflicts
+      providesTags: (result, error, { leadId, offset }) => [
+        { type: "WhatsAppStatus", id: `${leadId}-${offset}` },
+      ],
+    }),
+
     // Health check for bulk WhatsApp service
     // getWhatsAppHealth: builder.query<any, void>({
     //   query: () => "/bulk-whatsapp/health",
@@ -249,4 +272,6 @@ export const {
   useGetChatHistoryQuery,
   useSendChatMessageMutation,
   useGetActiveChatsQuery,
+  useLoadMoreChatHistoryQuery,
+  useLazyLoadMoreChatHistoryQuery,
 } = whatsappApi;

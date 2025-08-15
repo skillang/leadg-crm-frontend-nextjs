@@ -18,10 +18,6 @@ import {
 } from "@/redux/slices/authSlice";
 import { useGetCurrentUserQuery } from "@/redux/slices/authApi";
 
-interface AuthLayoutProps {
-  children: React.ReactNode;
-}
-
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
@@ -44,7 +40,8 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("🔄 Real-time connection status:", connectionStatus);
-  }, [connectionStatus]);
+    console.log("🔄 Real-time isConnected status:", isConnected);
+  }, [connectionStatus, isConnected]);
 
   // Initialize authentication from localStorage only once
   useEffect(() => {

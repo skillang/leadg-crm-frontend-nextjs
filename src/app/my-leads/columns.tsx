@@ -223,7 +223,7 @@ const ContactCell = ({ row }: { row: Row<Lead> }) => {
           className={`${
             hasUnread
               ? "bg-green-600/90 border-green-600 hover:bg-green-700 text-white" // WHITE text on green
-              : "bg-slate-500/10 border-slate-500/25 hover:bg-slate-500/20 text-slate-700" // GREY text on grey
+              : "bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20" // GREY text on grey
           } border-2 cursor-pointer transition-all duration-200`}
           onClick={handleWhatsApp}
         >

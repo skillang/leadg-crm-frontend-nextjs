@@ -65,7 +65,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
       return "bg-green-600 hover:bg-green-700 border-green-600 shadow-green-200 shadow-lg";
     } else {
       // 🔘 GREY: No unread messages
-      return "bg-gray-500 hover:bg-gray-600 border-gray-500";
+      return "bg-blue-500 hover:bg-blue-600 border-blue-500";
     }
   };
 

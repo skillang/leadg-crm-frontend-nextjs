@@ -304,6 +304,14 @@ export interface WhatsAppState {
   isLoadingHistory: boolean;
   chatError: string | null;
 
+  chatPagination: {
+    totalMessages: number;
+    currentOffset: number;
+    messagesPerBatch: number;
+    hasMoreMessages: boolean;
+    isLoadingMore: boolean;
+  };
+
   // 🔄 NEW: Real-time States
   unreadCounts: { [leadId: string]: number };
   connectionStatus: ConnectionStatus;

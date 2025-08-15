@@ -15,6 +15,13 @@ import {
   setChatError,
   addChatMessage,
   clearChatHistory,
+  // setPaginationTotalMessages,
+  // setCurrentOffset,
+  // setHasMoreMessages,
+  setLoadingMore,
+  initializeChatHistory,
+  appendChatHistory,
+  resetChatPagination,
   // 🔄 NEW: Real-time actions
   setUnreadCount,
   // setConnectionStatus,
@@ -39,7 +46,8 @@ import {
   useSendTextMessageMutation,
   // 💬 NEW: Chat API hooks
   useSendChatMessageMutation,
-  useGetActiveChatsQuery,
+  // useGetActiveChatsQuery,
+  useLazyLoadMoreChatHistoryQuery,
 } from "@/redux/slices/whatsappApi";
 import {
   formatPhoneNumber,
@@ -77,6 +85,14 @@ interface UseWhatsAppReturn {
   isLoadingHistory: boolean;
   chatError: string | null;
 
+  chatPagination: {
+    totalMessages: number;
+    currentOffset: number;
+    messagesPerBatch: number;
+    hasMoreMessages: boolean;
+    isLoadingMore: boolean;
+  };
+
   // 🔄 NEW: Real-time state
   unreadCounts: { [leadId: string]: number };
   connectionStatus: ConnectionStatus;
@@ -102,6 +118,10 @@ interface UseWhatsAppReturn {
   sendChatMessage: (leadId: string, message: string) => Promise<void>;
   refreshChatHistory: (leadId: string) => void;
   clearChat: () => void;
+
+  loadMoreMessages: (leadId: string) => Promise<void>;
+  resetChatPagination: () => void;
+  initializeChat: (leadId: string) => Promise<void>;
 
   // 🔄 NEW: Real-time actions
   updateUnreadCount: (leadId: string, count: number) => void;
@@ -145,6 +165,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     useSendTemplateMutation();
   const [sendTextMessage, { isLoading: isSendingText }] =
     useSendTextMessageMutation();
+  const [triggerLoadMore] = useLazyLoadMoreChatHistoryQuery();
 
   // 💬 NEW: Chat RTK Query hooks
   const [sendChatMessageMutation, { isLoading: isSendingChatMessage }] =
@@ -254,6 +275,93 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     },
     [dispatch]
   );
+
+  const initializeChat = useCallback(
+    async (leadId: string): Promise<void> => {
+      try {
+        dispatch(setLoadingHistory(true));
+        dispatch(setChatError(null));
+        dispatch(resetChatPagination());
+
+        // This will use the existing useGetChatHistoryQuery logic
+        // but we need to handle it manually here for initialization
+        const result = await triggerLoadMore({
+          leadId,
+          limit: whatsappState.chatPagination.messagesPerBatch,
+          offset: 0,
+          autoMarkRead: true,
+        }).unwrap();
+
+        if (result.success) {
+          dispatch(
+            initializeChatHistory({
+              messages: result.messages,
+              totalMessages: result.total_messages,
+              messagesPerBatch: whatsappState.chatPagination.messagesPerBatch,
+            })
+          );
+
+          dispatch(
+            setUnreadCount({
+              leadId,
+              count: result.unread_count,
+            })
+          );
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to load chat history";
+        dispatch(setChatError(errorMessage));
+        dispatch(setLoadingHistory(false));
+      }
+    },
+    [dispatch, triggerLoadMore, whatsappState.chatPagination.messagesPerBatch]
+  );
+
+  // 🆕 NEW: Load more messages function
+  const loadMoreMessages = useCallback(
+    async (leadId: string): Promise<void> => {
+      if (
+        whatsappState.chatPagination.isLoadingMore ||
+        !whatsappState.chatPagination.hasMoreMessages
+      ) {
+        return;
+      }
+
+      try {
+        dispatch(setLoadingMore(true));
+
+        const result = await triggerLoadMore({
+          leadId,
+          limit: whatsappState.chatPagination.messagesPerBatch,
+          offset: whatsappState.chatPagination.currentOffset,
+          autoMarkRead: false, // Don't mark as read when loading more
+        }).unwrap();
+
+        if (result.success) {
+          dispatch(
+            appendChatHistory({
+              messages: result.messages,
+              newOffset:
+                whatsappState.chatPagination.currentOffset +
+                whatsappState.chatPagination.messagesPerBatch,
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load more messages:", error);
+        dispatch(setLoadingMore(false));
+      }
+    },
+    [dispatch, triggerLoadMore, whatsappState.chatPagination]
+  );
+
+  // 🆕 NEW: Reset pagination
+  const resetChatPaginationHandler = useCallback(() => {
+    dispatch(resetChatPagination());
+  }, [dispatch]);
 
   const sendChatMessageHandler = useCallback(
     async (leadId: string, message: string): Promise<void> => {
@@ -477,7 +585,7 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     selectTemplate,
     updateTemplateParameter,
     togglePreview,
-
+    loadMoreMessages,
     // 💬 NEW: Chat actions
     loadChatHistory,
     sendChatMessage: sendChatMessageHandler,
@@ -500,6 +608,9 @@ const useWhatsApp = (): UseWhatsAppReturn => {
     getSelectedTemplateData,
     areAllParametersFilled,
     autoFillParameters,
+    chatPagination: whatsappState.chatPagination,
+    resetChatPagination: resetChatPaginationHandler,
+    initializeChat,
   };
 };
 
