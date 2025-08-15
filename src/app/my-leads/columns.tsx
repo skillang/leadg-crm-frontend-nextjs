@@ -35,6 +35,7 @@ import { RootState } from "@/redux/store";
 import { openModal } from "@/redux/slices/whatsappSlice";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 import { formatContactDate, formatDate } from "@/utils/formatDate";
+import { useCommunication } from "@/components/providers/communication-provider";
 
 // StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
@@ -126,8 +127,12 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 const ContactCell = ({ row }: { row: Row<Lead> }) => {
   const dispatch = useDispatch();
   const { user: currentUser } = useSelector((state: RootState) => state.auth); // ✅ Single declaration
+  const { getUnreadCount, hasUnreadMessages } = useCommunication(); // ADD THIS LINE
   const lead = row.original;
   const { showError } = useNotifications();
+
+  const unreadCount = getUnreadCount(lead.id);
+  const hasUnread = hasUnreadMessages(lead.id);
 
   const handleCall = () => {
     // ✅ No hooks inside function - use currentUser from component scope
@@ -213,17 +218,34 @@ const ContactCell = ({ row }: { row: Row<Lead> }) => {
           height={16}
         />
       </Button>
-      <Badge
-        className="bg-slate-500/10 text-slate-700 border-slate-500/25 border-2 cursor-pointer hover:bg-slate-500/20"
-        onClick={handleWhatsApp}
-      >
-        <Image
-          src="/assets/icons/whatsapp-icon.svg"
-          alt="WhatsApp Icon"
-          width={16}
-          height={16}
-        />
-      </Badge>
+      <div className="relative">
+        <Badge
+          className={`${
+            hasUnread
+              ? "bg-green-600/90 border-green-600 hover:bg-green-700 text-white" // WHITE text on green
+              : "bg-slate-500/10 border-slate-500/25 hover:bg-slate-500/20 text-slate-700" // GREY text on grey
+          } border-2 cursor-pointer transition-all duration-200`}
+          onClick={handleWhatsApp}
+        >
+          <Image
+            src="/assets/icons/whatsapp-icon.svg"
+            alt="WhatsApp Icon"
+            width={16}
+            height={16}
+            className={`transition-all duration-200 ${
+              hasUnread ? "opacity-100 brightness-0 invert" : "opacity-70" // INVERT icon on green background
+            }`}
+          />
+        </Badge>
+        {unreadCount > 0 && (
+          <Badge
+            variant="destructive"
+            className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-xs font-bold bg-red-500 hover:bg-red-500 border-white border-2 rounded-full"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </Badge>
+        )}
+      </div>
     </div>
   );
 };

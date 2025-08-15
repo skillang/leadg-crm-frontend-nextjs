@@ -82,9 +82,10 @@ const WhatsAppModal: React.FC = () => {
 
     const [newMessage, setNewMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
+    const [hasViewedMessages, setHasViewedMessages] = useState(false); // 🆕 NEW
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-    // 🔧 FIX: Use RTK Query instead of manual fetch
+    // 🔧 FIXED: Don't auto-mark as read when modal opens
     const {
       data: chatHistoryData,
       isLoading: isLoadingHistory,
@@ -95,7 +96,7 @@ const WhatsAppModal: React.FC = () => {
         leadId: currentLead?.leadId || "",
         limit: 50,
         offset: 0,
-        autoMarkRead: true,
+        autoMarkRead: true, // 🔧 CHANGED: Don't mark as read immediately
       },
       {
         skip: !currentLead?.leadId, // Only fetch when we have a leadId
@@ -114,6 +115,58 @@ const WhatsAppModal: React.FC = () => {
         );
       }
     }, [chatHistoryData, dispatch, currentLead?.leadId]);
+
+    // 🆕 NEW: Mark messages as read only when user actually views this tab
+    useEffect(() => {
+      if (
+        chatHistoryData?.success &&
+        !hasViewedMessages &&
+        currentLead?.leadId
+      ) {
+        setHasViewedMessages(true);
+
+        const markAsRead = async () => {
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            const API_BASE_URL =
+              process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+            await fetch(
+              `${API_BASE_URL}/notifications/whatsapp/${currentLead.leadId}/mark-read`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            dispatch(
+              setUnreadCount({
+                leadId: currentLead.leadId,
+                count: 0,
+              })
+            );
+
+            console.log(
+              `🔘 Marked lead ${currentLead.leadId} as read after viewing messages`
+            );
+          } catch (error) {
+            console.error("Failed to mark messages as read:", error);
+          }
+        };
+
+        markAsRead();
+      }
+    }, [chatHistoryData, hasViewedMessages, currentLead?.leadId, dispatch]);
+
+    // 🆕 NEW: Reset viewed state when modal opens for different lead
+    useEffect(() => {
+      setHasViewedMessages(false);
+    }, [currentLead?.leadId]);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -423,8 +476,8 @@ const WhatsAppModal: React.FC = () => {
                             Send a custom text message
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            ( Channel is open only when the customer texts first
-                            )
+                            (Channel is open only when the customer texts first
+                            in the past 24 hours)
                           </p>
                         </div>
                       </Label>

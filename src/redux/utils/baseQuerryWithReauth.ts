@@ -145,36 +145,60 @@ const handleForceLogout = async (api: BaseQueryApi) => {
     // Clear auth state
     api.dispatch(clearAuthState());
 
-    // 🔥 NEW: Use notification system if available
+    // ✅ IMPROVED: Use notification system properly
     if (globalNotificationService && typeof window !== "undefined") {
-      // Show notification instead of browser alert
-      globalNotificationService.showWarning(
-        "Your session has expired. You will be redirected to the login page.",
-        "Session Expired"
-      );
-
-      // Wait a moment for user to see the notification
-      setTimeout(() => {
-        redirectToLogin();
-      }, 2000);
+      // Use showConfirm instead of showWarning for better UX
+      globalNotificationService.showConfirm({
+        title: "Session Expired",
+        description:
+          "Your session has expired. You will be redirected to the login page.",
+        confirmText: "Go to Login",
+        cancelText: "Stay Here",
+        variant: "default",
+        onConfirm: () => {
+          redirectToLogin();
+        },
+        onCancel: () => {
+          // User chose to stay, but they won't be able to make authenticated requests
+          // You might want to show additional guidance here
+          globalNotificationService?.showWarning(
+            "You will need to refresh the page or navigate to login manually to continue.",
+            "Authentication Required"
+          );
+        },
+      });
     } else {
       // Fallback to browser alert if notification system not available
       if (typeof window !== "undefined" && window.location) {
         const message = "Your session has expired. Please log in again.";
 
-        if (window.confirm) {
-          window.confirm(message);
+        // Use modern browser confirm if available, otherwise alert
+        if (window.confirm && window.confirm(message)) {
+          redirectToLogin();
+        } else if (window.alert) {
+          window.alert(message);
+          redirectToLogin();
         } else {
-          alert(message);
+          // Last resort - direct redirect
+          redirectToLogin();
         }
-
-        redirectToLogin();
       }
     }
   } catch (error) {
     console.error("💥 Error during force logout:", error);
+
+    // If notification system fails, show error and still try to redirect
+    if (globalNotificationService) {
+      globalNotificationService.showError(
+        "An error occurred during logout. You will be redirected to login.",
+        "Logout Error"
+      );
+    }
+
     // Still try to redirect even if cleanup fails
-    redirectToLogin();
+    setTimeout(() => {
+      redirectToLogin();
+    }, 2000);
   }
 };
 
@@ -183,7 +207,10 @@ const redirectToLogin = () => {
   if (typeof window !== "undefined" && window.location) {
     const currentPath = window.location.pathname;
     if (!currentPath.includes("/login") && !currentPath.includes("/auth")) {
-      window.location.href = "/login";
+      // Add some delay to allow user to see any notifications
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1000);
     }
   }
 };

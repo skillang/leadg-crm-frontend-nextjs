@@ -425,6 +425,21 @@ export interface BulkWhatsAppJob {
   estimated_completion: string | null;
 }
 
+export interface BulkUnreadStatusResponse {
+  success: boolean;
+  unread_leads: Array<{
+    lead_id: string;
+    lead_name: string;
+    unread_count: number;
+    last_activity: string;
+  }>;
+  total_unread_leads: number;
+  summary: {
+    total_unread_messages: number;
+    leads_with_unread: number;
+  };
+}
+
 export interface BulkWhatsAppJobsResponse {
   success: boolean;
   jobs: BulkWhatsAppJob[];

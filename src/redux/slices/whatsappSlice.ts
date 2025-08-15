@@ -371,6 +371,7 @@ export const {
   setBulkDelayBetweenMessages,
   setBulkLoading,
   setBulkError,
+  setBulkWhatsappStageFilter,
   resetBulkWhatsappForm,
   setBulkWhatsappNameFilter,
   setChatHistory,

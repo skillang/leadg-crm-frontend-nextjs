@@ -20,6 +20,7 @@ import type {
   SendChatMessageRequest,
   SendChatMessageResponse,
   ActiveChatsResponse,
+  BulkUnreadStatusResponse,
 } from "@/models/types/whatsapp";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
@@ -131,6 +132,11 @@ export const whatsappApi = createApi({
       providesTags: ["WhatsAppStatus"],
     }),
 
+    getBulkUnreadStatus: builder.query<BulkUnreadStatusResponse, void>({
+      query: () => "/notifications/whatsapp/unread-status",
+      providesTags: ["WhatsAppStatus"],
+    }),
+
     // Cancel bulk WhatsApp job
     cancelBulkWhatsAppJob: builder.mutation<
       string,
@@ -235,6 +241,7 @@ export const {
   useCreateBulkWhatsAppJobMutation,
   useGetBulkWhatsAppJobsQuery,
   useGetBulkWhatsAppJobStatusQuery,
+  useGetBulkUnreadStatusQuery,
   useCancelBulkWhatsAppJobMutation,
   useGetBulkWhatsAppStatsQuery,
   useGetActiveWhatsAppJobsQuery,

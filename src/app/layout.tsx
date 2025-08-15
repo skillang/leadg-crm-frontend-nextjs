@@ -4,6 +4,7 @@ import "./globals.css";
 import { NotificationProvider } from "@/components/common/NotificationSystem";
 import { ReduxProvider } from "@/components/providers/redux-providers";
 import AuthLayout from "@/components/layouts/AuthLayout";
+import CommunicationProvider from "@/components/providers/communication-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,9 @@ export default function RootLayout({
       >
         <ReduxProvider>
           <NotificationProvider>
-            <AuthLayout>{children}</AuthLayout>
+            <CommunicationProvider>
+              <AuthLayout>{children}</AuthLayout>
+            </CommunicationProvider>
           </NotificationProvider>
         </ReduxProvider>
       </body>
