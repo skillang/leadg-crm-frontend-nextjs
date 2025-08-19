@@ -27,6 +27,7 @@ import permissionsReducer from "../slices/permissionsSlice";
 import { permissionsApi } from "../slices/permissionApi";
 import { tataTeliApi } from "../slices/tataTeliApi";
 import tataTeliReducer from "../slices/tataTeliSlice";
+import callDashboardApi from "../slices/callDashboardApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -56,6 +57,7 @@ const rootReducer = combineReducers({
   [sourcesApi.reducerPath]: sourcesApi.reducer,
   [permissionsApi.reducerPath]: permissionsApi.reducer,
   [tataTeliApi.reducerPath]: tataTeliApi.reducer,
+  [callDashboardApi.reducerPath]: callDashboardApi.reducer,
   // UI state
   leads: leadsReducer,
   auth: authReducer,
@@ -107,7 +109,8 @@ export const store = configureStore({
       sourcesApi.middleware,
       emailApi.middleware, // Add email API middleware,
       permissionsApi.middleware,
-      tataTeliApi.middleware
+      tataTeliApi.middleware,
+      callDashboardApi.middleware
     ),
 });
 

@@ -141,6 +141,12 @@ const userMenuItems = [
     icon: ChevronsLeftRightEllipsis,
     adminOnly: true,
   },
+  {
+    title: "Call Logs",
+    url: "/admin/call-dashboard",
+    icon: ChevronsLeftRightEllipsis,
+    adminOnly: true,
+  },
 ];
 
 // Lead Action dropdown items
