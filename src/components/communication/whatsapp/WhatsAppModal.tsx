@@ -198,7 +198,7 @@ const WhatsAppModal: React.FC = () => {
                 <RadioGroup
                   value={messageType}
                   onValueChange={handleMessageTypeChange}
-                  className="grid grid-cols-2 gap-3"
+                  className="grid md:grid-cols-2 grid-cols-1 gap-3"
                 >
                   <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <RadioGroupItem value="text" id="text" />
