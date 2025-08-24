@@ -7,9 +7,9 @@ import { useAppSelector } from "@/redux/hooks";
 import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
 import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
-import NewLeadDropdown from "@/components/leads/NewLeadDropdown";
 import { useRouter } from "next/navigation";
 import { Lead } from "@/models/types/lead";
+import { DateRange } from "@/components/ui/date-range-picker";
 
 // Create a simple debounce hook
 function useDebounce(value: string, delay: number) {
@@ -44,7 +44,14 @@ export default function DemoPage() {
   const [pageSize, setPageSize] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all"); // Add type annotation
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<{
+    created_from?: string;
+    created_to?: string;
+  }>({});
+
   const [isClearingFilters, setIsClearingFilters] = useState(false);
 
   const isAdmin = useAppSelector(selectIsAdmin);
@@ -78,6 +85,9 @@ export default function DemoPage() {
       search: debouncedSearchQuery.trim() || undefined,
       stage: stageFilter !== "all" ? stageFilter : undefined,
       status: statusFilter !== "all" ? statusFilter : undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      source: sourceFilter !== "all" ? sourceFilter : undefined,
+      ...dateFilter,
     },
     {
       skip: !isAdmin,
@@ -97,6 +107,8 @@ export default function DemoPage() {
       search: debouncedSearchQuery.trim() || undefined,
       stage: stageFilter !== "all" ? stageFilter : undefined,
       status: statusFilter !== "all" ? statusFilter : undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      ...dateFilter,
     },
     {
       skip: isAdmin,
@@ -191,6 +203,33 @@ export default function DemoPage() {
     [stageFilter, statusFilter]
   );
 
+  const handleCategoryFilterChange = useCallback((value: string) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  }, []);
+
+  const handleDateRangeChange = useCallback(
+    ({ range }: { range: DateRange }) => {
+      if (range?.from) {
+        const created_from = range.from.toISOString().split("T")[0]; // YYYY-MM-DD format
+        const created_to = range.to
+          ? range.to.toISOString().split("T")[0]
+          : created_from;
+
+        setDateFilter({ created_from, created_to });
+        setCurrentPage(1); // Reset pagination
+      } else {
+        setDateFilter({}); // Clear date filter
+      }
+    },
+    []
+  );
+
+  const handleSourceFilterChange = useCallback((value: string) => {
+    setSourceFilter(value);
+    setCurrentPage(1);
+  }, []);
+
   // Helper function to extract error message
   const getErrorMessage = (error: unknown): string => {
     if (!error) return "Unknown error occurred";
@@ -249,76 +288,30 @@ export default function DemoPage() {
 
   return (
     <div className="container mx-auto space-y-6">
-      {/* No Data State - 🔥 FIXED: Added isClearingFilters check */}
-      {finalLeads.length === 0 &&
-      !debouncedSearchQuery &&
-      stageFilter === "all" &&
-      statusFilter === "all" &&
-      !isLoading &&
-      !isClearingFilters ? (
-        <div className="bg-white rounded-lg shadow border p-12 text-center">
-          <div className="text-gray-400 mb-4">
-            <svg
-              className="h-12 w-12 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {isAdmin ? "No leads in the system" : "No leads assigned to you"}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {isAdmin
-              ? "Get started by creating your first lead or importing leads from a CSV file."
-              : "Contact your administrator to get leads assigned to you."}
-          </p>
-          {isAdmin && (
-            <div className="flex justify-center">
-              <NewLeadDropdown />
-            </div>
-          )}
-        </div>
-      ) : (
-        /* Data Table */
-        <DataTable
-          columns={columns}
-          data={finalLeads}
-          title={isAdmin ? "All Leads" : "Leads"}
-          // description={
-          //   debouncedSearchQuery.trim()
-          //     ? `${
-          //         paginationMeta?.total || finalLeads.length
-          //       } leads found for "${debouncedSearchQuery}"`
-          //     : `${
-          //         isAdmin
-          //           ? "Comprehensive view of all leads in the system"
-          //           : "Your assigned leads with real-time updates"
-          //       } with sorting, filtering, and actions`
-          // }
-          onExportCsv={() => console.log("Export CSV from DataTable")}
-          paginationMeta={paginationMeta}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          isLoading={isLoading}
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-          onClearSearch={handleClearSearch}
-          isSearching={isSearching}
-          stageFilter={stageFilter}
-          statusFilter={statusFilter}
-          onStageFilterChange={handleStageFilterChange}
-          onStatusFilterChange={handleStatusFilterChange}
-          router={router}
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={finalLeads}
+        title={isAdmin ? "All Leads" : "Leads"}
+        onExportCsv={() => console.log("Export CSV from DataTable")}
+        paginationMeta={paginationMeta}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        isLoading={isLoading}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        onClearSearch={handleClearSearch}
+        isSearching={isSearching}
+        stageFilter={stageFilter}
+        statusFilter={statusFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={handleCategoryFilterChange}
+        dateFilter={dateFilter}
+        onDateFilterChange={handleDateRangeChange}
+        onStageFilterChange={handleStageFilterChange}
+        onStatusFilterChange={handleStatusFilterChange}
+        onSourceFilterChange={handleSourceFilterChange}
+        router={router}
+      />
     </div>
   );
 }

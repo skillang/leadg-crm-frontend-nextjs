@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import {
-  addDays,
+  // addDays,
   format,
   subDays,
   startOfWeek,
@@ -18,7 +18,6 @@ import {
 } from "date-fns";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,13 +27,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // Helper function to convert string dates to Date objects
 function getDateAdjustedForTimezone(dateInput: Date | string): Date {
@@ -163,8 +155,8 @@ export function DateRangePicker({
   initialCompareFrom,
   initialCompareTo,
   align = "end",
-  locale = "en-US",
-  showCompare = false, // Disabled by default for call analytics
+  // locale = "en-US",
+  // showCompare = false, // Disabled by default for call analytics
   className,
   placeholder = "Select date range",
 }: DateRangePickerProps) {
@@ -272,7 +264,7 @@ export function DateRangePicker({
       <PopoverContent className="w-auto p-0" align={align}>
         <div className="flex">
           {/* Presets Sidebar */}
-          <div className="border-r border-border">
+          <div className="w-40 shrink-0 border-r border-border">
             <div className="p-3">
               <Label className="text-sm font-medium">Quick Select</Label>
             </div>
@@ -295,7 +287,7 @@ export function DateRangePicker({
           </div>
 
           {/* Calendar */}
-          <div className="p-3">
+          <div className="p-3 flex-1">
             <Calendar
               mode="range"
               defaultMonth={range?.from}

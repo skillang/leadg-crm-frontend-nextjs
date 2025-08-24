@@ -7,6 +7,7 @@ import type {
   WhatsAppTemplate,
   TemplateParameters,
 } from "@/models/types/whatsapp";
+import Image from "next/image";
 
 interface TemplatePreviewProps {
   template: WhatsAppTemplate;
@@ -42,27 +43,20 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
     (param) => !parameters[param]?.trim()
   );
 
-  // // Handle case where template might not have a template string
-  // if (!template.template) {
-  //   return (
-  //     <div className="space-y-2">
-  //       <Label>Preview:</Label>
-  //       <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 p-4 rounded-lg">
-  //         <div className="bg-background rounded-lg p-3 shadow-sm border-l-4 border-gray-500">
-  //           <p className="text-sm text-muted-foreground italic">
-  //             No template content available for preview
-  //           </p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="space-y-2">
       <Label>Preview:</Label>
       <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-4 rounded-lg">
         <div className="bg-background rounded-lg p-3 shadow-sm border-l-4 border-green-500">
+          {template.posterImgUrl && (
+            <div className="mb-3">
+              <Image
+                src={template.posterImgUrl}
+                alt="Template preview"
+                className="max-w-full h-75 rounded-lg border-2"
+              />
+            </div>
+          )}
           <p className="text-sm whitespace-pre-wrap">{previewText}</p>
         </div>
         <div className="mt-2 space-y-1">
@@ -74,11 +68,11 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               ⚠ Some parameters are empty and will show as placeholders
             </p>
           )}
-          {templateParams.length === 0 && (
+          {/* {templateParams.length === 0 && (
             <p className="text-xs text-blue-600 dark:text-blue-400">
               ℹ This template has no parameters to fill
             </p>
-          )}
+          )} */}
         </div>
       </div>
     </div>

@@ -123,9 +123,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             size={buttonSize}
             role="combobox"
             aria-expanded={open}
-            className={`justify-between ${error ? "border-red-500" : ""} ${
-              showIcon ? "gap-2" : ""
-            }`}
+            className={`justify-between  ${className} ${
+              error ? "border-red-500" : ""
+            } ${showIcon ? "gap-2" : ""}`}
             disabled={disabled}
           >
             <div className="flex items-center gap-2">

@@ -239,7 +239,7 @@ const WhatsAppTemplateMessage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Template Selection */}
       <div className="space-y-2">
         <Label htmlFor="template-select">Select Template:</Label>
@@ -268,7 +268,7 @@ const WhatsAppTemplateMessage: React.FC = () => {
 
       {/* Template Parameters */}
       {selectedTemplateData && selectedTemplateData.parameters && (
-        <div className="space-y-4">
+        <div className="">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-foreground">
               Fill Template Parameters:
@@ -338,21 +338,6 @@ const WhatsAppTemplateMessage: React.FC = () => {
       {/* Send Button */}
       {selectedTemplateData && (
         <div className="flex flex-col gap-4 pt-4 border-t">
-          {/* Debug Info - Remove this in production */}
-          {/* {process.env.NODE_ENV === "development" && (
-            <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-              <div>Selected Template: {selectedTemplate}</div>
-              <div>Has Phone: {!!currentLead?.phoneNumber}</div>
-              <div>All Parameters Filled: {allParametersFilled.toString()}</div>
-              <div>Is Sending: {isSending.toString()}</div>
-              <div>Parameters: {JSON.stringify(templateParameters)}</div>
-              <div>
-                Required Parameters:{" "}
-                {JSON.stringify(selectedTemplateData.parameters)}
-              </div>
-            </div>
-          )} */}
-
           <div className="flex justify-end">
             <Button
               onClick={handleSend}

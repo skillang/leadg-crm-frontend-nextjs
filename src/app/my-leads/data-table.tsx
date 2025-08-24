@@ -36,22 +36,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
   X,
   DownloadIcon,
   Grid2X2PlusIcon,
-  SlidersHorizontalIcon,
   Filter,
   ListFilterIcon,
 } from "lucide-react";
@@ -75,7 +65,12 @@ import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { Lead } from "@/models/types/lead";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import TataTeliModal from "@/components/communication/calling/TataTeliModal";
+import { DateRange, DateRangePicker } from "@/components/ui/date-range-picker";
+import { Source } from "@/models/types/source";
+import { useGetSourcesQuery } from "@/redux/slices/sourcesApi";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -103,6 +98,12 @@ interface DataTableProps<TData, TValue> {
   isSearching?: boolean;
   stageFilter?: string;
   statusFilter?: string;
+  categoryFilter?: string;
+  onCategoryFilterChange?: (value: string) => void;
+  dateFilter?: { created_from?: string; created_to?: string };
+  onDateFilterChange?: ({ range }: { range: DateRange }) => void;
+  sourceFilter?: string; // Add this
+  onSourceFilterChange?: (value: string) => void;
   onStageFilterChange?: (value: string) => void;
   onStatusFilterChange?: (value: string) => void;
   router?: AppRouterInstance;
@@ -125,8 +126,13 @@ export function DataTable<TData extends Lead, TValue>({
   isSearching = false,
   stageFilter = "all",
   statusFilter = "all",
+  categoryFilter = "all", // ADD THIS
+  onCategoryFilterChange,
+  dateFilter,
+  onDateFilterChange,
   onStageFilterChange,
   onStatusFilterChange,
+  onSourceFilterChange,
   router,
 }: DataTableProps<TData, TValue>) {
   const { showWarning } = useNotifications();
@@ -145,13 +151,16 @@ export function DataTable<TData extends Lead, TValue>({
   });
 
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
-  const [dateRange, setDateRange] = React.useState("last-7-days");
+  const [sourceFilter] = React.useState<string>("all");
 
   // Get stages from API
   const { data: stagesData, isLoading: stagesLoading } =
     useGetActiveStagesQuery({});
   const { data: statusData, isLoading: statusLoading } =
     useGetActiveStatusesQuery({});
+  const { data: categoriesData } = useGetCategoriesQuery({
+    include_inactive: false,
+  });
   const { getStageDisplayName } = useStageUtils();
 
   const table = useReactTable({
@@ -187,18 +196,23 @@ export function DataTable<TData extends Lead, TValue>({
   const hasActiveFilters =
     stageFilter !== "all" ||
     departmentFilter !== "all" ||
+    categoryFilter !== "all" ||
     statusFilter !== "all";
 
-  const activeFiltersCount = [
-    stageFilter !== "all" ? 1 : 0,
-    departmentFilter !== "all" ? 1 : 0,
-    statusFilter !== "all" ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  // const activeFiltersCount = [
+  //   stageFilter !== "all" ? 1 : 0,
+  //   departmentFilter !== "all" ? 1 : 0,
+  //   statusFilter !== "all" ? 1 : 0,
+  //   categoryFilter !== "all" ? 1 : 0,
+  //   dateFilter?.created_from && dateFilter?.created_to ? 1 : 0, // ADD THIS
+  // ].reduce((a, b) => a + b, 0);
 
   const clearAllFilters = () => {
     onStageFilterChange?.("all"); // ADD THIS
     onStatusFilterChange?.("all");
     setDepartmentFilter("all");
+    onCategoryFilterChange?.("all");
+    // onDateFilterChange?.({ range: { from: undefined, to: undefined } });
     // 🔥 Also clear search when clearing all filters
     if (onClearSearch) {
       onClearSearch();
@@ -355,9 +369,7 @@ export function DataTable<TData extends Lead, TValue>({
   // 🔥 Stage Filter Component
   const StageFilterSelect = () => {
     if (stagesLoading) {
-      return (
-        <div className="w-[180px] h-10 bg-gray-200 rounded animate-pulse" />
-      );
+      return <Skeleton className="h-10 w-[110px]" />;
     }
 
     return (
@@ -375,9 +387,7 @@ export function DataTable<TData extends Lead, TValue>({
 
   const StatusFilterSelect = () => {
     if (stagesLoading) {
-      return (
-        <div className="w-[180px] h-10 bg-gray-200 rounded animate-pulse" />
-      );
+      return <Skeleton className="h-10 w-[110px]" />;
     }
 
     return (
@@ -390,6 +400,99 @@ export function DataTable<TData extends Lead, TValue>({
         placeholder="All Status"
         showLabel={false}
       />
+    );
+  };
+
+  const CategoryFilterSelect = () => {
+    const { data: categoriesData, isLoading: categoriesLoading } =
+      useGetCategoriesQuery({
+        include_inactive: false,
+      });
+
+    if (categoriesLoading) {
+      return <Skeleton className="h-10 w-[110px]" />;
+    }
+
+    return (
+      <Select
+        value={categoryFilter === "all" ? "" : categoryFilter}
+        onValueChange={(value) => onCategoryFilterChange?.(value || "all")}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="All Categories" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Categories</SelectItem>
+          {categoriesData?.categories?.map((category) => (
+            <SelectItem key={category.id} value={category.name}>
+              {category.name}
+              {/* {category.lead_count !== undefined && (
+                <span className="ml-1 text-xs text-gray-500">
+                  ({category.lead_count})
+                </span>
+              )} */}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
+
+  const DateFilterSelect = () => {
+    // Convert string dates back to Date objects for the picker
+    const getInitialDates = () => {
+      if (dateFilter?.created_from) {
+        return {
+          from: new Date(dateFilter.created_from),
+          to: dateFilter.created_to
+            ? new Date(dateFilter.created_to)
+            : new Date(dateFilter.created_from),
+        };
+      }
+      return undefined;
+    };
+
+    const initialRange = getInitialDates();
+
+    return (
+      <DateRangePicker
+        onUpdate={onDateFilterChange}
+        initialDateFrom={initialRange?.from}
+        initialDateTo={initialRange?.to}
+        placeholder="Select date range"
+        className="w-[200px]"
+      />
+    );
+  };
+
+  const SourceFilterSelect = () => {
+    const { data: sourcesData, isLoading: sourcesLoading } = useGetSourcesQuery(
+      {
+        include_lead_count: true,
+      }
+    );
+
+    if (sourcesLoading) {
+      return <Skeleton className="h-10 w-[110px]" />;
+    }
+
+    return (
+      <Select
+        value={sourceFilter === "all" ? "" : sourceFilter}
+        onValueChange={(value) => onSourceFilterChange?.(value || "all")}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="All Sources" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Sources</SelectItem>
+          {sourcesData?.sources?.map((source: Source) => (
+            <SelectItem key={source.id} value={source.name}>
+              {source.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   };
 
@@ -505,135 +608,111 @@ export function DataTable<TData extends Lead, TValue>({
         ) : (
           // 🖥️ DESKTOP HEADER - Keep Existing Full Header
           <>
-            <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+            <div className="w-full space-y-2">
+              <div className="flex flex-row justify-between w-full">
+                <div className="flex items-center gap-4 ">
+                  <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
 
-              {/* Column Visibility MultiSelect */}
-              <div className="w-48">
-                <MultiSelect
-                  options={table
-                    .getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => ({
-                      value: column.id,
-                      label: getColumnDisplayName(column),
-                      subtitle: column.getIsVisible() ? "Visible" : "Hidden",
-                    }))}
-                  value={table
-                    .getAllColumns()
-                    .filter(
-                      (column) => column.getCanHide() && column.getIsVisible()
-                    )
-                    .map((column) => column.id)}
-                  onChange={(selectedColumnIds) => {
-                    table
-                      .getAllColumns()
-                      .filter((column) => column.getCanHide())
-                      .forEach((column) => {
-                        column.toggleVisibility(
-                          selectedColumnIds.includes(column.id)
-                        );
-                      });
-                  }}
-                  placeholder="Customize"
-                  searchPlaceholder="Search columns..."
-                  emptyMessage="No columns found."
-                  maxDisplayItems={2}
-                  showCheckbox={true}
-                  allowSingleSelect={false}
-                  showSelectedBadges={false}
-                  alwaysShowPlaceholder={true}
-                  showIcon={true}
-                  icon={<Grid2X2PlusIcon className="h-4 w-4" />}
-                  buttonVariant="outline"
-                  buttonSize="default"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {/* Search Input */}
-              <div className="relative w-54">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search leads..."
-                  value={searchQuery}
-                  onChange={(event) => onSearchChange?.(event.target.value)}
-                  className="pl-8 pr-16"
-                  disabled={!onSearchChange}
-                />
-
-                {isSearching && searchQuery.length > 0 && (
-                  <div className="absolute right-8 top-2.5">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  {/* Column Visibility MultiSelect */}
+                  <div className="w-48">
+                    <MultiSelect
+                      options={table
+                        .getAllColumns()
+                        .filter((column) => column.getCanHide())
+                        .map((column) => ({
+                          value: column.id,
+                          label: getColumnDisplayName(column),
+                          subtitle: column.getIsVisible()
+                            ? "Visible"
+                            : "Hidden",
+                        }))}
+                      value={table
+                        .getAllColumns()
+                        .filter(
+                          (column) =>
+                            column.getCanHide() && column.getIsVisible()
+                        )
+                        .map((column) => column.id)}
+                      onChange={(selectedColumnIds) => {
+                        table
+                          .getAllColumns()
+                          .filter((column) => column.getCanHide())
+                          .forEach((column) => {
+                            column.toggleVisibility(
+                              selectedColumnIds.includes(column.id)
+                            );
+                          });
+                      }}
+                      placeholder="Customize"
+                      searchPlaceholder="Search columns..."
+                      emptyMessage="No columns found."
+                      maxDisplayItems={2}
+                      showCheckbox={true}
+                      allowSingleSelect={false}
+                      showSelectedBadges={false}
+                      alwaysShowPlaceholder={true}
+                      showIcon={true}
+                      icon={<Grid2X2PlusIcon className="h-4 w-4" />}
+                      buttonVariant="outline"
+                      buttonSize="default"
+                    />
                   </div>
-                )}
+                </div>
 
-                {searchQuery && onClearSearch && !isSearching && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1 h-6 w-6 p-0"
-                    onClick={onClearSearch}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
+                <div className="flex items-center space-x-2">
+                  {onExportCsv && (
+                    <Button
+                      size="sm"
+                      onClick={onExportCsv}
+                      className="gap-2"
+                      variant={"outline-primary"}
+                    >
+                      <DownloadIcon className="h-4 w-4" />
+                      .csv
+                    </Button>
+                  )}
+                  <NewLeadDropdown />
+                </div>
               </div>
 
-              <StageFilterSelect />
-              <StatusFilterSelect />
+              <div className="flex justify-between">
+                {/* Search Input */}
+                <div className="relative w-84">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search leads..."
+                    value={searchQuery}
+                    onChange={(event) => onSearchChange?.(event.target.value)}
+                    className="pl-8 pr-16"
+                    disabled={!onSearchChange}
+                  />
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <SlidersHorizontalIcon className="mr-2 h-4 w-4" />
-                    Filters
-                    {(hasActiveFilters || searchQuery) && (
-                      <Badge variant="secondary" className="ml-2 h-4 w-4 p-0">
-                        {activeFiltersCount + (searchQuery ? 1 : 0)}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={clearAllFilters}>
-                    Clear all filters
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup
-                    value={dateRange}
-                    onValueChange={setDateRange}
-                  >
-                    <DropdownMenuRadioItem value="today">
-                      Today
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="last-7-days">
-                      Last 7 days
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="last-30-days">
-                      Last 30 days
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="all">
-                      All time
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  {isSearching && searchQuery.length > 0 && (
+                    <div className="absolute right-8 top-2.5">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </div>
+                  )}
 
-              {onExportCsv && (
-                <Button
-                  variant="primaryOutline"
-                  size="sm"
-                  onClick={onExportCsv}
-                  className="gap-2"
-                >
-                  <DownloadIcon className="h-4 w-4" />
-                  .csv
-                </Button>
-              )}
+                  {searchQuery && onClearSearch && !isSearching && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1 h-6 w-6 p-0"
+                      onClick={onClearSearch}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
 
-              <NewLeadDropdown />
+                <div className="flex gap-2">
+                  <StageFilterSelect />
+                  <StatusFilterSelect />
+                  <CategoryFilterSelect />
+                  <SourceFilterSelect />
+                  <DateFilterSelect />
+                </div>
+              </div>
             </div>
           </>
         )}
@@ -685,6 +764,59 @@ export function DataTable<TData extends Lead, TValue>({
             </Badge>
           )}
 
+          {categoryFilter !== "all" && (
+            <Badge variant="secondary" className="gap-1">
+              Category:{" "}
+              {categoriesData?.categories?.find(
+                (c) => c.name === categoryFilter
+              )?.name || categoryFilter}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
+                onClick={() => onCategoryFilterChange?.("all")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+
+          {/* {dateFilter?.created_from && dateFilter?.created_to && (
+            <Badge variant="secondary" className="gap-1">
+              Date: {format(new Date(dateFilter.created_from), "MMM dd")} -{" "}
+              {format(new Date(dateFilter.created_to), "MMM dd, yyyy")}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
+                onClick={() =>
+                  onDateFilterChange?.({
+                    range: { from: undefined, to: undefined },
+                  })
+                }
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )} */}
+
+          {/* {sourceFilter !== "all" && (
+            <Badge variant="secondary" className="gap-1">
+              Source: {sourceFilter}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
+                onClick={() => {
+                  setSourceFilter("all");
+                  onSourceFilterChange?.("all");
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )} */}
+
           <Button
             variant="ghost"
             size="sm"
@@ -711,15 +843,7 @@ export function DataTable<TData extends Lead, TValue>({
           router={router}
         />
       ) : (
-        // 🖥️ DESKTOP VIEW - Existing table structure
         <div className="rounded-md border">
-          {isLoading && !isSearching && (
-            <div className="p-4 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-              Loading leads...
-            </div>
-          )}
-
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -738,13 +862,40 @@ export function DataTable<TData extends Lead, TValue>({
               ))}
             </TableHeader>
             <TableBody>
-              {!isLoading && data.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="hover:bg-muted/50"
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-center p-6"
                   >
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span>Loading leads...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : data.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-center p-6 text-muted-foreground"
+                  >
+                    {hasActiveFilters || searchQuery ? (
+                      <p>No data available for the selected filter.</p>
+                    ) : (
+                      <>
+                        <p className="font-medium">No leads in the system</p>
+                        <p className="text-sm">
+                          Get started by creating your first lead or importing
+                          leads from a CSV file.
+                        </p>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
@@ -755,38 +906,9 @@ export function DataTable<TData extends Lead, TValue>({
                     ))}
                   </TableRow>
                 ))
-              ) : !isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {searchQuery
-                      ? `No leads found matching "${searchQuery}"`
-                      : hasActiveFilters
-                      ? "No leads match your filters."
-                      : "No leads found."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                isSearching && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                        Searching...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
               )}
             </TableBody>
           </Table>
-
-          {/* Pagination */}
           {paginationMeta && <ServerPagination />}
         </div>
       )}

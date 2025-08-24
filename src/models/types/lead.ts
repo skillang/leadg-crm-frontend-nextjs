@@ -85,8 +85,8 @@ export interface AssignmentHistory {
 }
 
 export interface MultiAssignmentInfo {
-  primary_assignee: string;
-  primary_assignee_name: string;
+  primary_assignee?: string;
+  primary_assignee_name?: string;
   co_assignees: string[];
   co_assignees_names: string[];
   assignment_method: string;

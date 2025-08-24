@@ -47,12 +47,11 @@ const NewLeadDropdown: React.FC = () => {
     }
   };
 
-  // 🔥 UPDATED: Always show dropdown (removed isAdmin check)
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="bg-blue-200 border-blue-500 border-2 text-blue-800 hover:bg-blue-100 hover:text-blue-800">
+          <Button variant={"outline-primary"}>
             <Plus className="w-4 h-4 mr-2" />
             Add Lead
             <ChevronDown className="w-4 h-4 ml-2" />

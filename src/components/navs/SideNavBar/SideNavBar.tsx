@@ -78,6 +78,12 @@ const mainMenuItems = [
     icon: NotebookText,
   },
   {
+    title: "Call Logs",
+    url: "/admin/call-dashboard",
+    icon: ChevronsLeftRightEllipsis,
+    adminOnly: true,
+  },
+  {
     title: "Contacts",
     url: "#",
     icon: Contact,
@@ -138,12 +144,6 @@ const userMenuItems = [
   {
     title: "Tata Teli Users",
     url: "/admin/tata-teli-user-mapping",
-    icon: ChevronsLeftRightEllipsis,
-    adminOnly: true,
-  },
-  {
-    title: "Call Logs",
-    url: "/admin/call-dashboard",
     icon: ChevronsLeftRightEllipsis,
     adminOnly: true,
   },
