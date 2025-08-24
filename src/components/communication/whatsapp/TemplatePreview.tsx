@@ -7,7 +7,6 @@ import type {
   WhatsAppTemplate,
   TemplateParameters,
 } from "@/models/types/whatsapp";
-import Image from "next/image";
 
 interface TemplatePreviewProps {
   template: WhatsAppTemplate;
@@ -50,7 +49,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
         <div className="bg-background rounded-lg p-3 shadow-sm border-l-4 border-green-500">
           {template.posterImgUrl && (
             <div className="mb-3">
-              <Image
+              <img
                 src={template.posterImgUrl}
                 alt="Template preview"
                 className="max-w-full h-75 rounded-lg border-2"
