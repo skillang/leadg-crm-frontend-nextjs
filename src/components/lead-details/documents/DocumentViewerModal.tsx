@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   FileText,
   ExternalLink,
-  Eye,
   ZoomIn,
   ZoomOut,
   ChevronLeft,
@@ -42,10 +41,6 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   documentUrl,
   document,
 }) => {
-  // Early return if document is not provided
-  if (!document) {
-    return null;
-  }
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -63,7 +58,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     []
   );
 
-  const onDocumentLoadError = useCallback((error: any) => {
+  const onDocumentLoadError = useCallback((error: unknown) => {
     console.error("PDF load error:", error);
     setError("Failed to load PDF");
     setLoading(false);
@@ -116,6 +111,10 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     [numPages]
   );
 
+  // Early return if document is not provided
+  if (!document) {
+    return null;
+  }
   // Check file type
   const isPDF = document?.filename?.toLowerCase().endsWith(".pdf") || false;
   const isImage = document?.filename
