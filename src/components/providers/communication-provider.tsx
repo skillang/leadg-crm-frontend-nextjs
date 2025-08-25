@@ -194,6 +194,21 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
     [dispatch]
   );
 
+  const disconnect = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+      console.log("🔌 SSE connection closed");
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    dispatch(setConnectionStatus("disconnected"));
+  }, [dispatch]);
+
   // SSE Connection Management
   const connect = useCallback(() => {
     const token = getAuthToken();
@@ -251,22 +266,7 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
       console.error("Failed to establish SSE connection:", error);
       dispatch(setConnectionStatus("error"));
     }
-  }, [getAuthToken, getSSEUrl, handleRealtimeEvent, dispatch]);
-
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-      console.log("🔌 SSE connection closed");
-    }
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    dispatch(setConnectionStatus("disconnected"));
-  }, [dispatch]);
+  }, [getAuthToken, getSSEUrl, handleRealtimeEvent, dispatch, disconnect]);
 
   const reconnect = useCallback(() => {
     console.log("🔄 Manual reconnection triggered");

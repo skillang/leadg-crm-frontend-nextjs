@@ -65,13 +65,6 @@ export default function DemoPage() {
     setCurrentPage(1);
   }, [debouncedSearchQuery]);
 
-  // 🔥 FIXED: Reset clearing state when API responds
-  useEffect(() => {
-    if (isClearingFilters && !isLoading) {
-      setIsClearingFilters(false);
-    }
-  }, [isClearingFilters]);
-
   // API calls with proper search parameters
   const {
     data: adminLeadsResponse,
@@ -117,9 +110,16 @@ export default function DemoPage() {
   );
 
   const leadsResponse = isAdmin ? adminLeadsResponse : userLeadsResponse;
-  const isLoading = isAdmin ? adminLoading : userLoading;
+  const isLoading = isAdmin ? adminLoading : userLoading; // Move this here
   const error = isAdmin ? adminError : userError;
   const refetch = isAdmin ? refetchAdmin : refetchUser;
+
+  // 🔥 FIXED: Reset clearing state when API responds
+  useEffect(() => {
+    if (isClearingFilters && !isLoading) {
+      setIsClearingFilters(false);
+    }
+  }, [isClearingFilters, isLoading]);
 
   // 🔥 FIXED: Proper search state management
   const isSearching = searchQuery !== debouncedSearchQuery;

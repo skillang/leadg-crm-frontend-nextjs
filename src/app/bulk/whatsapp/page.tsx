@@ -107,7 +107,6 @@ interface BulkJobRequestData {
 
 const BulkWhatsAppPage: React.FC = () => {
   const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
   const {
     bulkWhatsappFilters,
     selectedLeadsForBulk,

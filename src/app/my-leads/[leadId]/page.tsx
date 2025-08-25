@@ -34,7 +34,7 @@ import { formatContactDate, formatDate } from "@/utils/formatDate";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { StageSelect } from "@/components/common/StageSelect";
 import {
-  getPriorityColor,
+  // getPriorityColor,
   LEAD_DETAIL_TABS,
   type TabDefinition,
 } from "@/constants/leadDetailsConfig";
