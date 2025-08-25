@@ -4,6 +4,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TaskStatsProps {
   stats: {
@@ -48,23 +49,28 @@ const TaskStats: React.FC<TaskStatsProps> = ({ stats, isLoading = false }) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="">
-              <div className=" bg-gray-200 rounded mb-2"></div>
-              <div className=" bg-gray-200 rounded"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        {Array(3)
+          .fill(0)
+          .map((_, i) => (
+            <Card key={i}>
+              <CardContent className="">
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-8 w-12" />
+              </CardContent>
+            </Card>
+          ))}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
       {statsItems.map((item, index) => (
-        <Card key={index} className={`transition-colors ${item.className}`}>
+        <Card
+          key={index}
+          className={`transition-colors w-full ${item.className}`}
+        >
           <CardContent className="">
             <p className="text-sm text-gray-600 font-medium">{item.label}</p>
             <p className="text-2xl font-bold mt-1">{item.value}</p>

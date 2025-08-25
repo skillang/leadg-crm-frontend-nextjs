@@ -137,7 +137,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
         className
       )}
     >
-      <CardContent className="p-4">
+      <CardContent>
         <div className="flex items-start gap-3">
           {/* Checkbox */}
           {onSelect && (

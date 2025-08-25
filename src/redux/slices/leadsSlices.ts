@@ -1,9 +1,6 @@
 // src/redux/slices/leadsSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {
-  // LeadFilters,
-  LeadsState,
-} from "@/models/types/lead";
+import { LeadsState } from "@/models/types/lead";
 
 const initialState: LeadsState = {
   filters: {
@@ -84,8 +81,11 @@ const leadsSlice = createSlice({
         department: "",
         source: "",
         assignedTo: "",
+        category: "",
+        dateFrom: "",
+        dateTo: "",
         includeMultiAssigned: false,
-        assignedToMe: false,
+        assignedToMe: true,
       };
     },
 

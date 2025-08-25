@@ -105,7 +105,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200  border-gray-200",
+        "transition-all duration-200 py-3  border-gray-200",
         isSelected && "ring-2 ring-blue-500",
         className
       )}
@@ -148,7 +148,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-4">
+      <CardContent className="pt-0">
         <Table>
           <TableBody>
             {/* Last updated row */}

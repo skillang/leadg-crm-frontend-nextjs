@@ -27,6 +27,7 @@ export interface WhatsAppTemplate {
   template_name?: string; // From backend API
   display_name: string;
   body?: string;
+  posterImgUrl?: string | null;
   parameters?: string[];
   template?: string;
   category?: string;
@@ -39,6 +40,7 @@ export interface TemplatesApiResponse {
   success: boolean;
   templates?: WhatsAppTemplate[];
   data?: WhatsAppTemplate[]; // Alternative structure
+  posterImgUrl?: string | null;
   total?: number;
   message?: string;
   error?: string;

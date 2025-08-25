@@ -167,7 +167,7 @@ const DocumentsContainer: React.FC<DocumentsContainerProps> = ({ leadId }) => {
   return (
     <div className="space-y-6">
       {/* Statistics Bar */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-4 grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg border">
           <div className="text-2xl font-bold text-gray-900">
             {statusCounts.total}

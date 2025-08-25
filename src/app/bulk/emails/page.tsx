@@ -65,10 +65,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const BulkEmailPage: React.FC = () => {
   const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
   const {
     bulkEmailFilters,
     selectedLeadsForBulk,
@@ -84,7 +84,7 @@ const BulkEmailPage: React.FC = () => {
   const [currentPage] = useState(1); // Removed setCurrentPage since it's not used
 
   const { showSuccess, showError } = useNotifications();
-  const isAdmin = user?.role === "admin";
+  const { isAdmin } = useAdminAccess();
 
   // Initialize filters with default values
   useEffect(() => {

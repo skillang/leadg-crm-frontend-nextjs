@@ -23,6 +23,7 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  // ColumnPinningRow,
   VisibilityState,
   getPaginationRowModel,
   getSortedRowModel,
@@ -166,6 +167,7 @@ export function DataTable<TData extends Lead, TValue>({
   const table = useReactTable({
     data,
     columns,
+    enableColumnPinning: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
@@ -189,6 +191,9 @@ export function DataTable<TData extends Lead, TValue>({
       columnFilters,
       columnVisibility,
       rowSelection,
+      columnPinning: {
+        right: ["actions"], // ← Replace 'actions' with your actual last column ID
+      },
       ...(paginationMeta ? {} : { pagination }),
     },
   });
@@ -848,16 +853,31 @@ export function DataTable<TData extends Lead, TValue>({
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    const isPinned = header.column.getIsPinned();
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={
+                          isPinned === "right"
+                            ? "sticky right-0 z-10 bg-background border-l shadow-lg"
+                            : ""
+                        }
+                        style={
+                          isPinned === "right"
+                            ? { right: `${header.column.getStart("right")}px` }
+                            : {}
+                        }
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -896,14 +916,29 @@ export function DataTable<TData extends Lead, TValue>({
               ) : (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinned = cell.column.getIsPinned();
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={
+                            isPinned === "right"
+                              ? "sticky right-0 z-10 bg-white border-l"
+                              : ""
+                          }
+                          style={
+                            isPinned === "right"
+                              ? { right: `${cell.column.getStart("right")}px` }
+                              : {}
+                          }
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))
               )}

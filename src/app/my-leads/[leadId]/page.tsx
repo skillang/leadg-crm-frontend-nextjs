@@ -4,7 +4,7 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Phone, Mail, Pen } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Pen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -293,31 +293,31 @@ export default function LeadDetailsPage() {
     switch (activeTab) {
       case "timeline":
         return (
-          <div className="p-6">
+          <div className="md:p-6 p-3">
             <TimelineContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "tasks":
         return (
-          <div className="p-6">
+          <div className="md:p-6 p-3">
             <TasksContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "notes":
         return (
-          <div className="p-6">
+          <div className="md:p-6 p-3">
             <NotesContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "documents":
         return (
-          <div className="p-6">
+          <div className="md:p-6 p-3">
             <DocumentsContainer leadId={leadDetails.leadId} />
           </div>
         );
       case "activity":
         return (
-          <div className="p-6">
+          <div className="md:p-6 p-3">
             <h3 className="text-lg font-semibold mb-4">Activity Log Content</h3>
             <p className="text-gray-600">
               Activity log entries will be displayed here...
@@ -329,7 +329,7 @@ export default function LeadDetailsPage() {
         );
       case "contacts":
         return (
-          <div className="p-6">
+          <div className="md:p-6 p-3">
             <ContactsContainer leadId={leadDetails.leadId} />
           </div>
         );
@@ -340,7 +340,7 @@ export default function LeadDetailsPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto space-y-6">
+      <div className="container mx-auto space-y-2 md:space-y-6">
         {/* Top Header */}
         <div className="flex items-center">
           {/* Breadcrumb */}
@@ -349,7 +349,9 @@ export default function LeadDetailsPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <span>My leads</span>
-            <span>/</span>
+            <span>
+              <ChevronRight size={18} />
+            </span>
             <span className="text-blue-600 font-medium">
               {leadDetails.name}
             </span>
@@ -358,7 +360,7 @@ export default function LeadDetailsPage() {
 
         {/* Lead Header - Top Bar */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-2 items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <Button
@@ -370,8 +372,7 @@ export default function LeadDetailsPage() {
                   <Pen className="h-4 w-4 text-gray-600" />
                 </Button>
                 <h1 className="text-2xl font-bold">{leadDetails.name}</h1>
-
-                {leadDetails.priority && (
+                {/* {leadDetails.priority && (
                   <Badge
                     className={`text-sm ${getPriorityColor(
                       leadDetails.priority
@@ -381,11 +382,11 @@ export default function LeadDetailsPage() {
                       leadDetails.priority.slice(1)}{" "}
                     Priority
                   </Badge>
-                )}
+                )} */}
               </div>
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end flex-wrap gap-2">
               {/* Stage Dropdown using Select with StageDisplay */}
               <div className="relative">
                 <StageSelect
@@ -729,7 +730,7 @@ export default function LeadDetailsPage() {
           <div className="col-span-12 md:col-span-7">
             <Card>
               {/* Tab Navigation */}
-              <div className="border-b">
+              <div className="border-b overflow-x-auto ">
                 <div className="flex space-x-8 px-6">
                   {LEAD_DETAIL_TABS.map((tab: TabDefinition) => (
                     <button

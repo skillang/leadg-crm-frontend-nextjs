@@ -158,7 +158,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     >
       <CardContent className="">
         {/* Title Section - Outside Table */}
-        <div className="flex items-start gap-3 mb-3">
+        <div className="flex items-start gap-3">
           {/* Checkbox */}
           {onSelect && (
             <Checkbox

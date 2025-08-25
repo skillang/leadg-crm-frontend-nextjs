@@ -621,7 +621,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                     <Input
                       id="name"
                       value={formData.name}
-                      disabled
+                      disabled={!isAdmin || isUpdating}
                       onChange={(e) =>
                         handleInputChange("name", e.target.value)
                       }
@@ -645,7 +645,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       }
                       placeholder="Enter email address"
                       className={errors.email ? "border-red-500" : ""}
-                      disabled
+                      disabled={!isAdmin}
                     />
                     {errors.email && (
                       <p className="text-sm text-red-500">{errors.email}</p>
@@ -666,7 +666,7 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
                       }
                       placeholder="Enter contact number"
                       className={errors.contact_number ? "border-red-500" : ""}
-                      disabled
+                      disabled={!isAdmin}
                     />
                     {errors.contact_number && (
                       <p className="text-sm text-red-500">

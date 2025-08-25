@@ -277,14 +277,14 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
                   Drop files here or click to browse
                 </p>
                 <p className="text-sm text-gray-600">
-                  Supports: PDF, Word, Images (Max 10MB)
+                  Supports: only PDF and Images (Max 10MB)
                 </p>
 
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.txt"
                   onChange={handleFileInputChange}
                   disabled={isLoading}
                 />

@@ -92,6 +92,7 @@ import {
   Activity,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 interface BulkJobRequestData {
   job_name: string;
@@ -129,7 +130,7 @@ const BulkWhatsAppPage: React.FC = () => {
   const [jobsFilter, setJobsFilter] = useState("all");
 
   const { showSuccess, showError } = useNotifications();
-  const isAdmin = user?.role === "admin";
+  const { isAdmin } = useAdminAccess();
 
   // Initialize filters with default values
   useEffect(() => {

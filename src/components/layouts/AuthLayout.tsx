@@ -176,7 +176,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           </header>
 
           {/* Main Content - Scrollable area with proper width constraints */}
-          <main className="flex-1 p-6 w-full min-w-0">
+          <main className="flex-1 md:p-6 p-3 w-full min-w-0">
             {/* Content wrapper that prevents horizontal overflow */}
             <div className="w-full max-w-full overflow-x-auto">
               <div className="min-w-0">{children}</div>

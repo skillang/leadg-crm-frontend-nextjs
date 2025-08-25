@@ -253,12 +253,12 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md border border-gray-200 w-full",
+        "transition-all duration-200 hover:shadow-md border border-gray-200 w-full overflow-hidden",
         isSelected && "ring-2 ring-blue-500",
         className
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row flex-wrap gap-2 items-center justify-between space-y-0">
         <div className="flex items-center gap-3 flex-1">
           {onSelect && (
             <Checkbox
@@ -325,7 +325,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-4">
+      <CardContent className="pt-0 space-y-2">
         <Table>
           <TableBody>
             {/* Status section */}

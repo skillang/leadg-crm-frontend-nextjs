@@ -28,7 +28,7 @@ export const permissionsApi = createApi({
       GetUsersPermissionsResponse,
       { includeAdmins?: boolean }
     >({
-      query: ({ includeAdmins = false } = {}) => ({
+      query: ({ includeAdmins = true } = {}) => ({
         url: "/users",
         method: "GET",
         params: { include_admins: includeAdmins },

@@ -315,10 +315,10 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
       <div className="flex items-start gap-4 pb-6">
         {/* Activity Content */}
         <div className="flex-1 min-w-0">
-          <Card className="border-gray-200">
-            <CardContent className="p-4">
+          <Card className="border-gray-200 py-3">
+            <CardContent className="">
               {/* Header */}
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   {/* Blue colored title with icon */}
                   <div className="flex items-center gap-2 mb-1">
@@ -353,13 +353,13 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
 
               {/* Metadata */}
               {metadataInfo && (
-                <div className="space-y-2 mb-3 p-3 bg-gray-50 rounded-md">
+                <div className="space-y-2 mb-3 p-2 bg-gray-50 rounded-md">
                   {metadataInfo}
                 </div>
               )}
 
               {/* Footer */}
-              <div className="flex items-center  text-sm text-gray-500 pt-3 border-t border-gray-100 gap-2">
+              <div className="flex items-center text-sm text-gray-500 pt-2 border-t border-gray-100 gap-2">
                 <span>Done By: </span>
                 <Badge className="flex items-center gap-1 bg-blue-100 text-blue-600">
                   {activity.performed_by_name}
