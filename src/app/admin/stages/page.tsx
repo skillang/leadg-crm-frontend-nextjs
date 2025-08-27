@@ -1,5 +1,4 @@
-// src/app/admin/stages/page.tsx
-
+// Fixed StageManagementPage with proper loading pattern to prevent flash of empty state
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -20,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -38,31 +36,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ArrowUp,
-  ArrowDown,
-  Plus,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  RotateCcw,
-  Settings,
-  Target,
-  Users,
-} from "lucide-react";
+import { Plus, CheckCircle, XCircle, Settings, Users } from "lucide-react";
 import { Stage, CreateStageRequest, STAGE_COLORS } from "@/models/types/stage";
-
-// Define API error interface for better type safety
-interface ApiError {
-  data?: {
-    message?: string;
-    detail?: string;
-  };
-  message?: string;
-  status?: number;
-  originalStatus?: number;
-}
+import StatsCard from "@/components/custom/cards/StatsCard";
+import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
+import { ApiError } from "@/models/types/apiError";
 
 // Function to generate internal name from display name
 const generateInternalName = (displayName: string): string => {
@@ -183,6 +161,11 @@ const StageManagementPage = () => {
         "Failed to create stage";
       showError(errorMessage);
     }
+  };
+
+  const handleOpenEditModal = (stage: Stage) => {
+    setEditingStage(stage);
+    setIsEditDialogOpen(true);
   };
 
   // Handle edit stage
@@ -349,118 +332,15 @@ const StageManagementPage = () => {
     }
   };
 
-  const loading = loadingActive || loadingInactive;
-
-  const renderStageCard = (stage: Stage, isActive: boolean = true) => (
-    <Card
-      key={stage.id}
-      className={`border-l-4 ${isActive ? "" : "opacity-75"}`}
-      style={{ borderLeftColor: stage.color }}
-    >
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3
-                className={`text-lg font-semibold ${
-                  isActive ? "" : "text-gray-600"
-                }`}
-              >
-                {stage.display_name}
-              </h3>
-              <div
-                className={`w-4 h-4 rounded-full border-2 border-white shadow ${
-                  isActive ? "" : "opacity-50"
-                }`}
-                style={{ backgroundColor: stage.color }}
-              />
-              {stage.is_default && <Badge variant="secondary">Default</Badge>}
-              {!isActive && <Badge variant="secondary">Inactive</Badge>}
-              <Badge variant="outline">{stage.lead_count} leads</Badge>
-            </div>
-            <p
-              className={`text-sm mb-1 ${
-                isActive ? "text-gray-600" : "text-gray-500"
-              }`}
-            >
-              <strong>Internal Name:</strong> {stage.name}
-            </p>
-            {stage.description && (
-              <p
-                className={`text-sm ${
-                  isActive ? "text-gray-600" : "text-gray-500"
-                }`}
-              >
-                {stage.description}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {isActive && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleReorder(stage.id, "up")}
-                  disabled={stage.sort_order === 1}
-                >
-                  <ArrowUp className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleReorder(stage.id, "down")}
-                >
-                  <ArrowDown className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setEditingStage(stage);
-                    setIsEditDialogOpen(true);
-                  }}
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    handleToggleStageStatus(stage.id, stage.is_active)
-                  }
-                >
-                  <XCircle className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-            {!isActive && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  handleToggleStageStatus(stage.id, stage.is_active)
-                }
-              >
-                <RotateCcw className="w-4 h-4" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeleteStage(stage)}
-              disabled={stage.lead_count > 0}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+  // Get stage data with proper defaults
+  const activeStages = activeStagesData?.stages || [];
+  const inactiveStages = inactiveStagesData?.stages || [];
+  const sortedActiveStages = [...activeStages].sort(
+    (a, b) => a.sort_order - b.sort_order
   );
 
   return (
-    <div className="container mx-auto  space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -470,14 +350,16 @@ const StageManagementPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={handleSetupDefaults}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Setup Defaults
-          </Button>
+          {activeStages.length === 0 && !loadingActive && (
+            <Button
+              onClick={handleSetupDefaults}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Setup Defaults
+            </Button>
+          )}
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             className="flex items-center gap-2"
@@ -489,57 +371,29 @@ const StageManagementPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Stages</p>
-                <p className="text-2xl font-bold">
-                  {activeStagesData?.active_count || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <StatsCard
+          title="Active Stages"
+          value={activeStagesData?.active_count || 0}
+          icon={<CheckCircle className="w-8 h-8 text-green-600" />}
+          isLoading={loadingActive}
+        />
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Inactive Stages</p>
-                <p className="text-2xl font-bold">
-                  {inactiveStagesData?.inactive_count || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Inactive Stages"
+          value={inactiveStagesData?.inactive_count || 0}
+          icon={<XCircle className="w-8 h-8 text-gray-600" />}
+          isLoading={loadingInactive}
+        />
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Leads</p>
-                <p className="text-2xl font-bold">
-                  {activeStagesData?.stages.reduce(
-                    (sum, stage) => sum + stage.lead_count,
-                    0
-                  ) || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Leads"
+          value={
+            activeStages.reduce((sum, stage) => sum + stage.lead_count, 0) || 0
+          }
+          icon={<Users className="w-8 h-8 text-blue-600" />}
+          isLoading={loadingActive}
+        />
       </div>
 
       {/* Tabs for Active and Inactive Stages */}
@@ -551,54 +405,156 @@ const StageManagementPage = () => {
 
         {/* Active Stages */}
         <TabsContent value="active" className="space-y-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Loading stages...</p>
-            </div>
-          ) : activeStagesData?.stages.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No Active Stages
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Create your first stage to start organizing leads
-                </p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Stage
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
+          {/* Show actual data when available */}
+          {sortedActiveStages.length > 0 && (
             <div className="grid gap-4">
-              {activeStagesData?.stages &&
-                [...activeStagesData.stages]
-                  .sort((a, b) => a.sort_order - b.sort_order)
-                  .map((stage) => renderStageCard(stage, true))}
+              {sortedActiveStages.map((stage) => (
+                <AdminDataConfCard
+                  key={stage.id}
+                  title={stage.display_name}
+                  subtitle={stage.name}
+                  description={stage.description}
+                  color={stage.color}
+                  isActive={true}
+                  badges={[
+                    { text: "Active", variant: "success-light" },
+                    ...(stage.is_default
+                      ? [
+                          {
+                            text: "Default",
+                            variant: "primary-ghost" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  leadCount={stage.lead_count}
+                  nextNumber={stage.sort_order}
+                  createdBy={stage.created_by}
+                  createdAt={stage.created_at}
+                  onEdit={() => handleOpenEditModal(stage)}
+                  onDelete={() => handleDeleteStage(stage)}
+                  onDeactivate={() =>
+                    handleToggleStageStatus(stage.id, stage.is_active)
+                  }
+                  onMoveUp={() => handleReorder(stage.id, "up")}
+                  onMoveDown={() => handleReorder(stage.id, "down")}
+                  canEdit={true}
+                  canDelete={stage.lead_count === 0}
+                  canReorder={true}
+                  showReorderOutside={true}
+                  isLoading={false}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Loading State - Show skeleton when loading and no data */}
+          {loadingActive && sortedActiveStages.length === 0 && (
+            <div className="grid gap-4">
+              {[...Array(3)].map((_, i) => (
+                <AdminDataConfCard
+                  key={`loading-active-${i}`}
+                  title=""
+                  badges={[]}
+                  canEdit={false}
+                  canDelete={false}
+                  canReorder={false}
+                  isLoading={true}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Empty State - Show only when not loading and no data */}
+          {sortedActiveStages.length === 0 && !loadingActive && (
+            <div className="text-center py-12">
+              <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Active Stages
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Create your first stage to start organizing leads
+              </p>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Stage
+              </Button>
             </div>
           )}
         </TabsContent>
 
         {/* Inactive Stages */}
         <TabsContent value="inactive" className="space-y-4">
-          {inactiveStagesData?.stages.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <XCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No Inactive Stages
-                </h3>
-                <p className="text-gray-600">All stages are currently active</p>
-              </CardContent>
-            </Card>
-          ) : (
+          {/* Show actual data when available */}
+          {inactiveStages.length > 0 && (
             <div className="grid gap-4">
-              {inactiveStagesData?.stages.map((stage) =>
-                renderStageCard(stage, false)
-              )}
+              {inactiveStages.map((stage) => (
+                <AdminDataConfCard
+                  key={stage.id}
+                  title={stage.display_name}
+                  subtitle={stage.name}
+                  description={stage.description}
+                  color={stage.color}
+                  isActive={false}
+                  badges={[
+                    { text: "Inactive", variant: "secondary" },
+                    ...(stage.is_default
+                      ? [
+                          {
+                            text: "Default",
+                            variant: "primary-ghost" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  leadCount={stage.lead_count}
+                  nextNumber={stage.sort_order}
+                  createdBy={stage.created_by}
+                  createdAt={stage.created_at}
+                  onEdit={() => handleOpenEditModal(stage)}
+                  onDelete={() => handleDeleteStage(stage)}
+                  onActivate={() =>
+                    handleToggleStageStatus(stage.id, stage.is_active)
+                  }
+                  onMoveUp={() => handleReorder(stage.id, "up")}
+                  onMoveDown={() => handleReorder(stage.id, "down")}
+                  canEdit={true}
+                  canDelete={stage.lead_count === 0}
+                  canReorder={true}
+                  showReorderOutside={true}
+                  isLoading={false}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Loading State - Show skeleton when loading and no data */}
+          {loadingInactive && inactiveStages.length === 0 && (
+            <div className="grid gap-4">
+              {[...Array(2)].map((_, i) => (
+                <AdminDataConfCard
+                  key={`loading-inactive-${i}`}
+                  title=""
+                  badges={[]}
+                  canEdit={false}
+                  canDelete={false}
+                  canReorder={false}
+                  isLoading={true}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Empty State - Show only when not loading and no data */}
+          {inactiveStages.length === 0 && !loadingInactive && (
+            <div className="text-center py-12">
+              <XCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Inactive Stages
+              </h3>
+              <p className="text-gray-600 mb-4">
+                All stages are currently active
+              </p>
             </div>
           )}
         </TabsContent>

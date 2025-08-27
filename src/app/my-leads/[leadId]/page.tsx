@@ -689,14 +689,20 @@ export default function LeadDetailsPage() {
                 <CardTitle>Tags</CardTitle>
               </CardHeader>
               <CardContent>
-                {leadDetails.tags.map((tag, index) => (
-                  <Badge
-                    key={index}
-                    className="bg-blue-100 text-blue-800 text-sm me-2"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+                {leadDetails.tags.length > 0 ? (
+                  leadDetails.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      className="bg-blue-100 text-blue-800 text-sm me-2 mb-2"
+                    >
+                      {tag}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-700">
+                    This lead currently has no tags
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -718,7 +724,7 @@ export default function LeadDetailsPage() {
                     })}
                   </ul>
                 ) : (
-                  <span className="text-gray-900">
+                  <span className="text-gray-700 text-sm">
                     No extra info was given while lead creation
                   </span>
                 )}
@@ -731,7 +737,7 @@ export default function LeadDetailsPage() {
             <Card>
               {/* Tab Navigation */}
               <div className="border-b overflow-x-auto ">
-                <div className="flex space-x-8 px-6">
+                <div className="flex space-x-8 px-6 over">
                   {LEAD_DETAIL_TABS.map((tab: TabDefinition) => (
                     <button
                       key={tab.id}
@@ -749,7 +755,9 @@ export default function LeadDetailsPage() {
               </div>
 
               {/* Tab Content */}
-              <div className="min-h-[600px]">{renderTabContent()}</div>
+              <div className="min-h-[600px] overflow-hidden">
+                {renderTabContent()}
+              </div>
             </Card>
           </div>
         </div>

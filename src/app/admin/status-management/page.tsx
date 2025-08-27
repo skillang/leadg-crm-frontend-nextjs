@@ -1,5 +1,4 @@
-// src/pages/admin/StatusManagement.tsx
-
+// Updated StatusManagement.tsx with proper loading pattern to prevent flash of "No statuses found"
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -23,18 +22,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Settings, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import StatusForm from "@/components/admin/StatusForm";
-import StatusCard from "@/components/admin/StausCard";
+import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
 import { Status } from "@/models/types/status";
-
-// Define API error interface for better type safety
-interface ApiError {
-  data?: {
-    detail?: string;
-    message?: string;
-  };
-  message?: string;
-  status?: number;
-}
+import StatsCard from "@/components/custom/cards/StatsCard";
+import { ApiError } from "@/models/types/apiError";
 
 const StatusManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -56,7 +47,7 @@ const StatusManagement: React.FC = () => {
     active_only: false,
   });
 
-  // Mutations - removed unused isDeleting
+  // Mutations
   const [deleteStatus] = useDeleteStatusMutation();
   const [activateStatus, { isLoading: isActivating }] =
     useActivateStatusMutation();
@@ -67,7 +58,6 @@ const StatusManagement: React.FC = () => {
   const [setupDefaults, { isLoading: isSettingUp }] =
     useSetupDefaultStatusesMutation();
 
-  // Use useMemo to prevent unnecessary re-renders in useCallback dependencies
   const statuses = useMemo(
     () => statusesData?.statuses || [],
     [statusesData?.statuses]
@@ -85,10 +75,15 @@ const StatusManagement: React.FC = () => {
     return true; // all
   });
 
-  // Handle status deletion with useCallback to prevent re-renders
+  // Add this new function to handle opening edit modal
+  const handleOpenEditModal = (status: Status) => {
+    setEditingStatus(status);
+    setShowForm(true);
+  };
+
+  // Handle status deletion
   const handleDeleteStatus = React.useCallback(
     (status: Status, force = false) => {
-      // Check if status has leads and show appropriate dialog
       if (status.lead_count > 0 && !force) {
         showConfirm({
           title: `Status "${status.display_name}" has ${status.lead_count} leads`,
@@ -97,7 +92,6 @@ const StatusManagement: React.FC = () => {
           cancelText: "Deactivate Instead",
           variant: "destructive",
           onConfirm: async () => {
-            // Force delete
             try {
               const result = await deleteStatus({
                 statusId: status.id,
@@ -114,7 +108,6 @@ const StatusManagement: React.FC = () => {
             }
           },
           onCancel: async () => {
-            // Deactivate instead
             try {
               await deactivateStatus(status.id).unwrap();
               showSuccess(
@@ -129,7 +122,6 @@ const StatusManagement: React.FC = () => {
           },
         });
       } else {
-        // No leads or already forcing - proceed with normal delete
         const title = force
           ? `Force Delete Status "${status.display_name}"`
           : `Delete Status "${status.display_name}"`;
@@ -149,7 +141,6 @@ const StatusManagement: React.FC = () => {
                 statusId: status.id,
                 force,
               }).unwrap();
-
               showSuccess(result.message || "Status deleted successfully");
             } catch (error: unknown) {
               console.error("Delete error:", error);
@@ -163,7 +154,7 @@ const StatusManagement: React.FC = () => {
     [deleteStatus, deactivateStatus, showConfirm, showSuccess, showError]
   );
 
-  // Handle status activation/deactivation with useCallback
+  // Handle status activation/deactivation
   const handleToggleStatus = React.useCallback(
     async (status: Status) => {
       try {
@@ -182,7 +173,7 @@ const StatusManagement: React.FC = () => {
     [activateStatus, deactivateStatus, showSuccess, showError]
   );
 
-  // Handle status reordering with useCallback
+  // Handle status reordering
   const handleMoveStatus = React.useCallback(
     async (status: Status, direction: "up" | "down") => {
       const currentIndex = statuses.findIndex((s) => s.id === status.id);
@@ -197,13 +188,11 @@ const StatusManagement: React.FC = () => {
       const swapIndex =
         direction === "up" ? currentIndex - 1 : currentIndex + 1;
 
-      // Swap positions
       [newOrder[currentIndex], newOrder[swapIndex]] = [
         newOrder[swapIndex],
         newOrder[currentIndex],
       ];
 
-      // Create reorder data
       const reorderData = newOrder.map((s, index) => ({
         id: s.id,
         sort_order: index + 1,
@@ -220,7 +209,7 @@ const StatusManagement: React.FC = () => {
     [statuses, reorderStatuses, showSuccess, showError]
   );
 
-  // Handle setup default statuses with useCallback
+  // Handle setup default statuses
   const handleSetupDefaults = React.useCallback(async () => {
     try {
       await setupDefaults().unwrap();
@@ -231,14 +220,6 @@ const StatusManagement: React.FC = () => {
       showError(apiError?.data?.detail || "Failed to setup default statuses");
     }
   }, [setupDefaults, showSuccess, showError, refetch]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
 
   if (isError) {
     return (
@@ -276,7 +257,7 @@ const StatusManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          {stats.total === 0 && (
+          {stats.total === 0 && !isLoading && (
             <Button
               onClick={handleSetupDefaults}
               disabled={isSettingUp}
@@ -298,59 +279,24 @@ const StatusManagement: React.FC = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Settings className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Statuses
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.total}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Eye className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Active Statuses
-                </p>
-                <p className="text-2xl font-bold text-green-700">
-                  {stats.active}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <EyeOff className="h-6 w-6 text-gray-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Inactive Statuses
-                </p>
-                <p className="text-2xl font-bold text-gray-700">
-                  {stats.inactive}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Statuses"
+          value={stats.total}
+          icon={<Settings className="h-8 w-8 text-blue-600" />}
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Statuses"
+          value={stats.active}
+          icon={<Eye className="h-8 w-8 text-green-600" />}
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Statuses"
+          value={stats.inactive}
+          icon={<EyeOff className="h-8 w-8 text-gray-600" />}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Status Management Tabs */}
@@ -358,7 +304,8 @@ const StatusManagement: React.FC = () => {
         <CardHeader>
           <CardTitle>Status List</CardTitle>
           <CardDescription>
-            Manage your lead statuses. Drag and drop to reorder.
+            Manage your lead statuses. Use the actions menu to edit, delete, or
+            reorder.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -372,7 +319,80 @@ const StatusManagement: React.FC = () => {
             </TabsList>
 
             <TabsContent value={activeTab} className="mt-6">
-              {filteredStatuses.length === 0 ? (
+              {/* Status Grid - Show actual data when available */}
+              {filteredStatuses.length > 0 && (
+                <div className="space-y-4">
+                  {filteredStatuses.map((status) => (
+                    <AdminDataConfCard
+                      key={status.id}
+                      title={status.display_name}
+                      subtitle={status.name}
+                      description={status.description}
+                      color={status.color}
+                      isActive={status.is_active}
+                      badges={[
+                        {
+                          text: status.is_active ? "Active" : "Inactive",
+                          variant: status.is_active
+                            ? "success-light"
+                            : "secondary",
+                        },
+                        ...(status.is_default
+                          ? [
+                              {
+                                text: "Default",
+                                variant: "primary-ghost" as const,
+                              },
+                            ]
+                          : []),
+                      ]}
+                      leadCount={status.lead_count}
+                      nextNumber={status.sort_order}
+                      createdBy={status.created_by}
+                      createdAt={status.created_at}
+                      onEdit={() => handleOpenEditModal(status)}
+                      onDelete={() => handleDeleteStatus(status)}
+                      onActivate={
+                        !status.is_active
+                          ? () => handleToggleStatus(status)
+                          : undefined
+                      }
+                      onDeactivate={
+                        status.is_active
+                          ? () => handleToggleStatus(status)
+                          : undefined
+                      }
+                      onMoveUp={() => handleMoveStatus(status, "up")}
+                      onMoveDown={() => handleMoveStatus(status, "down")}
+                      canEdit={true}
+                      canDelete={status.lead_count === 0}
+                      canReorder={true}
+                      showReorderOutside={true}
+                      isLoading={false}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Loading State - Show skeleton when loading and no data */}
+              {isLoading && filteredStatuses.length === 0 && (
+                <div className="space-y-4">
+                  {[...Array(2)].map((_, i) => (
+                    <AdminDataConfCard
+                      key={`loading-${i}`}
+                      title=""
+                      badges={[]}
+                      canEdit={false}
+                      canDelete={false}
+                      canReorder={false}
+                      isLoading={true}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Empty State - Show only when not loading and no data */}
+              {filteredStatuses.length === 0 && !isLoading && (
                 <div className="text-center py-12">
                   <Settings className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -389,28 +409,6 @@ const StatusManagement: React.FC = () => {
                       Create Status
                     </Button>
                   )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredStatuses.map((status, index) => (
-                    <StatusCard
-                      key={status.id}
-                      status={status}
-                      isFirst={index === 0}
-                      isLast={index === filteredStatuses.length - 1}
-                      onEdit={() => {
-                        setEditingStatus(status);
-                        setShowForm(true);
-                      }}
-                      onDelete={(status) => handleDeleteStatus(status)}
-                      onToggle={() => handleToggleStatus(status)}
-                      onMoveUp={() => handleMoveStatus(status, "up")}
-                      onMoveDown={() => handleMoveStatus(status, "down")}
-                      isProcessing={
-                        isActivating || isDeactivating || isReordering
-                      }
-                    />
-                  ))}
                 </div>
               )}
             </TabsContent>

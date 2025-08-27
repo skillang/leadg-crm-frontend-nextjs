@@ -30,16 +30,8 @@ import {
   UserX,
   Settings,
 } from "lucide-react";
-
-// Define API error interface for better type safety
-interface ApiError {
-  data?: {
-    detail?: string;
-    message?: string;
-  };
-  message?: string;
-  status?: number;
-}
+import StatsCard from "@/components/custom/cards/StatsCard";
+import { ApiError } from "@/models/types/apiError";
 
 // Use the correct interface from API (matches leadsApi.ts)
 interface UserStats {
@@ -83,24 +75,6 @@ const AdminUsersPage = () => {
     return AccessDeniedComponent;
   }
 
-  // Handle loading state
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3 text-blue-600">
-                <RefreshCw className="h-5 w-5 animate-spin" />
-                <span className="font-medium">Loading user statistics...</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Handle error state
   if (error) {
     const apiError = error as ApiError;
@@ -141,7 +115,7 @@ const AdminUsersPage = () => {
           <CardContent className="pt-6">
             <div className="text-center text-gray-500">
               <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No user statistics available</p>
+              <p>No user data available</p>
               <Button
                 variant="outline"
                 onClick={() => refetch()}
@@ -246,7 +220,7 @@ const AdminUsersPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto  space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -273,61 +247,39 @@ const AdminUsersPage = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Users
-                </p>
-                <p className="text-2xl font-bold">{summary.total_users}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Users"
+          value={summary.total_users}
+          icon={<Users className="h-8 w-8 text-blue-500" />}
+          isLoading={isLoading}
+        />
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Leads
-                </p>
-                <p className="text-2xl font-bold">{summary.total_leads}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Leads"
+          value={summary.total_leads}
+          icon={<TrendingUp className="h-8 w-8 text-green-500" />}
+          isLoading={isLoading}
+        />
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Assigned Leads
-                </p>
-                <p className="text-2xl font-bold">{summary.assigned_leads}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Assigned Leads"
+          value={summary.assigned_leads}
+          icon={<UserCheck className="h-8 w-8 text-orange-500" />}
+          // subtitle={`${Math.round(
+          //   (summary.assigned_leads / summary.total_leads) * 100
+          // )}% of total`}
+          isLoading={isLoading}
+        />
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Unassigned Leads
-                </p>
-                <p className="text-2xl font-bold">{summary.unassigned_leads}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Unassigned Leads"
+          value={summary.unassigned_leads}
+          icon={<AlertTriangle className="h-8 w-8 text-red-500" />}
+          // subtitle={`${Math.round(
+          //   (summary.unassigned_leads / summary.total_leads) * 100
+          // )}% of total`}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Users Table */}

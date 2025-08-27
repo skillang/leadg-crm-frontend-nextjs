@@ -1,23 +1,11 @@
-// src/app/admin/lead-categories/page.tsx
+// Updated CategoriesPage with AdminDataConfCard integration
 
 "use client";
 
 import React, { useState } from "react";
-import {
-  Plus,
-  Search,
-  Edit,
-  Eye,
-  EyeOff,
-  Users,
-  Hash,
-  Calendar,
-  User,
-} from "lucide-react";
+import { Plus, Search, Eye, EyeOff, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -29,7 +17,9 @@ import {
 } from "@/redux/slices/categoriesApi";
 import CreateCategoryModal from "@/components/leads/CreateCategoryModal";
 import EditCategoryModal from "@/components/leads/EditCategoryModal";
+import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard"; // Import AdminDataConfCard
 import type { Category } from "@/models/types/category";
+import StatsCard from "@/components/custom/cards/StatsCard";
 
 const CategoriesPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
@@ -77,6 +67,10 @@ const CategoriesPage = () => {
         (category.description &&
           category.description.toLowerCase().includes(searchTerm.toLowerCase()))
     ) || [];
+
+  const handleOpenEditModal = (category: Category) => {
+    setEditingCategory(category);
+  };
 
   const handleCreateCategory = async (categoryData: {
     name: string;
@@ -126,22 +120,6 @@ const CategoriesPage = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -153,7 +131,6 @@ const CategoriesPage = () => {
           </p>
         </div>
 
-        {/* Since only admins can access this page, always show the button */}
         <Button
           onClick={() => setIsCreateModalOpen(true)}
           className="flex items-center gap-2"
@@ -163,58 +140,29 @@ const CategoriesPage = () => {
         </Button>
       </div>
 
-      {/* Summary Stats */}
-      {categoriesData?.summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Categories
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {categoriesData.summary.total}
-                  </p>
-                </div>
-                <Hash className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatsCard
+          title="Total Categories"
+          value={categoriesData?.summary.total || 0}
+          icon={<Hash className="h-8 w-8 text-blue-600" />}
+          isLoading={isLoading}
+        />
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Active Categories
-                  </p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {categoriesData.summary.active}
-                  </p>
-                </div>
-                <Eye className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
+        <StatsCard
+          title="Active Categories"
+          value={categoriesData?.summary.active || 0}
+          icon={<Eye className="h-8 w-8 text-green-600" />}
+          isLoading={isLoading}
+        />
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Inactive Categories
-                  </p>
-                  <p className="text-2xl font-bold text-gray-500">
-                    {categoriesData.summary.inactive}
-                  </p>
-                </div>
-                <EyeOff className="h-8 w-8 text-gray-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <StatsCard
+          title="Inactive Categories"
+          value={categoriesData?.summary.inactive || 0}
+          icon={<EyeOff className="h-8 w-8 text-gray-500" />}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -238,76 +186,39 @@ const CategoriesPage = () => {
         </div>
       </div>
 
-      {/* Categories Grid */}
+      {/* Categories Grid using AdminDataConfCard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCategories.map((category) => (
-          <Card
+          <AdminDataConfCard
             key={category.id}
-            className={`transition-all hover:shadow-md ${
-              !category.is_active ? "opacity-60" : ""
-            }`}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{category.name}</CardTitle>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {category.short_form}
-                    </Badge>
-                    <Badge
-                      variant={category.is_active ? "default" : "secondary"}
-                      className="text-xs"
-                    >
-                      {category.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Since only admins can access this page, always show the edit button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingCategory(category)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-3">
-              {category.description && (
-                <p className="text-sm text-gray-600">{category.description}</p>
-              )}
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1 text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>{category.lead_count} leads</span>
-                </div>
-                <div className="flex items-center gap-1 text-gray-600">
-                  <Hash className="h-4 w-4" />
-                  <span>Next: {category.next_lead_number}</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t text-xs text-gray-500">
-                <div className="flex items-center gap-1 mb-1">
-                  <User className="h-3 w-3" />
-                  <span>Created by {category.created_by}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  <span>Created {formatDate(category.created_at)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            title={category.name}
+            subtitle={category.short_form}
+            description={category.description}
+            isActive={category.is_active}
+            badges={[
+              {
+                text: category.is_active ? "Active" : "Inactive",
+                variant: category.is_active ? "success-light" : "secondary",
+              },
+            ]}
+            leadCount={category.lead_count}
+            nextNumber={category.next_lead_number}
+            createdBy={category.created_by}
+            createdAt={category.created_at}
+            // Actions
+            onEdit={() => handleOpenEditModal(category)}
+            // Permissions - Categories might not need delete/reorder functionality
+            canEdit={true}
+            canDelete={false} // Categories typically shouldn't be deleted if they have leads
+            canReorder={false} // Categories might not need reordering
+            showReorderOutside={false}
+            isLoading={isLoading}
+          />
         ))}
       </div>
 
       {/* No results */}
-      {filteredCategories.length === 0 && (
+      {filteredCategories.length === 0 && !isLoading && (
         <div className="text-center py-8">
           <p className="text-gray-500">No categories found</p>
           {searchTerm && (
@@ -319,6 +230,22 @@ const CategoriesPage = () => {
               Clear search
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Loading state for empty grid */}
+      {isLoading && filteredCategories.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <AdminDataConfCard
+              key={i}
+              title=""
+              badges={[]}
+              canEdit={false}
+              canDelete={false}
+              isLoading={true}
+            />
+          ))}
         </div>
       )}
 

@@ -24,13 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Building2,
-  Plus,
-  Users2,
-  // Edit,
-  Trash2,
-} from "lucide-react";
+import { Building2, Plus } from "lucide-react";
+import StatsCard from "@/components/custom/cards/StatsCard";
+import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
 
 const DepartmentManagementPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
@@ -158,17 +154,6 @@ const DepartmentManagementPage = () => {
               <p className="text-gray-600">Manage organizational departments</p>
             </div>
           </div>
-          {/* <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/admin/register-user")}
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Register User
-            </Button>
-          </div> */}
-          {/* Create Department Button */}
           <div className="mb-6">
             <Dialog
               open={isCreateDialogOpen}
@@ -265,177 +250,104 @@ const DepartmentManagementPage = () => {
       </div>
 
       {/* Stats Cards */}
-      {departmentsData && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Departments
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {departmentsData.total_count}
-                  </p>
-                </div>
-                <Building2 className="w-8 h-8 text-primary-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Predefined
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {departmentsData.predefined_count}
-                  </p>
-                </div>
-                <Badge variant="secondary">System</Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Custom</p>
-                  <p className="text-2xl font-bold">
-                    {departmentsData.custom_count}
-                  </p>
-                </div>
-                <Badge variant="outline">Custom</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatsCard
+          title="Total Departments"
+          value={departmentsData?.total_count || 0}
+          icon={<Building2 className="w-8 h-8 text-blue-500" />}
+          isLoading={isLoading}
+        />
 
-      {/* Departments List */}
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="text-gray-500">Loading departments...</div>
+        <StatsCard
+          title="Predefined"
+          value={departmentsData?.predefined_count || 0}
+          icon={<Badge variant="secondary">System</Badge>}
+          isLoading={isLoading}
+        />
+
+        <StatsCard
+          title="Custom"
+          value={departmentsData?.custom_count || 0}
+          icon={<Badge variant="outline">Custom</Badge>}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <div className="space-y-6">
+        {/* Predefined Departments */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Predefined Departments
+            <Badge variant="secondary">
+              {departmentsData?.predefined_count || 0}
+            </Badge>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {departmentsData?.departments?.predefined?.map((dept) => (
+              <AdminDataConfCard
+                key={dept.name}
+                title={dept.display_name}
+                subtitle={dept.name}
+                description={dept.description}
+                badges={[
+                  { text: "Predefined", variant: "secondary" },
+                  { text: "Protected", variant: "outline" },
+                ]}
+                // leadCount={dept.user_count} // Add when available
+
+                // No actions for predefined departments
+                canEdit={false}
+                canDelete={false}
+                isLoading={isLoading}
+              />
+            )) || []}
+          </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Predefined Departments */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              Predefined Departments
-              <Badge variant="secondary">
-                {departmentsData?.predefined_count || 0}
-              </Badge>
-            </h2>
+
+        {/* Custom Departments */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Custom Departments
+            <Badge variant="outline">
+              {departmentsData?.custom_count || 0}
+            </Badge>
+          </h2>
+
+          {departmentsData?.departments?.custom &&
+          departmentsData.departments.custom.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {departmentsData?.departments?.predefined?.map((dept) => (
-                <Card key={dept.name}>
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium">{dept.display_name}</h3>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {dept.description}
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          Predefined
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Users2 className="w-4 h-4" />
-                        <span>Users Count coming soon</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {departmentsData.departments.custom.map((dept) => (
+                <AdminDataConfCard
+                  key={dept.name}
+                  title={dept.display_name}
+                  subtitle={dept.name}
+                  description={dept.description}
+                  badges={[{ text: "Custom", variant: "default" }]}
+                  // leadCount={dept.user_count} // Add when available
+                  createdBy={dept.created_by} // If available
+                  createdAt={dept.created_at} // If available
+                  // Actions for custom departments
+                  onDelete={() => handleDeleteDepartment(dept.id!, dept.name)}
+                  canEdit={false} // Set to true when edit is implemented
+                  canDelete={true}
+                  isLoading={isLoading}
+                />
               ))}
             </div>
-          </div>
-
-          {/* Custom Departments */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              Custom Departments
-              <Badge variant="outline">
-                {departmentsData?.custom_count || 0}
-              </Badge>
-            </h2>
-            {departmentsData?.departments?.custom &&
-            departmentsData.departments.custom.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {departmentsData.departments.custom.map((dept) => (
-                  <Card key={dept.id}>
-                    <CardContent className="pt-6">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-medium">{dept.display_name}</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {dept.description}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            Custom
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Users2 className="w-4 h-4" />
-                          <span>Users Count coming soon</span>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <div className="text-xs text-gray-500">
-                            Created by {dept.created_by}
-                          </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                              onClick={() =>
-                                dept.id &&
-                                handleDeleteDepartment(
-                                  dept.id,
-                                  dept.display_name
-                                )
-                              }
-                              disabled={isDeleting}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center py-6">
-                    <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">
-                      No Custom Departments
-                    </h3>
-                    <p className="text-gray-500 mb-4">
-                      Create your first custom department to get started
-                    </p>
-                    <Button onClick={() => setIsCreateDialogOpen(true)}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Department
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          ) : (
+            <AdminDataConfCard
+              title="No Custom Departments"
+              description="Create your first custom department to get started"
+              badges={[]}
+              canEdit={false}
+              canDelete={false}
+              isLoading={isLoading}
+            />
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

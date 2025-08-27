@@ -12,23 +12,11 @@ import {
   Target,
   CheckCircle,
   AlertTriangle,
+  DoorOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// Loading skeleton component for stats cards
-const StatsCardSkeleton = () => (
-  <div className="bg-white p-6 rounded-lg shadow border">
-    <div className="flex items-center justify-between">
-      <div className="flex-1">
-        <Skeleton className="h-4 w-20 mb-3" />
-        <Skeleton className="h-8 w-16 mb-2" />
-        <Skeleton className="h-3 w-24" />
-      </div>
-      <Skeleton className="h-12 w-12 rounded-full" />
-    </div>
-  </div>
-);
+import StatsCard from "@/components/custom/cards/StatsCard";
 
 const DashboardPage = () => {
   // Get user info
@@ -73,14 +61,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      {statsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <StatsCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : statsError ? (
+      {statsError ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-center gap-3">
           <AlertTriangle className="h-6 w-6 text-red-600" />
           <div>
@@ -94,71 +75,37 @@ const DashboardPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Total Leads */}
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Leads</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats?.total_leads || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">All time</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Total Leads"
+            value={stats?.total_leads || 0}
+            icon={<Users className="h-8 w-8 text-blue-600" />}
+            subtitle="All leads in system"
+            isLoading={statsLoading}
+          />
 
-          {/* Open Leads */}
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Open Leads</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {stats?.open_leads || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Active prospects</p>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-full">
-                <Target className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Open Leads"
+            value={stats?.open_leads || 0}
+            icon={<DoorOpen className="h-8 w-8 text-purple-600" />}
+            subtitle="Assigned to you"
+            isLoading={statsLoading}
+          />
 
-          {/* In Progress */}
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {stats?.in_progress_leads || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Being worked on</p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <TrendingUp className="h-6 w-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="In Progress"
+            value={stats?.in_progress_leads || 0}
+            icon={<TrendingUp className="h-8 w-8 text-orange-600" />}
+            subtitle="Pending action"
+            isLoading={statsLoading}
+          />
 
-          {/* Closed Won */}
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Closed Won</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {stats?.closed_won_leads || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Successful conversions
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Closed Won"
+            value={stats?.closed_won_leads || 0}
+            icon={<CheckCircle className="h-8 w-8 text-green-600" />}
+            subtitle="Successfully converted"
+            isLoading={statsLoading}
+          />
         </div>
       )}
 

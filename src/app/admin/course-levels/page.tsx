@@ -1,5 +1,4 @@
-// src/app/admin/course-levels/page.tsx
-
+// Fixed CourseLevelManagementPage with proper loading pattern to prevent flash of empty state
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -17,8 +16,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -37,27 +35,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Plus,
-  Edit,
-  Trash2,
   Search,
   CheckCircle,
   XCircle,
   GraduationCap,
-  Users,
-  MoreVertical,
-  Calendar,
-  User,
-  Hash,
-  Eye,
-  EyeOff,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -66,16 +48,9 @@ import {
   CreateCourseLevelRequest,
   UpdateCourseLevelRequest,
 } from "@/models/types/courseLevel";
-
-// Define API error interface for better type safety
-interface ApiError {
-  data?: {
-    detail?: string;
-    message?: string;
-  };
-  message?: string;
-  status?: number;
-}
+import StatsCard from "@/components/custom/cards/StatsCard";
+import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
+import { ApiError } from "@/models/types/apiError";
 
 const CourseLevelManagementPage = () => {
   // State for forms and dialogs
@@ -370,16 +345,8 @@ const CourseLevelManagementPage = () => {
     handleDeleteCourseLevel(courseLevel);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -398,43 +365,26 @@ const CourseLevelManagementPage = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Course Levels
-            </CardTitle>
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentData?.total || 0}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Course Levels"
+          value={currentData?.total || 0}
+          icon={<GraduationCap className="h-8 w-8 text-blue-600" />}
+          isLoading={isLoading}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Levels</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {currentData?.active_count || 0}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Active Levels"
+          value={currentData?.active_count || 0}
+          icon={<CheckCircle className="h-8 w-8 text-green-600" />}
+          isLoading={isLoading}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Inactive Levels
-            </CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {currentData?.inactive_count || 0}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Inactive Levels"
+          value={currentData?.inactive_count || 0}
+          icon={<XCircle className="h-8 w-8 text-gray-600" />}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Controls */}
@@ -485,27 +435,15 @@ const CourseLevelManagementPage = () => {
         <TabsList>
           <TabsTrigger value="active" className="gap-2">
             <CheckCircle className="h-4 w-4" />
-            Active ({currentData?.active_count || 0})
+            Active ({activeCourseLevelsData?.active_count || 0})
           </TabsTrigger>
           <TabsTrigger value="inactive" className="gap-2">
             <XCircle className="h-4 w-4" />
-            Inactive ({currentData?.inactive_count || 0})
+            Inactive ({inactiveCourseLevelsData?.inactive_count || 0})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-muted-foreground">
-                  Loading course levels...
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Error State */}
           {error && (
             <Card className="border-red-200 bg-red-50">
@@ -518,137 +456,77 @@ const CourseLevelManagementPage = () => {
             </Card>
           )}
 
-          {/* Course Levels Grid */}
-          {!isLoading && !error && (
+          {/* Show actual data when available */}
+          {filteredAndSortedCourseLevels.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredAndSortedCourseLevels.map((courseLevel) => (
-                <Card
+                <AdminDataConfCard
                   key={courseLevel.id}
-                  className="hover:shadow-md transition-shadow"
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <CardTitle className="text-lg">
-                          {courseLevel.display_name}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {courseLevel.name}
-                          </Badge>
-                          <Badge
-                            variant={
-                              courseLevel.is_active ? "default" : "secondary"
-                            }
-                            className="text-xs"
-                          >
-                            {courseLevel.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                          {courseLevel.is_default && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                            >
-                              Default
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => openEditDialog(courseLevel)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {courseLevel.is_active ? (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleActivateDeactivate(
-                                  courseLevel,
-                                  "deactivate"
-                                )
-                              }
-                              disabled={isDeactivating}
-                            >
-                              <EyeOff className="h-4 w-4 mr-2" />
-                              Deactivate
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleActivateDeactivate(
-                                  courseLevel,
-                                  "activate"
-                                )
-                              }
-                              disabled={isActivating}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Activate
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => openDeleteDialog(courseLevel)}
-                            className="text-red-600"
-                            disabled={courseLevel.lead_count > 0}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {courseLevel.lead_count > 0
-                              ? `Cannot Delete (${courseLevel.lead_count} leads)`
-                              : "Delete"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-3">
-                    {courseLevel.description && (
-                      <p className="text-sm text-gray-600">
-                        {courseLevel.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Users className="h-4 w-4" />
-                        <span>{courseLevel.lead_count} leads</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Hash className="h-4 w-4" />
-                        <span>Order: {courseLevel.sort_order}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t text-xs text-gray-500">
-                      <div className="flex items-center gap-1 mb-1">
-                        <User className="h-3 w-3" />
-                        <span>Created by {courseLevel.created_by}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>
-                          Created {formatDate(courseLevel.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  title={courseLevel.display_name}
+                  subtitle={courseLevel.name}
+                  description={courseLevel.description}
+                  isActive={courseLevel.is_active}
+                  badges={[
+                    {
+                      text: courseLevel.is_active ? "Active" : "Inactive",
+                      variant: courseLevel.is_active
+                        ? "success-light"
+                        : "secondary",
+                    },
+                    // Conditionally add default badge
+                    ...(courseLevel.is_default
+                      ? [
+                          {
+                            text: "Default",
+                            variant: "primary-ghost" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  leadCount={courseLevel.lead_count}
+                  nextNumber={courseLevel.sort_order}
+                  createdBy={courseLevel.created_by}
+                  createdAt={courseLevel.created_at}
+                  onEdit={() => openEditDialog(courseLevel)}
+                  onDelete={() => openDeleteDialog(courseLevel)}
+                  onActivate={
+                    !courseLevel.is_active
+                      ? () => handleActivateDeactivate(courseLevel, "activate")
+                      : undefined
+                  }
+                  onDeactivate={
+                    courseLevel.is_active
+                      ? () =>
+                          handleActivateDeactivate(courseLevel, "deactivate")
+                      : undefined
+                  }
+                  canEdit={true}
+                  canDelete={courseLevel.lead_count === 0}
+                  canReorder={false}
+                  isLoading={false}
+                />
               ))}
             </div>
           )}
 
-          {/* No results */}
+          {/* Loading State - Show skeleton when loading and no data */}
+          {isLoading && filteredAndSortedCourseLevels.length === 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <AdminDataConfCard
+                  key={`loading-${activeTab}-${i}`}
+                  title=""
+                  badges={[]}
+                  canEdit={false}
+                  canDelete={false}
+                  canReorder={false}
+                  isLoading={true}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Empty State - Show only when not loading and no data */}
           {!isLoading &&
             !error &&
             filteredAndSortedCourseLevels.length === 0 && (
@@ -657,13 +535,18 @@ const CourseLevelManagementPage = () => {
                 <p className="text-gray-500 mb-2">
                   {searchTerm
                     ? "No course levels found matching your search"
-                    : "No course levels found"}
+                    : `No ${activeTab} course levels found`}
                 </p>
-                {searchTerm && (
+                {searchTerm ? (
                   <Button variant="ghost" onClick={() => setSearchTerm("")}>
                     Clear search
                   </Button>
-                )}
+                ) : activeTab === "active" ? (
+                  <Button onClick={() => setIsCreateDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Course Level
+                  </Button>
+                ) : null}
               </div>
             )}
         </TabsContent>
