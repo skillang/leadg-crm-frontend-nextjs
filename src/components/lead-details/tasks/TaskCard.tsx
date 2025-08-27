@@ -237,6 +237,21 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </TableCell>
             </TableRow>
 
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableCell className="py-2 text-gray-500 text-sm font-normal">
+                Desciption:
+              </TableCell>
+              <TableCell className="py-2">
+                {task.task_description ? (
+                  <span className="capitalize text-gray-700 text-sm">
+                    {task.task_description}
+                  </span>
+                ) : (
+                  <p>No Description Provided</p>
+                )}
+              </TableCell>
+            </TableRow>
+
             {/* Due Date Row */}
             <TableRow className="border-b border-gray-100 hover:bg-transparent">
               <TableCell className="py-2 text-gray-500 text-sm font-normal">

@@ -8,6 +8,7 @@ import {
   TasksResponse,
   CompleteTaskRequest,
   TaskStats,
+  AssignableUsersResponse,
 } from "@/models/types/task";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
@@ -134,6 +135,27 @@ export const tasksApi = createApi({
       ],
     }),
 
+    getAssignableUsers: builder.query<AssignableUsersResponse, string>({
+      query: (leadId) => `/tasks/tasks/assignable-users?lead_id=${leadId}`,
+      transformResponse: (response: unknown): AssignableUsersResponse => {
+        const parsed = response as AssignableUsersResponse;
+        return {
+          success: parsed.success,
+          users: parsed.users || [],
+          lead_id: parsed.lead_id,
+          total_assigned_users: parsed.total_assigned_users || 0,
+          assignment_summary: parsed.assignment_summary || {
+            primary_assignee: "",
+            co_assignees_count: 0,
+            is_multi_assigned: false,
+          },
+        };
+      },
+      providesTags: (result, _error, leadId) => [
+        { type: "Task", id: `${leadId}-assignable-users` },
+      ],
+    }),
+
     completeTask: builder.mutation<
       { message: string },
       { taskId: string; completionData: CompleteTaskRequest }
@@ -196,6 +218,7 @@ export const {
   useGetTaskQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
+  useGetAssignableUsersQuery,
   useCompleteTaskMutation,
   useDeleteTaskMutation,
   useGetMyTasksQuery,

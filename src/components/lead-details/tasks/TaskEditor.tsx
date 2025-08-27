@@ -35,6 +35,7 @@ import {
 import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
+  useGetAssignableUsersQuery,
 } from "@/redux/slices/tasksApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 
@@ -65,6 +66,11 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
 }) => {
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
+  const {
+    data: assignableUsersData,
+    isLoading: isLoadingUsers,
+    error: usersError,
+  } = useGetAssignableUsersQuery(leadId);
 
   // Add state for date picker popover
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -112,13 +118,16 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
           task_description: task.task_description,
           task_type: task.task_type,
           priority: task.priority,
-          assigned_to: task.assigned_to,
+          assigned_to: assignableUsersData?.users?.[0]?.id || "",
           due_date: task.due_date,
           due_time: task.due_time,
           notes: task.notes,
         });
       } else {
         // Creating new task
+        const primaryAssignee = assignableUsersData?.users?.find(
+          (user) => user.assignment_type === "primary"
+        );
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -128,7 +137,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
           task_description: "",
           task_type: "call",
           priority: "medium",
-          assigned_to: "6853b46a94c81d9328a29e82", // Default user ID - you might want to make this dynamic
+          assigned_to: primaryAssignee?.id || "", // Default user ID to primary Assignee
           due_date: tomorrow.toISOString().split("T")[0],
           due_time: "10:00",
           notes: "",
@@ -309,6 +318,49 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Assigned To Dropdown - Add this new section */}
+          <div className="space-y-2">
+            <Label htmlFor="assigned_to" className="text-sm font-medium">
+              Assign to *
+            </Label>
+            <Select
+              value={formData.assigned_to}
+              onValueChange={(value) => handleInputChange("assigned_to", value)}
+              disabled={isLoading || isLoadingUsers}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingUsers ? (
+                  <SelectItem value="" disabled>
+                    Loading users...
+                  </SelectItem>
+                ) : usersError ? (
+                  <SelectItem value="" disabled>
+                    Error loading users
+                  </SelectItem>
+                ) : (
+                  assignableUsersData?.users?.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{user.name}</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({user.assignment_type})
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {isLoadingUsers && (
+              <p className="text-xs text-gray-500">
+                Loading assignable users...
+              </p>
+            )}
           </div>
 
           {/* Description */}

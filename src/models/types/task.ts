@@ -4,7 +4,7 @@
 export interface Task {
   id: string;
   task_title: string;
-  task_description: string;
+  task_description: string | "";
   priority: "low" | "medium" | "high" | "urgent";
   task_type: "call" | "email" | "meeting" | "follow_up" | "other";
   string: string;
@@ -70,4 +70,29 @@ export interface TasksResponse {
   tasks: Task[];
   total: number;
   stats: TaskStats;
+}
+
+export interface AssignableUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string | null;
+  assignment_type: "primary" | "co-assignee";
+}
+
+// Assignment summary
+export interface AssignmentSummary {
+  primary_assignee: string;
+  co_assignees_count: number;
+  is_multi_assigned: boolean;
+}
+
+// Response for assignable users endpoint
+export interface AssignableUsersResponse {
+  success: boolean;
+  users: AssignableUser[];
+  lead_id: string;
+  total_assigned_users: number;
+  assignment_summary: AssignmentSummary;
 }
