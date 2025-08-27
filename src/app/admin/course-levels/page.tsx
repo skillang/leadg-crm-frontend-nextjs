@@ -134,10 +134,8 @@ const CourseLevelManagementPage = () => {
   const [updateCourseLevel, { isLoading: isUpdating }] =
     useUpdateCourseLevelMutation();
   const [deleteCourseLevel] = useDeleteCourseLevelMutation();
-  const [activateCourseLevel, { isLoading: isActivating }] =
-    useActivateCourseLevelMutation();
-  const [deactivateCourseLevel, { isLoading: isDeactivating }] =
-    useDeactivateCourseLevelMutation();
+  const [activateCourseLevel] = useActivateCourseLevelMutation();
+  const [deactivateCourseLevel] = useDeactivateCourseLevelMutation();
 
   // Check admin access
   if (!hasAccess) {

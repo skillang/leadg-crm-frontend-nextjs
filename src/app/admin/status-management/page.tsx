@@ -49,12 +49,9 @@ const StatusManagement: React.FC = () => {
 
   // Mutations
   const [deleteStatus] = useDeleteStatusMutation();
-  const [activateStatus, { isLoading: isActivating }] =
-    useActivateStatusMutation();
-  const [deactivateStatus, { isLoading: isDeactivating }] =
-    useDeactivateStatusMutation();
-  const [reorderStatuses, { isLoading: isReordering }] =
-    useReorderStatusesMutation();
+  const [activateStatus] = useActivateStatusMutation();
+  const [deactivateStatus] = useDeactivateStatusMutation();
+  const [reorderStatuses] = useReorderStatusesMutation();
   const [setupDefaults, { isLoading: isSettingUp }] =
     useSetupDefaultStatusesMutation();
 
