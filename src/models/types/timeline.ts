@@ -1,5 +1,7 @@
 // src/models/types/timeline.ts
 
+import { PaginationMeta } from "@/models/types/pagination";
+
 export interface TimelineActivity {
   id: string;
   activity_type: string;
@@ -15,15 +17,26 @@ export interface TimelineActivity {
 }
 
 export interface TimelineResponse {
-  activities: TimelineActivity[];
-  total: number;
-  page: number;
-  limit: number;
-  has_next: boolean;
-  has_prev: boolean;
-  total_pages: number;
-}
+  activities?: TimelineActivity[]; // Old structure
+  timeline?: TimelineActivity[]; // New structure
 
+  // Old pagination format (keep for backward compatibility)
+  total?: number;
+  page?: number;
+  limit?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
+  total_pages?: number;
+
+  // New nested pagination format
+  pagination?: PaginationMeta;
+
+  // Additional fields from API
+  success?: boolean;
+  lead_id?: string;
+  filters?: Record<string, unknown>;
+  summary?: Record<string, unknown>;
+}
 export interface TimelineStats {
   total_activities: number;
   activities_by_type: Record<string, number>;
@@ -245,75 +258,6 @@ export const getActivityTypeConfig = (activityType: string): ActivityType => {
 };
 
 /**
- * Common activity types for reference (optional)
- * You can still use this for dropdowns or predefined lists
- */
-export const COMMON_ACTIVITY_TYPES: ActivityType[] = [
-  {
-    value: "lead_reassigned",
-    label: "Lead Reassigned",
-    icon: "UserPlus",
-    color: "blue",
-  },
-  {
-    value: "lead_assigned",
-    label: "Lead Assigned",
-    icon: "UserPlus",
-    color: "blue",
-  },
-  {
-    value: "lead_stage_updated",
-    label: "Lead Stage Updated",
-    icon: "ArrowRight",
-    color: "blue",
-  },
-  {
-    value: "task_completed",
-    label: "Task Completed",
-    icon: "CheckSquare",
-    color: "green",
-  },
-  {
-    value: "task_created",
-    label: "Task Created",
-    icon: "CheckSquare",
-    color: "green",
-  },
-  {
-    value: "document_uploaded",
-    label: "Document Uploaded",
-    icon: "Upload",
-    color: "purple",
-  },
-  {
-    value: "note_added",
-    label: "Note Added",
-    icon: "StickyNote",
-    color: "yellow",
-  },
-  { value: "call_logged", label: "Call Logged", icon: "Phone", color: "blue" },
-  { value: "email_sent", label: "Email Sent", icon: "Mail", color: "blue" },
-  {
-    value: "meeting_scheduled",
-    label: "Meeting Scheduled",
-    icon: "Calendar",
-    color: "orange",
-  },
-  {
-    value: "contact_added",
-    label: "Contact Added",
-    icon: "UserPlus",
-    color: "pink",
-  },
-  {
-    value: "system_update",
-    label: "System Update",
-    icon: "Settings",
-    color: "gray",
-  },
-];
-
-/**
  * Get all activity types with their configurations
  * This can be used for filtering dropdowns, etc.
  */
@@ -321,11 +265,4 @@ export const getAllActivityTypeConfigs = (
   activityTypes: string[]
 ): ActivityType[] => {
   return activityTypes.map((type) => getActivityTypeConfig(type));
-};
-
-/**
- * Utility function to check if an activity type exists in common types
- */
-export const isCommonActivityType = (activityType: string): boolean => {
-  return COMMON_ACTIVITY_TYPES.some((type) => type.value === activityType);
 };

@@ -1,4 +1,4 @@
-// src/components/timeline/TimelineContainer.tsx
+// src/components/lead-details/timeline/TimelineContainer.tsx
 
 "use client";
 
@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Activity, AlertCircle, Filter, Loader2, Search } from "lucide-react";
 import { TimelineFilters } from "@/models/types/timeline";
-import {
-  useGetLeadTimelineQuery,
-  useGetLeadActivityTypesQuery,
-} from "@/redux/slices/timelineApi";
+import { useGetLeadTimelineQuery } from "@/redux/slices/timelineApi";
 import TimelineItem from "./TimelineItem";
 import TimelineFiltersPanel from "./TimelineFiltersPanel";
+import ServerPagination from "@/components/common/ServerPagination";
+import { PaginationMeta } from "@/models/types/pagination";
 
 interface TimelineContainerProps {
   leadId: string;
@@ -21,12 +20,12 @@ interface TimelineContainerProps {
 const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   const [filters, setFilters] = useState<TimelineFilters>({
     page: 1,
-    limit: 20,
+    limit: 10,
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // API queries - using lead-specific activity types for better filtering
+  // API query - using only the timeline query since it includes lead-specific data
   const {
     data: timelineData,
     isLoading,
@@ -38,24 +37,23 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
     search: searchQuery || undefined,
   });
 
-  // Get activity types specific to this lead (includes count information)
-  const { data: leadActivityTypes } = useGetLeadActivityTypesQuery(leadId);
+  // Extract data from timeline response
+  const activities = timelineData?.timeline || timelineData?.activities || [];
+  const paginationInfo = timelineData?.pagination;
 
-  const activities = timelineData?.activities || [];
-  const hasNextPage = timelineData?.has_next || false;
-  const hasPrevPage = timelineData?.has_prev || false;
-  const totalActivities = timelineData?.total || 0;
-  const currentPage = timelineData?.page || 1;
-  const totalPages = timelineData?.total_pages || 1;
+  // Create pagination metadata for ServerPagination component
+  const paginationMeta: PaginationMeta = {
+    total: paginationInfo?.total || 0,
+    page: paginationInfo?.page || 1,
+    limit: paginationInfo?.limit || filters.limit || 10, // Add || 10 as final fallback
+    has_next: paginationInfo?.has_next || false,
+    has_prev: paginationInfo?.has_prev || false,
+  };
 
-  // Convert lead activity types to the format expected by filters panel
-  const activityTypesForFilter =
-    leadActivityTypes?.map((type) => ({
-      value: type.value,
-      label: `${type.label} (${type.count})`,
-      icon: type.icon,
-      color: type.color,
-    })) || [];
+  const totalActivities = paginationMeta.total;
+  console.log(totalActivities, "is total activities in pagination");
+  console.log("timelineData:", timelineData);
+  console.log("paginationInfo:", paginationInfo);
 
   // Handlers
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,16 +68,25 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: 1,
+      page: 1, // Reset to first page when filtering
     }));
   };
 
+  // Updated pagination handlers for ServerPagination
   const handlePageChange = (newPage: number) => {
     setFilters((prev) => ({ ...prev, page: newPage }));
   };
 
+  const handlePageSizeChange = (newLimit: number) => {
+    setFilters((prev) => ({
+      ...prev,
+      limit: newLimit,
+      page: 1, // Reset to first page when changing page size
+    }));
+  };
+
   const handleClearFilters = () => {
-    setFilters({ page: 1, limit: 20 });
+    setFilters({ page: 1, limit: filters.limit }); // Keep current limit
     setSearchQuery("");
   };
 
@@ -89,7 +96,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
     filters.date_to ||
     searchQuery;
 
-  if (isLoading && currentPage === 1) {
+  if (isLoading && paginationMeta.page === 1) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -116,30 +123,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Activity Summary */}
-      {leadActivityTypes && leadActivityTypes.length > 0 && (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">
-            Activity Summary
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {leadActivityTypes.slice(0, 6).map((type) => (
-              <span
-                key={type.value}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-              >
-                {type.label}
-              </span>
-            ))}
-            {leadActivityTypes.length > 6 && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                +{leadActivityTypes.length - 6} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Filters and Search */}
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -185,7 +168,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
           <TimelineFiltersPanel
             filters={filters}
             onFilterChange={handleFilterChange}
-            activityTypes={activityTypesForFilter}
+            activityTypes={[]} // Empty array since we're not using separate activity types query
           />
         )}
       </div>
@@ -214,6 +197,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
         </div>
       ) : (
         <div className="space-y-4">
+          {/* Activities List */}
           <div className="space-y-0">
             {activities.map((activity, index) => (
               <TimelineItem
@@ -224,31 +208,29 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
             ))}
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Showing {activities.length} of {totalActivities} activities
-                {currentPage > 1 && ` (Page ${currentPage} of ${totalPages})`}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={!hasPrevPage || isLoading}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!hasNextPage || isLoading}
-                >
-                  Next
-                </Button>
-              </div>
+          {/* Loading indicator for pagination */}
+          {isLoading && paginationMeta.page > 1 && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600 mr-2" />
+              <span className="text-sm text-gray-600">
+                Loading more activities...
+              </span>
             </div>
+          )}
+
+          {/* ServerPagination Component */}
+          {totalActivities > 0 && (
+            <ServerPagination
+              paginationMeta={paginationMeta}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              searchQuery={searchQuery}
+              isLoading={isLoading}
+              showResultsInfo={true}
+              showPageSizeSelector={true}
+              pageSizeOptions={[5, 10, 20, 30]}
+              className="mt-6"
+            />
           )}
         </div>
       )}

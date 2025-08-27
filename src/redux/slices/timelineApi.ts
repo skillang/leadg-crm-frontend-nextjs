@@ -69,88 +69,43 @@ export const timelineApi = createApi({
         return url;
       },
       transformResponse: (response: unknown): TimelineResponse => {
-        if (typeof response === "string") {
-          try {
-            const parsed = JSON.parse(response) as {
-              success?: boolean;
-              timeline?: Record<string, unknown>[];
-              activities?: Record<string, unknown>[];
-              total?: number;
-              page?: number;
-              limit?: number;
-              has_next?: boolean;
-              has_prev?: boolean;
-              total_pages?: number;
-            };
-            if (parsed.success && parsed.timeline) {
-              return {
-                activities:
-                  parsed.timeline.map(transformTimelineActivity) || [],
-                total: parsed.timeline.length || 0,
-                page: 1,
-                limit: 20,
-                has_next: false,
-                has_prev: false,
-                total_pages: 1,
-              };
-            }
-
-            return {
-              activities:
-                parsed.activities?.map(transformTimelineActivity) || [],
-              total: parsed.total || 0,
-              page: parsed.page || 1,
-              limit: parsed.limit || 20,
-              has_next: parsed.has_next || false,
-              has_prev: parsed.has_prev || false,
-              total_pages: parsed.total_pages || 1,
-            };
-          } catch (error) {
-            console.error("Failed to parse timeline response:", error);
-            return {
-              activities: [],
-              total: 0,
-              page: 1,
-              limit: 20,
-              has_next: false,
-              has_prev: false,
-              total_pages: 1,
-            };
-          }
-        }
-
         const parsed = response as {
           success?: boolean;
           timeline?: Record<string, unknown>[];
-          activities?: Record<string, unknown>[];
-          total?: number;
-          page?: number;
-          limit?: number;
-          has_next?: boolean;
-          has_prev?: boolean;
-          total_pages?: number;
+          pagination?: {
+            total?: number;
+            page?: number;
+            limit?: number;
+            pages?: number;
+            has_next?: boolean;
+            has_prev?: boolean;
+          };
         };
 
-        if (parsed.success && parsed.timeline) {
-          return {
-            activities: parsed.timeline.map(transformTimelineActivity) || [],
-            total: parsed.timeline.length || 0,
-            page: 1,
-            limit: 20,
-            has_next: false,
-            has_prev: false,
-            total_pages: 1,
-          };
-        }
+        // Extract activities from timeline array
+        const activities =
+          parsed.timeline?.map(transformTimelineActivity) || [];
+
+        // Extract pagination data from nested pagination object
+        const pagination = parsed.pagination || {};
 
         return {
-          activities: parsed.activities?.map(transformTimelineActivity) || [],
-          total: parsed.total || 0,
-          page: parsed.page || 1,
-          limit: parsed.limit || 20,
-          has_next: parsed.has_next || false,
-          has_prev: parsed.has_prev || false,
-          total_pages: parsed.total_pages || 1,
+          activities: activities,
+          // Use actual pagination values from backend, no hardcoded fallbacks
+          total: pagination.total || 0,
+          page: pagination.page || 1,
+          limit: pagination.limit || 20, // This was the main problem - was hardcoded
+          has_next: pagination.has_next || false,
+          has_prev: pagination.has_prev || false,
+          total_pages: pagination.pages || 1,
+          // Include nested pagination for backward compatibility
+          pagination: {
+            total: pagination.total || 0,
+            page: pagination.page || 1,
+            limit: pagination.limit || 20,
+            has_next: pagination.has_next || false,
+            has_prev: pagination.has_prev || false,
+          },
         };
       },
       providesTags: (result, _error, { leadId }) => [
@@ -309,22 +264,6 @@ export const timelineApi = createApi({
       },
       providesTags: ["ActivityTypes"],
     }),
-
-    // Debug endpoint for testing
-    getTimelineDebug: builder.query<Record<string, unknown>, string>({
-      query: (leadId) => `/timeline/debug/test/${leadId}`,
-      transformResponse: (response: unknown): Record<string, unknown> => {
-        if (typeof response === "string") {
-          try {
-            return JSON.parse(response);
-          } catch (error) {
-            console.error("Failed to parse debug response:", error);
-            return { debug_data: response };
-          }
-        }
-        return response as Record<string, unknown>;
-      },
-    }),
   }),
 });
 
@@ -334,5 +273,4 @@ export const {
   useGetActivityTypesQuery,
   useGetLeadActivityTypesQuery,
   useGetAllUniqueActivityTypesQuery,
-  useGetTimelineDebugQuery,
 } = timelineApi;
