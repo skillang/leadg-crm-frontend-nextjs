@@ -63,10 +63,6 @@ export const callDashboardApi = createApi({
         if (params.call_direction)
           queryParams.append("call_direction", params.call_direction);
 
-        // Always add pagination with defaults (as you mentioned)
-        queryParams.append("limit", String(params.limit || 50));
-        queryParams.append("page", String(params.page || 1));
-
         return `/call-dashboard?${queryParams.toString()}`;
       },
       providesTags: ["CallDashboard"],
@@ -82,8 +78,6 @@ export const callDashboardApi = createApi({
     >({
       query: ({ user_id, ...params }) => {
         const queryParams = new URLSearchParams();
-
-        if (params.period) queryParams.append("period", params.period);
         if (params.date_from) queryParams.append("date_from", params.date_from);
         if (params.date_to) queryParams.append("date_to", params.date_to);
         if (params.include_day_comparison !== undefined) {

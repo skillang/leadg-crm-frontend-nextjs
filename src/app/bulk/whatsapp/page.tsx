@@ -950,7 +950,7 @@ const BulkWhatsAppPage: React.FC = () => {
                           Success Rate
                         </p>
                         <p className="text-2xl font-bold">
-                          {statsData?.stats?.success_rate?.toFixed(1) || 0}%
+                          {statsData?.stats?.success_rate || 0}%
                         </p>
                       </div>
                       <Activity className="h-8 w-8 text-purple-500" />

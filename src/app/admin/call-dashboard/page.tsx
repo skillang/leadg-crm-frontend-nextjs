@@ -52,12 +52,12 @@ export default function AdminCallDashboardPage() {
     field: "success_rate",
     direction: "desc",
   });
-  const [tablePagination, setTablePagination] = useState<PaginationState>({
-    page: 1,
-    limit: 50,
-    total: 0,
-    totalPages: 1,
-  });
+  // const [tablePagination, setTablePagination] = useState<PaginationState>({
+  //   page: 1,
+  //   limit: 50,
+  //   total: 0,
+  //   totalPages: 1,
+  // });
 
   // Build query parameters
   const dashboardQuery = buildDashboardQuery({
@@ -71,8 +71,6 @@ export default function AdminCallDashboardPage() {
     userIds: filters.selectedUsers,
     callStatus: filters.callStatus,
     callDirection: filters.callDirection,
-    page: tablePagination.page,
-    limit: tablePagination.limit,
   });
 
   // API queries
@@ -91,28 +89,15 @@ export default function AdminCallDashboardPage() {
     date_to: format(filters.dateRange.to || new Date(), "yyyy-MM-dd"),
   });
 
-  // Update pagination when dashboard data changes
   useEffect(() => {
     if (dashboardData) {
-      setTablePagination((prev) => ({
-        ...prev,
-        total: dashboardData.total_calls,
-        totalPages: dashboardData.total_pages,
-      }));
       setIsManualLoading(false);
     }
   }, [dashboardData]);
 
-  useEffect(() => {
-    if (dashboardError) {
-      setIsManualLoading(false);
-    }
-  }, [dashboardError]);
-
   // Handlers
   const handleFiltersChange = (newFilters: FilterState) => {
     setFilters(newFilters);
-    setTablePagination((prev) => ({ ...prev, page: 1 }));
     setTimeout(() => {
       refetchDashboard();
     }, 100);
@@ -126,7 +111,6 @@ export default function AdminCallDashboardPage() {
   const handleResetFilters = () => {
     setIsManualLoading(true);
     setFilters(defaultFilters);
-    setTablePagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleRefresh = () => {
@@ -146,10 +130,6 @@ export default function AdminCallDashboardPage() {
 
   const handleTableSort = (sort: SortState) => {
     setTableSort(sort);
-  };
-
-  const handlePageChange = (page: number) => {
-    setTablePagination((prev) => ({ ...prev, page }));
   };
 
   // Error state
@@ -281,7 +261,7 @@ export default function AdminCallDashboardPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-lg">
-                            {performer.score.toFixed(1)}%
+                            {performer.score}%
                           </p>
                           <p className="text-xs text-muted-foreground">
                             success rate
@@ -307,8 +287,6 @@ export default function AdminCallDashboardPage() {
         onUserClick={handleUserClick}
         onSortChange={handleTableSort}
         sortState={tableSort}
-        pagination={tablePagination}
-        onPageChange={handlePageChange}
       />
 
       {/* Debug Info (development only) */}

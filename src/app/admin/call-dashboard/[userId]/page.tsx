@@ -184,70 +184,6 @@ export default function UserDetailPage() {
         </div>
       )}
 
-      {/* Performance Stats Cards */}
-      {/* {userPerformance && !isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          <TotalCallsCard
-            value={
-              userPerformance.stats.daily_calls ||
-              userPerformance.stats.weekly_calls ||
-              userPerformance.stats.monthly_calls ||
-              0
-            }
-          />
-
-          <AnsweredCallsCard
-            value={
-              userPerformance.stats.daily_answered ||
-              userPerformance.stats.weekly_answered ||
-              userPerformance.stats.monthly_answered ||
-              0
-            }
-            total={
-              userPerformance.stats.daily_calls ||
-              userPerformance.stats.weekly_calls ||
-              userPerformance.stats.monthly_calls ||
-              0
-            }
-          />
-
-          <MissedCallsCard
-            value={
-              userPerformance.stats.daily_missed ||
-              userPerformance.stats.weekly_missed ||
-              userPerformance.stats.monthly_missed ||
-              0
-            }
-            total={
-              userPerformance.stats.daily_calls ||
-              userPerformance.stats.weekly_calls ||
-              userPerformance.stats.monthly_calls ||
-              0
-            }
-          />
-
-          <CallStatsCard
-            title="Success Rate"
-            value={`${userPerformance.stats.success_rate.toFixed(1)}%`}
-            icon={<TrendingUp className="h-4 w-4" />}
-            subtitle="Answered calls"
-            className={getSuccessRateColor(userPerformance.stats.success_rate)}
-          />
-
-          <CallStatsCard
-            title="Avg Duration"
-            value={formatDuration(userPerformance.stats.avg_call_duration)}
-            icon={<Clock className="h-4 w-4" />}
-            subtitle={`${formatDuration(
-              userPerformance.stats.daily_duration ||
-                userPerformance.stats.weekly_duration ||
-                userPerformance.stats.monthly_duration ||
-                0
-            )} total`}
-          />
-        </div>
-      )} */}
-
       {/* User Ranking Card */}
       {userPerformance?.ranking && !isLoading && (
         <Card>
@@ -275,7 +211,7 @@ export default function UserDetailPage() {
               </div>
               <div className="text-right">
                 <p className="font-semibold text-2xl text-green-600">
-                  {userPerformance.ranking.score.toFixed(1)}%
+                  {userPerformance.ranking.score}%
                 </p>
                 <p className="text-sm text-muted-foreground">
                   performance score
@@ -344,7 +280,7 @@ export default function UserDetailPage() {
                         <div className="flex justify-between text-sm">
                           <span>Success:</span>
                           <span className="font-medium">
-                            {day.success_rate.toFixed(1)}%
+                            {day.success_rate}%
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">

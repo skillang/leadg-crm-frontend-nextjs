@@ -48,8 +48,6 @@ interface UserPerformanceTableProps {
   onUserClick?: (userId: string) => void;
   onSortChange?: (sort: SortState) => void;
   sortState?: SortState;
-  pagination?: PaginationState;
-  onPageChange?: (page: number) => void;
   className?: string;
 }
 
@@ -107,8 +105,6 @@ export function UserPerformanceTable({
   onUserClick,
   onSortChange,
   sortState,
-  pagination,
-  onPageChange,
   className,
 }: UserPerformanceTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -137,48 +133,15 @@ export function UserPerformanceTable({
     );
   };
 
-  // Get current period data (prioritize by period)
   const getCurrentPeriodData = (user: UserCallStats) => {
-    // Determine which period to show based on available data
-    if (user.daily_calls !== null) {
-      return {
-        calls: user.daily_calls,
-        answered: user.daily_answered,
-        missed: user.daily_missed,
-        duration: user.daily_duration,
-        recordings: user.daily_recordings,
-        period: "Daily",
-      };
-    }
-    if (user.weekly_calls !== null) {
-      return {
-        calls: user.weekly_calls,
-        answered: user.weekly_answered,
-        missed: user.weekly_missed,
-        duration: user.weekly_duration,
-        recordings: user.weekly_recordings,
-        period: "Weekly",
-      };
-    }
-    if (user.monthly_calls !== null) {
-      return {
-        calls: user.monthly_calls,
-        answered: user.monthly_answered,
-        missed: user.monthly_missed,
-        duration: user.monthly_duration,
-        recordings: user.monthly_recordings,
-        period: "Monthly",
-      };
-    }
-
-    // Fallback to zeros
+    // Use the new generic field names from your API response
     return {
-      calls: 0,
-      answered: 0,
-      missed: 0,
-      duration: 0,
-      recordings: 0,
-      period: "No Data",
+      calls: user.total_calls || 0,
+      answered: user.answered_calls || 0,
+      missed: user.missed_calls || 0,
+      duration: user.total_duration || 0,
+      recordings: user.recordings_count || 0,
+      period: "Current", // Since you're showing current data
     };
   };
 
@@ -424,34 +387,6 @@ export function UserPerformanceTable({
             </TableBody>
           </Table>
         </div>
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <div className="text-sm text-muted-foreground">
-              Page {pagination.page} of {pagination.totalPages}(
-              {pagination.total} total users)
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange?.(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange?.(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

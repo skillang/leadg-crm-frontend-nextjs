@@ -99,21 +99,11 @@ export interface UserCallStats {
   user_id: string;
   user_name: string;
   agent_number: string;
-  daily_calls: number | null;
-  daily_answered: number | null;
-  daily_missed: number | null;
-  daily_duration: number | null;
-  daily_recordings: number | null;
-  weekly_calls: number | null;
-  weekly_answered: number | null;
-  weekly_missed: number | null;
-  weekly_duration: number | null;
-  weekly_recordings: number | null;
-  monthly_calls: number | null;
-  monthly_answered: number | null;
-  monthly_missed: number | null;
-  monthly_duration: number | null;
-  monthly_recordings: number | null;
+  total_calls: number;
+  answered_calls: number;
+  missed_calls: number;
+  total_duration: number;
+  recordings_count: number;
   success_rate: number;
   avg_call_duration: number;
 }
