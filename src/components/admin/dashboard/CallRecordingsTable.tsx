@@ -1,5 +1,5 @@
 // src/components/admin/CallRecordingsTable.tsx
-// Call recordings table with direct playback functionality (no reason popup)
+// Call recordings table with direct playback functionality (no API calls needed)
 
 "use client";
 
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,7 +34,6 @@ import {
   ArrowUp,
   ArrowDown,
   PhoneCall,
-  PhoneOff,
   PhoneIncoming,
   PhoneOutgoing,
   Clock,
@@ -42,17 +41,17 @@ import {
   Mic,
   MicOff,
   User,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 
 // Types
 import {
   CallRecord,
   SortState,
   PaginationState,
+  CallInfo,
 } from "@/models/types/callDashboard";
-import { usePlayRecordingMutation } from "../../../redux/slices/callDashboardApi";
 
 interface CallRecordingsTableProps {
   data: CallRecord[];
@@ -74,7 +73,15 @@ interface AudioState {
 }
 
 // Audio player component
-function AudioPlayer({ url, onClose }: { url: string; onClose: () => void }) {
+function AudioPlayer({
+  url,
+  callInfo,
+  onClose,
+}: {
+  url: string;
+  callInfo?: CallInfo;
+  onClose: () => void;
+}) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioState, setAudioState] = useState<AudioState>({
     isPlaying: false,
@@ -83,13 +90,17 @@ function AudioPlayer({ url, onClose }: { url: string; onClose: () => void }) {
     volume: 1,
     isMuted: false,
   });
+  const [loadingError, setLoadingError] = useState(false);
 
   const togglePlayPause = () => {
     if (audioRef.current) {
       if (audioState.isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch((error) => {
+          console.error("Playback error:", error);
+          setLoadingError(true);
+        });
       }
     }
   };
@@ -98,17 +109,6 @@ function AudioPlayer({ url, onClose }: { url: string; onClose: () => void }) {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-    }
-  };
-
-  const handleVolumeChange = (value: number) => {
-    if (audioRef.current) {
-      audioRef.current.volume = value;
-      setAudioState((prev) => ({
-        ...prev,
-        volume: value,
-        isMuted: value === 0,
-      }));
     }
   };
 
@@ -121,86 +121,121 @@ function AudioPlayer({ url, onClose }: { url: string; onClose: () => void }) {
   };
 
   const formatTime = (time: number) => {
+    if (!time || isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   return (
-    <div className="fixed bottom-4 right-4 bg-background border rounded-lg shadow-lg p-4 min-w-[300px] z-50">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium">Call Recording</span>
+    <div className="fixed bottom-4 right-4 bg-background border rounded-lg shadow-lg p-4 min-w-[320px] max-w-[400px] z-50">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex-1">
+          <div className="font-medium text-sm">Call Recording</div>
+          {callInfo && (
+            <div className="text-xs text-muted-foreground">
+              {callInfo.agent_name} → {callInfo.client_number}
+              <br />
+              {callInfo.date} at {callInfo.time}
+            </div>
+          )}
+        </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           ✕
         </Button>
       </div>
 
-      <audio
-        ref={audioRef}
-        src={url}
-        onTimeUpdate={() => {
-          if (audioRef.current) {
-            setAudioState((prev) => ({
-              ...prev,
-              currentTime: audioRef.current!.currentTime,
-            }));
-          }
-        }}
-        onDurationChange={() => {
-          if (audioRef.current) {
-            setAudioState((prev) => ({
-              ...prev,
-              duration: audioRef.current!.duration,
-            }));
-          }
-        }}
-        onPlay={() => setAudioState((prev) => ({ ...prev, isPlaying: true }))}
-        onPause={() => setAudioState((prev) => ({ ...prev, isPlaying: false }))}
-        onEnded={() => setAudioState((prev) => ({ ...prev, isPlaying: false }))}
-      />
-
-      <div className="space-y-3">
-        {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-1">
-          <div
-            className="bg-blue-600 h-1 rounded-full transition-all duration-300"
-            style={{
-              width: `${
-                audioState.duration
-                  ? (audioState.currentTime / audioState.duration) * 100
-                  : 0
-              }%`,
+      {loadingError ? (
+        <div className="text-center py-4">
+          <div className="text-red-500 text-sm mb-2">
+            Failed to load recording
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(url, "_blank")}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open in New Tab
+          </Button>
+        </div>
+      ) : (
+        <>
+          <audio
+            ref={audioRef}
+            src={url || undefined}
+            onTimeUpdate={() => {
+              if (audioRef.current) {
+                setAudioState((prev) => ({
+                  ...prev,
+                  currentTime: audioRef.current!.currentTime,
+                }));
+              }
             }}
+            onDurationChange={() => {
+              if (audioRef.current) {
+                setAudioState((prev) => ({
+                  ...prev,
+                  duration: audioRef.current!.duration,
+                }));
+              }
+            }}
+            onPlay={() =>
+              setAudioState((prev) => ({ ...prev, isPlaying: true }))
+            }
+            onPause={() =>
+              setAudioState((prev) => ({ ...prev, isPlaying: false }))
+            }
+            onEnded={() =>
+              setAudioState((prev) => ({ ...prev, isPlaying: false }))
+            }
+            onError={() => setLoadingError(true)}
+            onLoadStart={() => setLoadingError(false)}
           />
-        </div>
 
-        {/* Time display */}
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatTime(audioState.currentTime)}</span>
-          <span>{formatTime(audioState.duration)}</span>
-        </div>
+          <div className="space-y-3">
+            {/* Progress bar */}
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: `${
+                    audioState.duration
+                      ? (audioState.currentTime / audioState.duration) * 100
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+            {/* Time display */}
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{formatTime(audioState.currentTime)}</span>
+              <span>{formatTime(audioState.duration)}</span>
+            </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-center space-x-2">
-          <Button variant="outline" size="sm" onClick={togglePlayPause}>
-            {audioState.isPlaying ? (
-              <Pause className="h-4 w-4" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleStop}>
-            <Square className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={toggleMute}>
-            {audioState.isMuted ? (
-              <VolumeX className="h-4 w-4" />
-            ) : (
-              <Volume2 className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </div>
+            {/* Controls */}
+            <div className="flex items-center justify-center space-x-2">
+              <Button variant="outline" size="sm" onClick={togglePlayPause}>
+                {audioState.isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleStop}>
+                <Square className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={toggleMute}>
+                {audioState.isMuted ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -225,10 +260,9 @@ export function CallRecordingsTable({
   onPageChange,
   className,
 }: CallRecordingsTableProps) {
-  const [playRecording] = usePlayRecordingMutation();
   const [activeAudioUrl, setActiveAudioUrl] = useState<string | null>(null);
-  const [isLoadingRecording, setIsLoadingRecording] = useState<string | null>(
-    null
+  const [activeCallInfo, setActiveCallInfo] = useState<CallInfo | undefined>(
+    undefined
   );
 
   // Handle sort click
@@ -255,40 +289,41 @@ export function CallRecordingsTable({
     );
   };
 
-  // Handle direct recording playback without reason popup
-  const handlePlayRecording = async (callId: string, userId: string) => {
-    try {
-      setIsLoadingRecording(callId);
-
-      // Use a default reason since it's still required by the backend for logging
-      const defaultReason = "Admin playback - direct access";
-
-      const response = await playRecording({
-        call_id: callId,
-        user_id: userId,
-        reason: defaultReason,
-      }).unwrap();
-
-      if (response.success && response.recording_url) {
-        setActiveAudioUrl(response.recording_url);
-      }
-    } catch (error) {
-      console.error("Failed to play recording:", error);
-      // You could add a toast notification here
-    } finally {
-      setIsLoadingRecording(null);
+  // Handle direct recording playback - no API call needed!
+  const handlePlayRecording = (call: CallRecord) => {
+    if (!call.recording_url) {
+      console.error("No recording URL available");
+      return;
     }
+
+    console.log("🎵 Playing recording directly:", call.recording_url);
+
+    setActiveAudioUrl(call.recording_url);
+    setActiveCallInfo({
+      agent_name: call.agent_name || call.user_name,
+      client_number: call.client_number,
+      date: call.date,
+      time: call.time,
+    });
+  };
+
+  // Handle download recording
+  const handleDownloadRecording = (call: CallRecord) => {
+    if (!call.recording_url) return;
+
+    const link = document.createElement("a");
+    link.href = call.recording_url;
+    link.download = `recording_${call.date}_${call.time}_${call.call_id}.wav`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Get call status styling
   const getCallStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {
       case "answered":
-        return (
-          <Badge variant="default" className="bg-green-100 text-green-800">
-            Answered
-          </Badge>
-        );
+        return <Badge variant="success-light">Answered</Badge>;
       case "missed":
         return <Badge variant="destructive">Missed</Badge>;
       default:
@@ -322,217 +357,214 @@ export function CallRecordingsTable({
 
   return (
     <>
+      <div>
+        <div className="flex items-center space-x-2">
+          <Mic className="h-5 w-5" />
+          <span>Call Recordings</span>
+          {data.length > 0 && (
+            <Badge variant="secondary">{data.length} recordings</Badge>
+          )}
+        </div>
+      </div>
       <Card className={cn("w-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Mic className="h-5 w-5" />
-            <span>Call Recordings</span>
-            {data.length > 0 && (
-              <Badge variant="secondary">{data.length} recordings</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
+        <CardContent className="">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[120px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 font-semibold"
+                    onClick={() => handleSort("date")}
+                  >
+                    <Calendar className="h-4 w-4 mr-1" />
+                    Date/Time
+                    {getSortIcon("date")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 font-semibold"
+                    onClick={() => handleSort("user_name")}
+                  >
+                    <User className="h-4 w-4 mr-1" />
+                    Agent
+                    {getSortIcon("user_name")}
+                  </Button>
+                </TableHead>
+                <TableHead>Client Number</TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 font-semibold"
+                    onClick={() => handleSort("call_duration")}
+                  >
+                    <Clock className="h-4 w-4 mr-1" />
+                    Duration
+                    {getSortIcon("call_duration")}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 font-semibold"
+                    onClick={() => handleSort("status")}
+                  >
+                    Status
+                    {getSortIcon("status")}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">Direction</TableHead>
+                <TableHead className="text-center">Recording</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
 
-        <CardContent className="p-0">
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 5 }, (_, i) => <LoadingRow key={i} />)
+              ) : data.length === 0 ? (
                 <TableRow>
-                  <TableHead className="w-[120px]">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 font-semibold"
-                      onClick={() => handleSort("date")}
-                    >
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Date/Time
-                      {getSortIcon("date")}
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 font-semibold"
-                      onClick={() => handleSort("user_name")}
-                    >
-                      <User className="h-4 w-4 mr-1" />
-                      Agent
-                      {getSortIcon("user_name")}
-                    </Button>
-                  </TableHead>
-                  <TableHead>Client Number</TableHead>
-                  <TableHead className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 font-semibold"
-                      onClick={() => handleSort("call_duration")}
-                    >
-                      <Clock className="h-4 w-4 mr-1" />
-                      Duration
-                      {getSortIcon("call_duration")}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 font-semibold"
-                      onClick={() => handleSort("status")}
-                    >
-                      Status
-                      {getSortIcon("status")}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">Direction</TableHead>
-                  <TableHead className="text-center">Recording</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableCell
+                    colSpan={8}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    No call recordings available
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
+              ) : (
+                data.map((call) => (
+                  <TableRow
+                    key={call.call_id}
+                    className="transition-colors hover:bg-muted/50"
+                  >
+                    {/* Date/Time */}
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium text-sm">{call.date}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {call.time}
+                        </div>
+                      </div>
+                    </TableCell>
 
-              <TableBody>
-                {loading ? (
-                  Array.from({ length: 5 }, (_, i) => <LoadingRow key={i} />)
-                ) : data.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No call recordings available
+                    {/* Agent */}
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {call.agent_name || call.user_name}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {call.agent_number}
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* Client Number */}
+                    <TableCell>
+                      <div className="font-mono text-sm">
+                        {call.client_number}
+                      </div>
+                      {call.circle && (
+                        <div className="text-xs text-muted-foreground">
+                          {call.circle.operator} - {call.circle.circle}
+                        </div>
+                      )}
+                    </TableCell>
+
+                    {/* Duration */}
+                    <TableCell className="text-center">
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {formatDuration(call.call_duration)}
+                        </div>
+                        {call.answered_seconds > 0 && (
+                          <div className="text-xs text-green-600">
+                            {formatDuration(call.answered_seconds)} talk
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="text-center">
+                      {getCallStatusBadge(call.status)}
+                    </TableCell>
+
+                    {/* Direction */}
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center space-x-1">
+                        {getDirectionIcon(call.direction)}
+                        <span className="text-xs capitalize">
+                          {call.direction}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    {/* Recording - Direct Play Button */}
+                    <TableCell className="text-center">
+                      {call.recording_url ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePlayRecording(call)}
+                          className="flex items-center space-x-1"
+                        >
+                          <Play className="h-3 w-3" />
+                          <span>Play</span>
+                        </Button>
+                      ) : (
+                        <div className="flex items-center justify-center space-x-1 text-muted-foreground">
+                          <MicOff className="h-4 w-4" />
+                          <span className="text-xs">No Recording</span>
+                        </div>
+                      )}
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          {call.recording_url && (
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadRecording(call)}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Recording
+                            </DropdownMenuItem>
+                          )}
+                          {call.recording_url && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                window.open(call.recording_url!, "_blank")
+                              }
+                            >
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Open in New Tab
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  data.map((call) => (
-                    <TableRow
-                      key={call.call_id}
-                      className="transition-colors hover:bg-muted/50"
-                    >
-                      {/* Date/Time */}
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium text-sm">{call.date}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {call.time}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* Agent */}
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">
-                            {call.agent_name || call.user_name}
-                          </div>
-                          <div className="text-xs text-muted-foreground font-mono">
-                            {call.agent_number}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* Client Number */}
-                      <TableCell>
-                        <div className="font-mono text-sm">
-                          {call.client_number}
-                        </div>
-                        {call.circle && (
-                          <div className="text-xs text-muted-foreground">
-                            {call.circle.operator} - {call.circle.circle}
-                          </div>
-                        )}
-                      </TableCell>
-
-                      {/* Duration */}
-                      <TableCell className="text-center">
-                        <div className="space-y-1">
-                          <div className="font-medium">
-                            {formatDuration(call.call_duration)}
-                          </div>
-                          {call.answered_seconds > 0 && (
-                            <div className="text-xs text-green-600">
-                              {formatDuration(call.answered_seconds)} talk
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* Status */}
-                      <TableCell className="text-center">
-                        {getCallStatusBadge(call.status)}
-                      </TableCell>
-
-                      {/* Direction */}
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          {getDirectionIcon(call.direction)}
-                          <span className="text-xs capitalize">
-                            {call.direction}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      {/* Recording - Direct Play Button */}
-                      <TableCell className="text-center">
-                        {call.recording_url ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              handlePlayRecording(call.call_id, call.user_id)
-                            }
-                            disabled={isLoadingRecording === call.call_id}
-                            className="flex items-center space-x-1"
-                          >
-                            {isLoadingRecording === call.call_id ? (
-                              <>
-                                <div className="h-3 w-3 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-                                <span>Loading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-3 w-3" />
-                                <span>Play</span>
-                              </>
-                            )}
-                          </Button>
-                        ) : (
-                          <div className="flex items-center justify-center space-x-1 text-muted-foreground">
-                            <MicOff className="h-4 w-4" />
-                            <span className="text-xs">No Recording</span>
-                          </div>
-                        )}
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell className="text-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            {call.recording_url && (
-                              <DropdownMenuItem>
-                                <Download className="mr-2 h-4 w-4" />
-                                Download Recording
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
@@ -568,7 +600,11 @@ export function CallRecordingsTable({
       {activeAudioUrl && (
         <AudioPlayer
           url={activeAudioUrl}
-          onClose={() => setActiveAudioUrl(null)}
+          callInfo={activeCallInfo}
+          onClose={() => {
+            setActiveAudioUrl(null);
+            setActiveCallInfo(undefined);
+          }}
         />
       )}
     </>

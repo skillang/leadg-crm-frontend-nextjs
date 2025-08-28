@@ -31,9 +31,6 @@ import {
   PhoneCall,
   Clock,
   Mic,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -87,8 +84,8 @@ const getSuccessRateColor = (rate: number): string => {
 // Helper function to get success rate variant
 const getSuccessRateVariant = (
   rate: number
-): "default" | "secondary" | "destructive-light" => {
-  if (rate >= 70) return "default";
+): "success-light" | "secondary" | "destructive-light" => {
+  if (rate >= 70) return "success-light";
   if (rate >= 50) return "secondary";
   return "destructive-light";
 };
@@ -198,7 +195,7 @@ export function UserPerformanceTable({
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="border rounded-md">
+        <div className="rounded-md">
           <Table>
             <TableHeader>
               <TableRow>

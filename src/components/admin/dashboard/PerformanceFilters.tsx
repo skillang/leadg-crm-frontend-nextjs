@@ -3,11 +3,12 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import MultiSelect, { SelectOption } from "@/components/common/MultiSelect";
 import {
   Select,
   SelectContent,
@@ -57,7 +58,6 @@ interface PerformanceFiltersProps {
 
   // UI customization
   className?: string;
-  showAdvanced?: boolean;
 }
 
 // Performance period options
@@ -107,10 +107,7 @@ export function PerformanceFilters({
   onRefresh,
   onExport,
   className,
-  showAdvanced = true,
 }: PerformanceFiltersProps) {
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-
   // Handle date range changes
   const handleDateRangeChange = (dateRange: { range: DateRange }) => {
     console.log("PerformanceFilters: Date range changed:", dateRange.range); // Debug log
@@ -180,6 +177,14 @@ export function PerformanceFilters({
 
   const activeFilterCount = getActiveFilterCount();
 
+  const transformUsersToOptions = (): SelectOption[] => {
+    return availableUsers.map((user) => ({
+      value: user.user_id,
+      label: user.user_name,
+      subtitle: `ID: ${user.user_id}`, // You can customize this based on available user data
+    }));
+  };
+
   return (
     <Card className={cn("w-full", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -221,11 +226,11 @@ export function PerformanceFilters({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* Basic Filters Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Date Range Picker */}
-          <div className="space-y-2">
+          <div className="space-y-2 ">
             <Label className="flex items-center space-x-1">
               <Calendar className="h-4 w-4" />
               <span>Date Range</span>
@@ -259,9 +264,136 @@ export function PerformanceFilters({
             </Select>
           </div>
 
+          <div className="flex gap-2 items-center justify-between">
+            <div className="space-y-2">
+              <Label className="flex items-center space-x-1">
+                <Phone className="h-4 w-4" />
+                <span>Call Status</span>
+              </Label>
+              <Select
+                value={filters.callStatus}
+                onValueChange={handleStatusChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select call status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CALL_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            option.value === "answered"
+                              ? "bg-green-500"
+                              : option.value === "missed"
+                              ? "bg-red-500"
+                              : "bg-gray-500"
+                          }`}
+                        />
+                        <span>{option.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Call Direction Filter */}
+            <div className="space-y-2">
+              <Label>Call Direction</Label>
+              <Select
+                value={filters.callDirection}
+                onValueChange={handleDirectionChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select call direction" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CALL_DIRECTION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            option.value === "inbound"
+                              ? "bg-blue-500"
+                              : option.value === "outbound"
+                              ? "bg-purple-500"
+                              : "bg-gray-500"
+                          }`}
+                        />
+                        <span>{option.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Filters - Always Visible */}
+        <div className="">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* User Selection with MultiSelect */}
+            <div className="space-y-2 w-full">
+              <Label className="flex items-center space-x-1">
+                <Users className="h-4 w-4" />
+                <span>Select Users</span>
+              </Label>
+              <MultiSelect
+                options={transformUsersToOptions()}
+                value={filters.selectedUsers}
+                onChange={(selectedUsers) =>
+                  onFiltersChange({ ...filters, selectedUsers })
+                }
+                placeholder="Select users..."
+                searchPlaceholder="Search users..."
+                emptyMessage="No users found"
+                maxDisplayItems={2}
+                showCheckbox={true}
+                showSelectedBadges={false} // We'll show our own summary below
+                showIcon={true}
+                icon={<Users className="h-4 w-4" />}
+                buttonVariant="outline"
+                buttonSize="default"
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          {/* Selected Users Summary */}
+          {filters.selectedUsers.length > 0 && (
+            <div className="space-y-2 pt-4">
+              <Label className="text-sm">
+                Selected Users ({filters.selectedUsers.length}):
+              </Label>
+              <div className="flex flex-wrap gap-1">
+                {filters.selectedUsers.map((userId) => {
+                  const user = availableUsers.find((u) => u.user_id === userId);
+                  return (
+                    <Badge
+                      key={userId}
+                      variant="secondary"
+                      className="flex items-center space-x-1"
+                    >
+                      <span>{user?.user_name || userId}</span>
+                      <button
+                        onClick={() => handleUserToggle(userId)}
+                        className="hover:bg-red-500 hover:text-white rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div>
           {/* Quick Actions */}
           <div className="space-y-2">
-            <Label>Quick Actions</Label>
+            <Label>Actions</Label>
             <div className="flex space-x-2">
               <Button
                 onClick={onApplyFilters}
@@ -292,142 +424,6 @@ export function PerformanceFilters({
             </div>
           </div>
         </div>
-
-        {/* Advanced Filters Toggle */}
-        {showAdvanced && (
-          <div className="border-t pt-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-              className="flex items-center space-x-2 mb-4"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Advanced Filters</span>
-              <span className="text-xs text-muted-foreground">
-                ({isAdvancedOpen ? "Hide" : "Show"})
-              </span>
-            </Button>
-
-            {isAdvancedOpen && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Call Status Filter */}
-                  <div className="space-y-3">
-                    <Label className="flex items-center space-x-1">
-                      <Phone className="h-4 w-4" />
-                      <span>Call Status</span>
-                    </Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {CALL_STATUS_OPTIONS.map((option) => (
-                        <Button
-                          key={option.value}
-                          variant={
-                            filters.callStatus === option.value
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() => handleStatusChange(option.value)}
-                          className="justify-start"
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Call Direction Filter */}
-                  <div className="space-y-3">
-                    <Label>Call Direction</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {CALL_DIRECTION_OPTIONS.map((option) => (
-                        <Button
-                          key={option.value}
-                          variant={
-                            filters.callDirection === option.value
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() => handleDirectionChange(option.value)}
-                          className="justify-start"
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* User Selection */}
-                <div className="space-y-3">
-                  <Label className="flex items-center space-x-1">
-                    <Users className="h-4 w-4" />
-                    <span>
-                      Select Users ({filters.selectedUsers.length} selected)
-                    </span>
-                  </Label>
-
-                  {availableUsers.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
-                      {availableUsers.map((user) => (
-                        <Button
-                          key={user.user_id}
-                          variant={
-                            filters.selectedUsers.includes(user.user_id)
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() => handleUserToggle(user.user_id)}
-                          className="justify-start text-left h-auto py-2"
-                        >
-                          <div className="truncate">
-                            <div className="font-medium">{user.user_name}</div>
-                          </div>
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No users available
-                    </div>
-                  )}
-
-                  {/* Selected Users Summary */}
-                  {filters.selectedUsers.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm">Selected Users:</Label>
-                      <div className="flex flex-wrap gap-1">
-                        {filters.selectedUsers.map((userId) => {
-                          const user = availableUsers.find(
-                            (u) => u.user_id === userId
-                          );
-                          return (
-                            <Badge
-                              key={userId}
-                              variant="secondary"
-                              className="flex items-center space-x-1"
-                            >
-                              <span>{user?.user_name || userId}</span>
-                              <button
-                                onClick={() => handleUserToggle(userId)}
-                                className="hover:bg-red-500 hover:text-white rounded-full p-0.5"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

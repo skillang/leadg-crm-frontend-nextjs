@@ -9,6 +9,10 @@ export type PerformancePeriod = "daily" | "weekly" | "monthly";
 export type CallStatus = "all" | "answered" | "missed";
 export type CallDirection = "all" | "inbound" | "outbound";
 export type CallTrend = "up" | "down" | "stable";
+export type CallInfo = Pick<
+  CallRecord,
+  "agent_name" | "client_number" | "date" | "time"
+>;
 
 // ============================================================================
 // USER & AGENT TYPES
@@ -66,12 +70,12 @@ export interface CallRecord {
   charges: number;
   department_name: string | null;
   contact_details: string | null;
-  missed_agents: any[];
-  call_flow: any[];
+  missed_agents: Array<{ agent_id: string; name: string }> | []; // instead of any[]
+  call_flow: Array<{ step: string; timestamp: string }> | []; // instead of any[]
   accountid: string | null;
   agent_ring_time: string | null;
   agent_hangup_data: string | null;
-  transfer_missed_agent: any[];
+  transfer_missed_agent: Array<{ agent_id: string; name: string }> | []; // instead of any[]
   call_hint: string | null;
   sid: string | null;
   sname: string | null;
@@ -80,7 +84,7 @@ export interface CallRecord {
   dialer_call_details: string | null;
   custom_status: string | null;
   is_whatsapp: number;
-  lead_data: any[];
+  lead_data: Array<Record<string, unknown>> | []; // instead of any[]
   voicemail_recording: boolean;
   aws_call_recording_identifier: string | null;
   user_id: string;
@@ -189,7 +193,7 @@ export interface AdminDashboardResponse {
     filtering_method: string;
     total_records_fetched: number;
     records_after_user_filter: number;
-    tata_api_filters: Record<string, any>;
+    tata_api_filters: Record<string, unknown>;
     filtering_successful: boolean;
   };
 }
@@ -223,11 +227,22 @@ export interface FilterOptionsResponse {
   performance_periods: PerformancePeriod[];
 }
 
+// src/models/types/callDashboard.ts
+// Updated interface to match the new API response structure
+
 export interface SummaryStatsResponse {
   success: boolean;
   date_range: string;
+  filter_info: {
+    applied: boolean;
+    scope: string;
+    user_count: number;
+    user_ids: string[];
+    agent_id: string[];
+  };
   summary: {
     total_calls: number;
+    total_calls_all_pages: number;
     total_answered: number;
     total_missed: number;
     total_duration_minutes: number;
@@ -238,7 +253,7 @@ export interface SummaryStatsResponse {
     avg_call_duration_seconds: number;
   };
   trends: {
-    trend: "increasing" | "decreasing" | "stable";
+    trend: "increasing" | "decreasing" | "stable" | "insufficient_data";
     change_percent: number;
     first_half_avg: number;
     second_half_avg: number;
@@ -252,8 +267,73 @@ export interface SummaryStatsResponse {
     }>;
     total_calls: number;
     hourly_distribution: Record<string, number>;
+    peak_answered_hours: Array<{
+      hour: number;
+      calls: number;
+      percentage: number;
+      hour_display: string;
+      calls_type: "answered";
+    }>;
+    peak_missed_hours: Array<{
+      hour: number;
+      calls: number;
+      percentage: number;
+      hour_display: string;
+      calls_type: "missed";
+    }>;
+    insights: {
+      best_calling_time: number;
+      best_answer_time: number;
+      worst_miss_time: number;
+      overall_answer_rate: number;
+    };
+    analysis_metadata: {
+      hours_with_calls: number;
+      hours_with_answered: number;
+      hours_with_missed: number;
+      most_active_hour: number;
+      best_answer_hour: number;
+      worst_miss_hour: number;
+    };
+  };
+  optimization_info: {
+    filtering_method: string;
+    records_analyzed: number;
+    total_available: number;
   };
   calculated_at: string;
+}
+
+// Helper types for easier component usage
+export interface PeakHourData {
+  hour: number;
+  calls: number;
+  percentage: number;
+  hour_display?: string;
+  calls_type?: "answered" | "missed";
+}
+
+export interface InsightsData {
+  best_calling_time: number;
+  best_answer_time: number;
+  worst_miss_time: number;
+  overall_answer_rate: number;
+}
+
+export interface TrendData {
+  trend: "increasing" | "decreasing" | "stable" | "insufficient_data";
+  change_percent: number;
+  first_half_avg: number;
+  second_half_avg: number;
+  total_days_analyzed: number;
+}
+
+// Enum for trend types
+export enum TrendType {
+  INCREASING = "increasing",
+  DECREASING = "decreasing",
+  STABLE = "stable",
+  INSUFFICIENT_DATA = "insufficient_data",
 }
 
 // ============================================================================
@@ -282,7 +362,7 @@ export interface ApiError {
   success: false;
   error_code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   timestamp: string;
 }
 

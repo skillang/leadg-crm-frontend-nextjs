@@ -12,7 +12,10 @@ import {
   AdminDashboardRequest,
   UserPerformanceRequest,
   PlayRecordingRequest,
-  ApiError,
+  CallDirection,
+  PerformancePeriod,
+  CallStatus,
+  // ApiError,
 } from "@/models/types/callDashboard";
 
 // Base query with auth token
@@ -54,7 +57,6 @@ export const callDashboardApi = createApi({
         // Add non-null parameters
         if (params.date_from) queryParams.append("date_from", params.date_from);
         if (params.date_to) queryParams.append("date_to", params.date_to);
-        if (params.period) queryParams.append("period", params.period);
         if (params.user_ids) queryParams.append("user_ids", params.user_ids);
         if (params.call_status)
           queryParams.append("call_status", params.call_status);
@@ -103,7 +105,7 @@ export const callDashboardApi = createApi({
     // ========================================================================
 
     getWeeklyPerformers: builder.query<
-      any,
+      any, // eslint-disable-line @typescript-eslint/no-explicit-any
       { week_offset?: number; top_n?: number }
     >({
       query: (params) => {
@@ -118,7 +120,7 @@ export const callDashboardApi = createApi({
     }),
 
     getMonthlyPerformers: builder.query<
-      any,
+      any, // eslint-disable-line @typescript-eslint/no-explicit-any
       { year?: number; month?: number; top_n?: number }
     >({
       query: (params) => {
@@ -149,7 +151,7 @@ export const callDashboardApi = createApi({
     }),
 
     getUserRecordings: builder.query<
-      any,
+      any, // eslint-disable-line @typescript-eslint/no-explicit-any
       {
         user_id: string;
         date_from?: string;
@@ -191,13 +193,14 @@ export const callDashboardApi = createApi({
         { type: "Recording", id: `count-${user_id}` },
       ],
     }),
-
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     getRecordingDetails: builder.query<any, { call_id: string }>({
       query: ({ call_id }) => `/recording/${call_id}`,
       providesTags: (result, error, { call_id }) => [
         { type: "Recording", id: call_id },
       ],
     }),
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     // ========================================================================
     // FILTER OPTIONS & METADATA
@@ -230,7 +233,7 @@ export const callDashboardApi = createApi({
     // ========================================================================
 
     exportCallData: builder.query<
-      any,
+      any, // eslint-disable-line @typescript-eslint/no-explicit-any
       {
         date_from: string;
         date_to: string;
@@ -254,7 +257,7 @@ export const callDashboardApi = createApi({
     // ========================================================================
 
     getAdminActivityLogs: builder.query<
-      any,
+      any, // eslint-disable-line @typescript-eslint/no-explicit-any
       {
         date_from?: string;
         date_to?: string;
@@ -326,10 +329,10 @@ export const buildDashboardQuery = (filters: {
 }): AdminDashboardRequest => ({
   date_from: filters.dateFrom,
   date_to: filters.dateTo,
-  period: filters.period as any,
+  period: filters.period as PerformancePeriod,
   user_ids: filters.userIds?.join(","),
-  call_status: filters.callStatus as any,
-  call_direction: filters.callDirection as any,
+  call_status: filters.callStatus as CallStatus,
+  call_direction: filters.callDirection as CallDirection,
   page: filters.page || 1,
   limit: filters.limit || 50,
 });
@@ -345,7 +348,7 @@ export const buildUserPerformanceQuery = (
   }
 ): UserPerformanceRequest => ({
   user_id: userId,
-  period: filters.period as any,
+  period: filters.period as PerformancePeriod,
   date_from: filters.dateFrom,
   date_to: filters.dateTo,
   include_day_comparison: filters.includeDayComparison ?? true,
