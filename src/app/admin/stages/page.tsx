@@ -428,7 +428,7 @@ const StageManagementPage = () => {
                       : []),
                   ]}
                   leadCount={stage.lead_count}
-                  nextNumber={stage.sort_order}
+                  orderNumber={stage.sort_order}
                   createdBy={stage.created_by}
                   createdAt={stage.created_at}
                   onEdit={() => handleOpenEditModal(stage)}
@@ -508,7 +508,7 @@ const StageManagementPage = () => {
                       : []),
                   ]}
                   leadCount={stage.lead_count}
-                  nextNumber={stage.sort_order}
+                  orderNumber={stage.sort_order}
                   createdBy={stage.created_by}
                   createdAt={stage.created_at}
                   onEdit={() => handleOpenEditModal(stage)}

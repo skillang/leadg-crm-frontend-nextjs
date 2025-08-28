@@ -79,6 +79,7 @@ const DashboardPage = () => {
             title="Total Leads"
             value={stats?.total_leads || 0}
             icon={<Users className="h-8 w-8 text-blue-600" />}
+            color="bg-blue-100"
             subtitle="All leads in system"
             isLoading={statsLoading}
           />
@@ -87,6 +88,7 @@ const DashboardPage = () => {
             title="Open Leads"
             value={stats?.open_leads || 0}
             icon={<DoorOpen className="h-8 w-8 text-purple-600" />}
+            color="bg-purple-100"
             subtitle="Assigned to you"
             isLoading={statsLoading}
           />
@@ -95,6 +97,7 @@ const DashboardPage = () => {
             title="In Progress"
             value={stats?.in_progress_leads || 0}
             icon={<TrendingUp className="h-8 w-8 text-orange-600" />}
+            color="bg-orange-100"
             subtitle="Pending action"
             isLoading={statsLoading}
           />
@@ -103,6 +106,7 @@ const DashboardPage = () => {
             title="Closed Won"
             value={stats?.closed_won_leads || 0}
             icon={<CheckCircle className="h-8 w-8 text-green-600" />}
+            color="bg-green-100"
             subtitle="Successfully converted"
             isLoading={statsLoading}
           />

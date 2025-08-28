@@ -344,7 +344,7 @@ const StatusManagement: React.FC = () => {
                           : []),
                       ]}
                       leadCount={status.lead_count}
-                      nextNumber={status.sort_order}
+                      orderNumber={status.sort_order}
                       createdBy={status.created_by}
                       createdAt={status.created_at}
                       onEdit={() => handleOpenEditModal(status)}

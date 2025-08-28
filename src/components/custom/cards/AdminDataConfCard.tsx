@@ -53,6 +53,7 @@ interface AdminDataConfCardProps {
   createdAt?: string;
   leadCount?: number;
   nextNumber?: number;
+  orderNumber?: number;
 
   // Visual
   color?: string; // For sidebar color (stages/status)
@@ -128,6 +129,7 @@ const AdminDataConfCard: React.FC<AdminDataConfCardProps> = ({
   createdAt,
   leadCount,
   nextNumber,
+  orderNumber,
   color,
   isActive = true,
   badges = [], // Default to empty array
@@ -320,7 +322,9 @@ const AdminDataConfCard: React.FC<AdminDataConfCardProps> = ({
         {description && <p className="text-sm text-gray-600">{description}</p>}
 
         {/* Metrics row */}
-        {(leadCount !== undefined || nextNumber !== undefined) && (
+        {(leadCount !== undefined ||
+          nextNumber !== undefined ||
+          orderNumber !== undefined) && (
           <div className="flex items-center justify-between text-sm">
             {leadCount !== undefined && (
               <div className="flex items-center gap-1 text-gray-600">
@@ -330,8 +334,13 @@ const AdminDataConfCard: React.FC<AdminDataConfCardProps> = ({
             )}
             {nextNumber !== undefined && (
               <div className="flex items-center gap-1 text-gray-600">
-                <Hash className="h-4 w-4" />
-                <span>Next: {nextNumber}</span>
+                Next: <Hash className="h-4 w-4" />
+                {nextNumber}
+              </div>
+            )}
+            {orderNumber !== undefined && (
+              <div className="flex items-center gap-1 text-gray-600">
+                Order No: <Hash className="h-4 w-4" /> {orderNumber}
               </div>
             )}
           </div>

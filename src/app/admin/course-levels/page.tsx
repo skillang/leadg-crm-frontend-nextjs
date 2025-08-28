@@ -482,7 +482,7 @@ const CourseLevelManagementPage = () => {
                       : []),
                   ]}
                   leadCount={courseLevel.lead_count}
-                  nextNumber={courseLevel.sort_order}
+                  orderNumber={courseLevel.sort_order}
                   createdBy={courseLevel.created_by}
                   createdAt={courseLevel.created_at}
                   onEdit={() => openEditDialog(courseLevel)}

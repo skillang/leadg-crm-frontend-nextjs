@@ -12,12 +12,14 @@ interface StatsCardProps {
   subtitle?: string; // For trends like "+12% from last month"
   isLoading?: boolean;
   className?: string;
+  color?: string;
 }
 
 const StatsCard: React.FC<StatsCardProps> = ({
   title,
   value,
   icon,
+  color,
   subtitle,
   isLoading = false,
   className,
@@ -54,7 +56,9 @@ const StatsCard: React.FC<StatsCardProps> = ({
               <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
             )}
           </div>
-          <div className="flex-shrink-0 ml-4">{icon}</div>
+          <div className="flex-shrink-0 ml-4">
+            <div className={cn("p-2 rounded-md", color)}>{icon}</div>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -250,7 +250,7 @@ const SourcesPage = () => {
                 : []),
             ]}
             leadCount={source.lead_count || 0}
-            nextNumber={source.sort_order}
+            orderNumber={source.sort_order}
             createdBy={source.created_by || "System"}
             createdAt={source.created_at}
             // Actions
