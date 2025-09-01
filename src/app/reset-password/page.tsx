@@ -40,8 +40,9 @@ import {
 import {
   ResetPasswordFormData,
   ResetPasswordFormErrors,
-  TokenValidationState,
+  // TokenValidationState,
 } from "@/models/types/passwordReset";
+import { ApiError } from "@/models/types/apiError";
 
 // Zod validation schema
 const resetPasswordSchema = z
@@ -178,17 +179,23 @@ const ResetPasswordPage = () => {
           general: result.message || "Password reset failed. Please try again.",
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Reset password error:", error);
 
       // Handle API errors
       let errorMessage = "An unexpected error occurred. Please try again.";
 
-      if (error.status === 400 || error.status === 422) {
+      // Type-safe error handling using your ApiError interface
+      const apiError = error as ApiError;
+
+      if (apiError.status === 400 || apiError.status === 422) {
         errorMessage =
           "Invalid or expired reset token. Please request a new password reset.";
-      } else if (error.data && typeof error.data === "object") {
-        errorMessage = error.data.detail || error.data.message || errorMessage;
+      } else if (apiError.data) {
+        errorMessage =
+          apiError.data.detail || apiError.data.message || errorMessage;
+      } else if (apiError.message) {
+        errorMessage = apiError.message;
       }
 
       setErrors({

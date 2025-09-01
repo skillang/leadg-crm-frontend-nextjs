@@ -58,6 +58,8 @@ import {
 import { useAuth } from "@/redux/hooks/useAuth";
 // Import notifications
 import { useNotifications } from "@/components/common/NotificationSystem";
+// Import API error type
+import { ApiError } from "@/models/types/apiError";
 
 export default function UserPermissionsPage() {
   const params = useParams();
@@ -70,7 +72,7 @@ export default function UserPermissionsPage() {
   // Notifications
   const { showConfirm, showError, showSuccess } = useNotifications();
 
-  // RTK Query hooks
+  // RTK Query hooks - MOVED TO TOP LEVEL
   const {
     data: usersData,
     isLoading,
@@ -82,6 +84,10 @@ export default function UserPermissionsPage() {
     updateUserPermissions,
     { isLoading: updateLoading, error: updateError },
   ] = useUpdateUserPermissionsMutation();
+
+  // Password mutation hooks - MOVED TO TOP LEVEL
+  const [forgotPassword] = useForgotPasswordMutation();
+  const [adminResetPassword] = useAdminResetUserPasswordMutation();
 
   // Find the user by _id
   const user = usersData?.users?.find((u) => u._id === userId) || null;
@@ -108,6 +114,97 @@ export default function UserPermissionsPage() {
     }
   }, [user]);
 
+  // Helper to extract error message - IMPROVED WITH ApiError TYPE
+  const getErrorMessage = (error: unknown): string => {
+    if (!error) return "";
+
+    // Check if it's our ApiError type
+    const apiError = error as ApiError;
+
+    if (apiError.data) {
+      return apiError.data.detail || apiError.data.message || "";
+    }
+
+    if (apiError.message) {
+      return apiError.message;
+    }
+
+    if (apiError.status) {
+      return `API Error: ${apiError.status}`;
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    return "An unknown error occurred";
+  };
+
+  // Password reset handlers
+  const handleResetPasswordEmail = async () => {
+    try {
+      setResetPasswordLoading(true);
+
+      const result = await forgotPassword({
+        email: user!.email,
+      }).unwrap();
+
+      if (result.success) {
+        showSuccess(
+          `Password reset email sent to ${user!.email}`,
+          "Reset Email Sent"
+        );
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(
+        errorMessage || "Failed to send reset email. Please try again.",
+        "Reset Failed"
+      );
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
+  const handleSetTempPassword = async () => {
+    if (!tempPassword.trim()) {
+      showError("Please enter a temporary password", "Validation Error");
+      return;
+    }
+
+    try {
+      setTempPasswordLoading(true);
+
+      const result = await adminResetPassword({
+        user_email: user!.email,
+        temporary_password: tempPassword,
+        reset_method: "admin_temporary",
+        force_change_on_login: true,
+      }).unwrap();
+
+      if (result.success) {
+        showSuccess(
+          `Temporary password set for ${
+            user!.email
+          }. User must change it on next login.`,
+          "Temporary Password Set"
+        );
+        setTempPassword("");
+        setShowTempPasswordDialog(false);
+      }
+    } catch (error) {
+      console.error("Set temp password error:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(
+        errorMessage || "Failed to set temporary password. Please try again.",
+        "Reset Failed"
+      );
+    } finally {
+      setTempPasswordLoading(false);
+    }
+  };
+
   // Check authentication
   if (!isAuthenticated || !token) {
     return (
@@ -129,7 +226,7 @@ export default function UserPermissionsPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Admin access required. You dont have permission to manage user
+            Admin access required. You don&apos;t have permission to manage user
             permissions.
           </AlertDescription>
         </Alert>
@@ -198,104 +295,6 @@ export default function UserPermissionsPage() {
       });
     } else {
       router.push("/admin/users");
-    }
-  };
-
-  // Helper to extract error message
-  const getErrorMessage = (error: unknown): string => {
-    if (!error) return "";
-
-    // Type guards remain the same
-    if (typeof error === "object" && error !== null && "status" in error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const errorObj = error as { status: number; data?: any };
-      if ("data" in errorObj && errorObj.data) {
-        return typeof errorObj.data === "string"
-          ? errorObj.data
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (errorObj.data as any).detail ||
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (errorObj.data as any).message ||
-              `API Error: ${errorObj.status}`;
-      }
-      return `API Error: ${errorObj.status}`;
-    }
-
-    if (typeof error === "object" && error !== null && "message" in error) {
-      return (error as { message: string }).message;
-    }
-
-    if (typeof error === "string") {
-      return error;
-    }
-
-    return "An unknown error occurred";
-  };
-
-  const [forgotPassword] = useForgotPasswordMutation();
-  const [adminResetPassword] = useAdminResetUserPasswordMutation();
-
-  // ✅ ADD THESE HANDLER FUNCTIONS (before the return statement)
-  const handleResetPasswordEmail = async () => {
-    try {
-      setResetPasswordLoading(true);
-
-      const result = await forgotPassword({
-        email: user!.email,
-      }).unwrap();
-
-      if (result.success) {
-        showSuccess(
-          `Password reset email sent to ${user!.email}`,
-          "Reset Email Sent"
-        );
-      }
-    } catch (error: any) {
-      console.error("Reset password error:", error);
-      showError(
-        error?.data?.detail || "Failed to send reset email. Please try again.",
-        "Reset Failed"
-      );
-    } finally {
-      setResetPasswordLoading(false);
-    }
-  };
-
-  const handleSetTempPassword = async () => {
-    if (!tempPassword.trim()) {
-      showError("Please enter a temporary password", "Validation Error");
-      return;
-    }
-
-    try {
-      setTempPasswordLoading(true);
-
-      const result = await adminResetPassword({
-        user_email: user!.email,
-        temporary_password: tempPassword,
-        reset_method: "admin_temporary",
-        force_change_on_login: true,
-      }).unwrap();
-
-      if (result.success) {
-        showSuccess(
-          `Temporary password set for ${
-            user!.email
-          }. User must change it on next login.`,
-          "Temporary Password Set"
-        );
-        setTempPassword("");
-        setShowTempPasswordDialog(false);
-      }
-    } catch (error: any) {
-      console.error("Set temp password error:", error);
-      showError(
-        error?.data?.detail ||
-          "Failed to set temporary password. Please try again.",
-        "Reset Failed"
-      );
-    } finally {
-      setTempPasswordLoading(false);
     }
   };
 
@@ -487,7 +486,7 @@ export default function UserPermissionsPage() {
                 <span className="font-medium text-sm">Email Reset Link</span>
               </div>
               <p className="text-xs text-gray-600 mb-3">
-                Send a password reset link to the user's email address
+                Send a password reset link to the user&apos;s email address
               </p>
               <Button
                 onClick={handleResetPasswordEmail}

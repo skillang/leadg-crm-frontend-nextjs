@@ -318,21 +318,21 @@ export const ERROR_MESSAGES = {
 // ============================================================================
 
 // Type guard for API errors
-export const isPasswordResetAPIError = (
-  error: any
-): error is PasswordResetAPIError => {
-  return (
-    error &&
-    typeof error === "object" &&
-    typeof error.status === "number" &&
-    error.data &&
-    typeof error.data === "object"
-  );
-};
+// export const isPasswordResetAPIError = (
+//   error: any
+// ): error is PasswordResetAPIError => {
+//   return (
+//     error &&
+//     typeof error === "object" &&
+//     typeof error.status === "number" &&
+//     error.data &&
+//     typeof error.data === "object"
+//   );
+// };
 
 // Type guard for successful responses
-export const isSuccessResponse = (
-  response: any
-): response is { success: true } => {
-  return response && response.success === true;
-};
+// export const isSuccessResponse = (
+//   response: any
+// ): response is { success: true } => {
+//   return response && response.success === true;
+// };
