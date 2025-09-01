@@ -92,7 +92,8 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!isInitialized || loading) return;
 
-    const publicRoutes = ["/login", "/register", "/forgot-password", "/"];
+    // ✅ FIXED: Added /reset-password and removed /register
+    const publicRoutes = ["/login", "/forgot-password", "/reset-password", "/"];
     const isPublicRoute = publicRoutes.includes(pathname || "");
 
     if (isAuthenticated && isPublicRoute) {
@@ -104,7 +105,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isAuthenticated, pathname, router, isInitialized, loading]);
 
-  // 🔥 ADD THIS NEW useEffect: Fetch permissions after login
+  // 🔥 Fetch permissions after login
   useEffect(() => {
     const fetchPermissionsAfterLogin = async () => {
       // Only run if:
@@ -143,10 +144,12 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Always render the same structure to avoid hook mismatches
-  const publicRoutes = ["/login", "/register", "/forgot-password"];
-  const shouldShowLogin =
-    !isAuthenticated &&
-    (publicRoutes.includes(pathname || "") || pathname === "/");
+  // ✅ FIXED: Added /reset-password and removed /register
+  const publicRoutes = ["/login", "/forgot-password", "/reset-password", "/"];
+  const isPublicRoute = publicRoutes.includes(pathname || "");
+
+  // ✅ FIXED: Only show LoginPage specifically for /login route
+  const shouldShowLogin = !isAuthenticated && pathname === "/login";
 
   if (shouldShowLogin) {
     // Render login page with consistent structure
@@ -155,6 +158,12 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <LoginPage />
       </div>
     );
+  }
+
+  // ✅ FIXED: For other public routes (forgot-password, reset-password), render the page content
+  if (!isAuthenticated && isPublicRoute) {
+    // Render public pages without sidebar/topbar
+    return <div className="min-h-screen">{children}</div>;
   }
 
   // Render authenticated layout with consistent structure

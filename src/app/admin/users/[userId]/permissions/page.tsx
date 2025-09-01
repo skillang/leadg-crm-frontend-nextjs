@@ -29,7 +29,21 @@ import {
   Building2,
   Users,
 } from "lucide-react";
-
+import {
+  useForgotPasswordMutation,
+  useAdminResetUserPasswordMutation,
+} from "@/redux/slices/passwordResetApi";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { KeyRound, MailX, Lock, ShieldCheck } from "lucide-react";
 // Import RTK Query hooks
 import {
   useGetUsersPermissionsQuery,
@@ -77,6 +91,10 @@ export default function UserPermissionsPage() {
   const [canCreateBulk, setCanCreateBulk] = useState(false);
   const [reason, setReason] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [tempPasswordLoading, setTempPasswordLoading] = useState(false);
+  const [tempPassword, setTempPassword] = useState("");
+  const [showTempPasswordDialog, setShowTempPasswordDialog] = useState(false);
 
   // Initialize permissions when user is found
   useEffect(() => {
@@ -212,6 +230,73 @@ export default function UserPermissionsPage() {
     }
 
     return "An unknown error occurred";
+  };
+
+  const [forgotPassword] = useForgotPasswordMutation();
+  const [adminResetPassword] = useAdminResetUserPasswordMutation();
+
+  // ✅ ADD THESE HANDLER FUNCTIONS (before the return statement)
+  const handleResetPasswordEmail = async () => {
+    try {
+      setResetPasswordLoading(true);
+
+      const result = await forgotPassword({
+        email: user!.email,
+      }).unwrap();
+
+      if (result.success) {
+        showSuccess(
+          `Password reset email sent to ${user!.email}`,
+          "Reset Email Sent"
+        );
+      }
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      showError(
+        error?.data?.detail || "Failed to send reset email. Please try again.",
+        "Reset Failed"
+      );
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
+  const handleSetTempPassword = async () => {
+    if (!tempPassword.trim()) {
+      showError("Please enter a temporary password", "Validation Error");
+      return;
+    }
+
+    try {
+      setTempPasswordLoading(true);
+
+      const result = await adminResetPassword({
+        user_email: user!.email,
+        temporary_password: tempPassword,
+        reset_method: "admin_temporary",
+        force_change_on_login: true,
+      }).unwrap();
+
+      if (result.success) {
+        showSuccess(
+          `Temporary password set for ${
+            user!.email
+          }. User must change it on next login.`,
+          "Temporary Password Set"
+        );
+        setTempPassword("");
+        setShowTempPasswordDialog(false);
+      }
+    } catch (error: any) {
+      console.error("Set temp password error:", error);
+      showError(
+        error?.data?.detail ||
+          "Failed to set temporary password. Please try again.",
+        "Reset Failed"
+      );
+    } finally {
+      setTempPasswordLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -377,6 +462,121 @@ export default function UserPermissionsPage() {
                 <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
               )}
               <span className="text-sm">Can Create Bulk Leads</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Password Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-orange-600" />
+            Password Management
+          </CardTitle>
+          <CardDescription>
+            Manage password reset options for this user
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Reset via Email */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <MailX className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-sm">Email Reset Link</span>
+              </div>
+              <p className="text-xs text-gray-600 mb-3">
+                Send a password reset link to the user's email address
+              </p>
+              <Button
+                onClick={handleResetPasswordEmail}
+                disabled={resetPasswordLoading}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                {resetPasswordLoading ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Send Reset Email
+              </Button>
+            </div>
+
+            {/* Set Temporary Password */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="h-4 w-4 text-orange-600" />
+                <span className="font-medium text-sm">Temporary Password</span>
+              </div>
+              <p className="text-xs text-gray-600 mb-3">
+                Set a temporary password that must be changed on login
+              </p>
+
+              <Dialog
+                open={showTempPasswordDialog}
+                onOpenChange={setShowTempPasswordDialog}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                    Set Temp Password
+                  </Button>
+                </DialogTrigger>
+
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Set Temporary Password</DialogTitle>
+                    <DialogDescription>
+                      Set a temporary password for {user.email}. The user will
+                      be required to change it on their next login.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tempPassword">Temporary Password</Label>
+                      <Input
+                        id="tempPassword"
+                        type="text"
+                        value={tempPassword}
+                        onChange={(e) => setTempPassword(e.target.value)}
+                        placeholder="Enter temporary password"
+                        disabled={tempPasswordLoading}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Minimum 8 characters. User will change on next login.
+                      </p>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowTempPasswordDialog(false);
+                        setTempPassword("");
+                      }}
+                      disabled={tempPasswordLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSetTempPassword}
+                      disabled={tempPasswordLoading || !tempPassword.trim()}
+                    >
+                      {tempPasswordLoading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Lock className="h-4 w-4 mr-2" />
+                      )}
+                      Set Password
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardContent>

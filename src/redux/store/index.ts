@@ -28,6 +28,7 @@ import { permissionsApi } from "../slices/permissionApi";
 import { tataTeliApi } from "../slices/tataTeliApi";
 import tataTeliReducer from "../slices/tataTeliSlice";
 import callDashboardApi from "../slices/callDashboardApi";
+import { passwordResetApi } from "../slices/passwordResetApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -50,6 +51,7 @@ const rootReducer = combineReducers({
   [categoriesApi.reducerPath]: categoriesApi.reducer,
   [stagesApi.reducerPath]: stagesApi.reducer,
   [statusesApi.reducerPath]: statusesApi.reducer,
+  [passwordResetApi.reducerPath]: passwordResetApi.reducer, // ADDED: passwordResetApi reducer
   [experienceLevelsApi.reducerPath]: experienceLevelsApi.reducer,
   whatsapp: whatsappReducer, // ADD THIS
   whatsappApi: whatsappApi.reducer,
@@ -103,6 +105,7 @@ export const store = configureStore({
       categoriesApi.middleware,
       stagesApi.middleware,
       statusesApi.middleware,
+      passwordResetApi.middleware,
       courseLevelsApi.middleware,
       experienceLevelsApi.middleware,
       whatsappApi.middleware,

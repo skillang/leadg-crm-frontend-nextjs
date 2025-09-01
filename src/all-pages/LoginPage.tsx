@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 
 // Define proper error types based on your API structure
 interface ApiErrorData {
@@ -477,7 +478,7 @@ const LoginPage: React.FC = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white font-medium py-3 mt-6 shadow-md"
+                className="w-full font-medium py-3 shadow-md"
                 disabled={isFormDisabled}
                 size="lg"
               >
@@ -490,6 +491,15 @@ const LoginPage: React.FC = () => {
                   "Login"
                 )}
               </Button>
+
+              <div className="text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>

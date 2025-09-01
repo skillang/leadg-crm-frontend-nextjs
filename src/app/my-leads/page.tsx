@@ -101,6 +101,7 @@ export default function DemoPage() {
       stage: stageFilter !== "all" ? stageFilter : undefined,
       status: statusFilter !== "all" ? statusFilter : undefined,
       category: categoryFilter !== "all" ? categoryFilter : undefined,
+      source: sourceFilter !== "all" ? sourceFilter : undefined,
       ...dateFilter,
     },
     {

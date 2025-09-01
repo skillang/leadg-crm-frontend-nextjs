@@ -1,4 +1,4 @@
-// src/app/middleware.ts - Updated with email routes
+// src/app/middleware.ts - Updated with email routes and password reset fixes
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -42,13 +42,13 @@ export function middleware(request: NextRequest) {
   ];
 
   // Public routes (allow without authentication)
-  // const publicRoutes = ["/login", "/", "/forgot-password"];
+  const publicRoutes = ["/login", "/", "/forgot-password", "/reset-password"];
 
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
-  // const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute = publicRoutes.includes(pathname);
 
   // Get auth data from cookies (adjust based on how you store auth data)
   const accessToken = request.cookies.get("access_token")?.value;
@@ -69,8 +69,16 @@ export function middleware(request: NextRequest) {
   }
 
   // If authenticated user tries to access public auth routes, redirect to dashboard
-  if (accessToken && (pathname === "/login" || pathname === "/register")) {
+  // Removed /register since there's no register page
+  if (accessToken && pathname === "/login") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // If accessing non-public route and not authenticated, redirect to login
+  if (!isPublicRoute && !accessToken) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
