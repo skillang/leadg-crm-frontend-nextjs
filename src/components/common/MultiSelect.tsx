@@ -117,15 +117,15 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild className="pointer-events-auto">
           <Button
             variant={buttonVariant}
             size={buttonSize}
             role="combobox"
             aria-expanded={open}
-            className={`justify-between  ${className} ${
-              error ? "border-red-500" : ""
-            } ${showIcon ? "gap-2" : ""}`}
+            className={`justify-between ${error ? "border-red-500" : ""} ${
+              showIcon ? "gap-2" : ""
+            }`}
             disabled={disabled}
           >
             <div className="flex items-center gap-2">
@@ -135,11 +135,24 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <CommandInput placeholder={searchPlaceholder} />
+        <PopoverContent
+          className="w-full p-0 z-[9999] pointer-events-auto"
+          align="start"
+          sideOffset={5}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          avoidCollisions={true}
+          collisionPadding={10}
+        >
+          <Command className="pointer-events-auto">
+            <CommandInput
+              placeholder={searchPlaceholder}
+              className="pointer-events-auto"
+            />
             <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
+            <CommandGroup
+              className="max-h-64 overflow-auto pointer-events-auto"
+              onWheel={(e) => e.stopPropagation()}
+            >
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
@@ -148,7 +161,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                   }`}
                   onSelect={() => handleSelect(option.value)}
                   disabled={option.disabled}
-                  className="flex items-center space-x-2 cursor-pointer py-2"
+                  className="flex items-center space-x-2 cursor-pointer py-2 pointer-events-auto hover:bg-gray-100"
                 >
                   {showCheckbox && !allowSingleSelect && (
                     <Checkbox

@@ -77,10 +77,11 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
 
   // Initialize unread counts from API
   useEffect(() => {
-    if (bulkUnreadData?.success && bulkUnreadData.unread_leads) {
+    if (bulkUnreadData?.success && bulkUnreadData.unread_details) {
       const initialCounts: { [leadId: string]: number } = {};
 
-      bulkUnreadData.unread_leads.forEach((lead) => {
+      // Use unread_details instead of unread_leads since unread_leads is just an array of IDs
+      bulkUnreadData.unread_details.forEach((lead) => {
         initialCounts[lead.lead_id] = lead.unread_count;
       });
 
