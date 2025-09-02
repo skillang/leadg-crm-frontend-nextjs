@@ -26,6 +26,7 @@ import {
   Zap,
   Phone,
   ChevronsLeftRightEllipsis,
+  BellRingIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -81,7 +82,6 @@ const mainMenuItems = [
     title: "Call Logs",
     url: "/admin/call-dashboard",
     icon: ChevronsLeftRightEllipsis,
-    adminOnly: true,
   },
   {
     title: "Contacts",
@@ -92,7 +92,7 @@ const mainMenuItems = [
     title: "Reports",
     url: "#",
     icon: BarChart2,
-    adminOnly: true, // Only show to admins
+    adminOnly: true,
   },
   {
     title: "Settings",
@@ -396,11 +396,18 @@ const SideNavBarComp = () => {
                     </DropdownMenuItem>
                   </Link>
 
+                  <Link href="/notifications">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <BellRingIcon className="w-4 h-4 mr-2" />
+                      <span>Notifications</span>
+                    </DropdownMenuItem>
+                  </Link>
+
                   <DropdownMenuSeparator />
 
                   {/* Sign Out Button */}
                   <DropdownMenuItem
-                    className="cursor-pointer text-destructive focus:text-destructive"
+                    className="cursor-pointer text-destructive focus:text-destructive hover:bg-red-100 data-[highlighted]:bg-red-100"
                     onClick={handleSignOut}
                     disabled={isLoggingOut}
                   >
@@ -411,7 +418,7 @@ const SideNavBarComp = () => {
                       </>
                     ) : (
                       <>
-                        <LogOut className="w-4 h-4 mr-2" />
+                        <LogOut className="w-4 h-4 mr-2 text-destructive" />
                         <span>Sign Out</span>
                       </>
                     )}

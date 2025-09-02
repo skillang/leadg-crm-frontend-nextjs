@@ -437,17 +437,23 @@ export interface BulkWhatsAppJob {
 
 export interface BulkUnreadStatusResponse {
   success: boolean;
-  unread_leads: Array<{
+  unread_leads: string[]; // Array of lead IDs
+  unread_details: Array<{
     lead_id: string;
     lead_name: string;
     unread_count: number;
     last_activity: string;
   }>;
   total_unread_leads: number;
-  summary: {
-    total_unread_messages: number;
-    leads_with_unread: number;
-  };
+  total_unread_messages: number;
+  user_role: string;
+}
+
+export interface UnreadLead {
+  lead_id: string;
+  lead_name: string;
+  unread_count: number;
+  last_activity: string;
 }
 
 export interface BulkWhatsAppJobsResponse {

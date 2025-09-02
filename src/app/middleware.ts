@@ -35,6 +35,7 @@ export function middleware(request: NextRequest) {
     "/tasks",
     "/reports",
     "/profile",
+    "notifications",
     "/bulk", // ✅ Added bulk email route
     "/emails", // ✅ Added email management routes
     "/bulk/emails",

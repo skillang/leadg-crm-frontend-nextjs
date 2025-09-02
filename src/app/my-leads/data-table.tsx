@@ -55,13 +55,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
@@ -112,21 +105,12 @@ interface DataTableProps<TData, TValue> {
   statusFilter?: string;
   categoryFilter?: string;
   onCategoryFilterChange?: (value: string) => void;
-  // dateFilter?: { created_from?: string; created_to?: string };
-  // onDateFilterChange?: ({ range }: { range: DateRange }) => void;
   sourceFilter?: string; // Add this
   onSourceFilterChange?: (value: string) => void;
   onStageFilterChange?: (value: string) => void;
   onStatusFilterChange?: (value: string) => void;
   userFilter?: string; // 🆕 NEW
-  onUserFilterChange?: (value: string) => void; // 🆕 NEW
-  // updatedDateFilter?: { updated_from?: string; updated_to?: string }; // 🆕 NEW
-  // lastContactedDateFilter?: {
-  //   last_contacted_from?: string;
-  //   last_contacted_to?: string;
-  // }; // 🆕 NEW
-  // onUpdatedDateFilterChange?: ({ range }: { range: DateRange }) => void; // 🆕 NEW
-  // onLastContactedDateFilterChange?: ({ range }: { range: DateRange }) => void; // 🆕 NEW
+  onUserFilterChange?: (value: string) => void;
   allDateFilters?: {
     created?: { created_from?: string; created_to?: string };
     updated?: { updated_from?: string; updated_to?: string };
@@ -264,8 +248,6 @@ export function DataTable<TData extends Lead, TValue>({
     setDepartmentFilter("all");
     onCategoryFilterChange?.("all");
     onUserFilterChange?.("all");
-    // onDateFilterChange?.({ range: { from: undefined, to: undefined } });
-    // 🔥 Also clear search when clearing all filters
     if (onClearSearch) {
       onClearSearch();
     }
@@ -490,33 +472,6 @@ export function DataTable<TData extends Lead, TValue>({
     );
   };
 
-  // const DateFilterSelect = () => {
-  //   // Convert string dates back to Date objects for the picker
-  //   const getInitialDates = () => {
-  //     if (dateFilter?.created_from) {
-  //       return {
-  //         from: new Date(dateFilter.created_from),
-  //         to: dateFilter.created_to
-  //           ? new Date(dateFilter.created_to)
-  //           : new Date(dateFilter.created_from),
-  //       };
-  //     }
-  //     return undefined;
-  //   };
-
-  //   const initialRange = getInitialDates();
-
-  //   return (
-  //     <DateRangePicker
-  //       onUpdate={onDateFilterChange}
-  //       initialDateFrom={initialRange?.from}
-  //       initialDateTo={initialRange?.to}
-  //       placeholder="Select date range"
-  //       className="w-[200px]"
-  //     />
-  //   );
-  // };
-
   const SourceFilterSelect = () => {
     const { data: sourcesData, isLoading: sourcesLoading } = useGetSourcesQuery(
       {
@@ -610,6 +565,9 @@ export function DataTable<TData extends Lead, TValue>({
                 <TabsContent value="created" className="mt-4">
                   <div className="space-y-2">
                     <Label>Filter leads by creation date</Label>
+                    <div className="text-xs text-primary">
+                      Default value: all time
+                    </div>
                     <DateRangePicker
                       onUpdate={({ range }) =>
                         onAllDateFiltersChange?.onCreated?.({ range })
@@ -633,6 +591,9 @@ export function DataTable<TData extends Lead, TValue>({
                 <TabsContent value="updated" className="mt-4">
                   <div className="space-y-2">
                     <Label>Filter leads by last update date</Label>
+                    <div className="text-xs text-primary">
+                      Default value: all time
+                    </div>
                     <DateRangePicker
                       onUpdate={({ range }) =>
                         onAllDateFiltersChange?.onUpdated?.({ range })
@@ -656,6 +617,9 @@ export function DataTable<TData extends Lead, TValue>({
                 <TabsContent value="last_contacted" className="mt-4">
                   <div className="space-y-2">
                     <Label>Filter leads by last contact date</Label>
+                    <div className="text-xs text-primary">
+                      Default value: all time
+                    </div>
                     <DateRangePicker
                       onUpdate={({ range }) =>
                         onAllDateFiltersChange?.onLastContacted?.({ range })

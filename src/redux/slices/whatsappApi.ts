@@ -23,6 +23,7 @@ import type {
   BulkUnreadStatusResponse,
 } from "@/models/types/whatsapp";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
+import { AdminNotificationOverviewResponse } from "@/models/types/notification";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -134,6 +135,14 @@ export const whatsappApi = createApi({
 
     getBulkUnreadStatus: builder.query<BulkUnreadStatusResponse, void>({
       query: () => "/notifications/whatsapp/unread-status",
+      providesTags: ["WhatsAppStatus"],
+    }),
+
+    getAdminNotificationOverview: builder.query<
+      AdminNotificationOverviewResponse,
+      void
+    >({
+      query: () => "/notifications/admin/overview",
       providesTags: ["WhatsAppStatus"],
     }),
 
@@ -265,6 +274,7 @@ export const {
   useGetBulkWhatsAppJobsQuery,
   useGetBulkWhatsAppJobStatusQuery,
   useGetBulkUnreadStatusQuery,
+  useGetAdminNotificationOverviewQuery,
   useCancelBulkWhatsAppJobMutation,
   useGetBulkWhatsAppStatsQuery,
   useGetActiveWhatsAppJobsQuery,
