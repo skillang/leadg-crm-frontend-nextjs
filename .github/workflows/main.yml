@@ -1,0 +1,65 @@
+# .github/workflows/deploy.yml
+name: Deploy leadg-crm to AWS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Next.js application
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nextjs-build
+        path: |
+          .next/
+          package.json
+          package-lock.json
+          next.config.*
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: nextjs-build
+
+    - name: Deploy to AWS EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: 3.6.102.32
+        username: ec2-user
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd frontend
+          git pull origin main
+          npm ci --only=production
+          pm2 restart leadg-crm || pm2 start npm --name "leadg-crm" -- start
+
+    - name: Copy build files to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: 3.6.102.32
+        username: ec2-user
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: ".next/"
+        target: "frontend/"
+        strip_components: 0
