@@ -19,7 +19,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LeadG CRM",
   description: "LeadG is a CRM application for Track and Manage Leads",
-  // icons: "leadg-menu-icon.png",
+  icons: "/leadg-menu-icon.png",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
