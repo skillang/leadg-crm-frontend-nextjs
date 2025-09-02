@@ -18,7 +18,6 @@ import {
   Activity,
   Calendar,
   BarChart3,
-  // ArrowRight,
   LineChart,
   Target,
   Clock,
@@ -35,7 +34,6 @@ import {
   Area,
   BarChart,
   Bar,
-  // Cell,
   ComposedChart,
 } from "recharts";
 import { EnhancedTrendsData } from "@/models/types/callDashboard";
@@ -55,7 +53,7 @@ export function TrendsCard({
   className,
   variant = "area",
 }: TrendsCardProps) {
-  const [chartType, setChartType] = useState<"daily" | "hourly">("hourly");
+  const [chartType, setChartType] = useState<"daily" | "hourly">("daily");
 
   // Create daily chart data from temporal trends
   const dailyChartData = React.useMemo(() => {
@@ -220,7 +218,7 @@ export function TrendsCard({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <Tabs defaultValue="temporal" className="w-full">
+        <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="temporal">Temporal View</TabsTrigger>

@@ -4,10 +4,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { PerformanceFilters } from "@/components/admin/dashboard/PerformanceFilters";
@@ -25,11 +24,11 @@ import {
   useGetSummaryStatsQuery,
   buildDashboardQuery,
 } from "@/redux/slices/callDashboardApi";
-import {
-  FilterState,
-  SortState,
-  PaginationState,
-} from "@/models/types/callDashboard";
+import { FilterState, SortState } from "@/models/types/callDashboard";
+import TemporalTrendsCard from "@/components/admin/dashboard/TemporalTrendsCard";
+import DurationDistributionCard from "@/components/admin/dashboard/DurationDistributionCard";
+import HeatmapCard from "@/components/admin/dashboard/HeatmapCard";
+import ForecastCard from "@/components/admin/dashboard/ForecastCard";
 
 // Default filter state
 const defaultFilters: FilterState = {
@@ -52,12 +51,6 @@ export default function AdminCallDashboardPage() {
     field: "success_rate",
     direction: "desc",
   });
-  // const [tablePagination, setTablePagination] = useState<PaginationState>({
-  //   page: 1,
-  //   limit: 50,
-  //   total: 0,
-  //   totalPages: 1,
-  // });
 
   // Build query parameters
   const dashboardQuery = buildDashboardQuery({
@@ -67,7 +60,6 @@ export default function AdminCallDashboardPage() {
     dateTo: filters.dateRange.to
       ? format(filters.dateRange.to, "yyyy-MM-dd")
       : format(new Date(), "yyyy-MM-dd"),
-    period: filters.period,
     userIds: filters.selectedUsers,
     callStatus: filters.callStatus,
     callDirection: filters.callDirection,
@@ -87,6 +79,10 @@ export default function AdminCallDashboardPage() {
   const { data: summaryStats } = useGetSummaryStatsQuery({
     date_from: format(filters.dateRange.from || new Date(), "yyyy-MM-dd"),
     date_to: format(filters.dateRange.to || new Date(), "yyyy-MM-dd"),
+    user_ids:
+      filters.selectedUsers.length > 0
+        ? filters.selectedUsers.join(",")
+        : undefined,
   });
 
   useEffect(() => {
@@ -185,18 +181,8 @@ export default function AdminCallDashboardPage() {
         onExport={handleExport}
       />
 
-      {/* Global Loading Indicator */}
-      {isLoadingData && (
-        <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg border-2 border-dashed">
-          <div className="flex items-center space-x-3">
-            <div className="h-6 w-6 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-            <span className="text-muted-foreground">Loading call data...</span>
-          </div>
-        </div>
-      )}
-
-      {/* NEW: Summary Stats Grid - Replaces old summary cards */}
-      {!isLoadingData && summaryStats && (
+      {/* Row 1: Summary Stats Grid (Full Width) */}
+      {summaryStats && (
         <SummaryStatsGrid
           data={summaryStats.summary}
           trends={summaryStats.trends}
@@ -205,79 +191,59 @@ export default function AdminCallDashboardPage() {
         />
       )}
 
-      {/* NEW: Analytics Section - Trends and Insights */}
-      {!isLoadingData && summaryStats && (
+      {/* Row 2: Heat Map & Duration Distribution */}
+      {summaryStats && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Trends Card */}
+          <HeatmapCard
+            data={summaryStats!.trends.hourly_heatmap}
+            loading={isLoadingData}
+          />
+          <DurationDistributionCard
+            data={summaryStats!.trends.duration_distribution}
+            loading={isLoadingData}
+          />
+        </div>
+      )}
+
+      {/* Row 3: Peak Hours & Trends Card */}
+      {summaryStats && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PeakHoursCard
+            data={summaryStats!.peak_hours}
+            loading={isLoadingData}
+          />
+
           <TrendsCard
-            data={summaryStats.trends}
-            dateRange={summaryStats.date_range}
+            data={summaryStats!.trends}
+            dateRange={summaryStats!.date_range}
             loading={isLoadingData}
-          />
-
-          {/* Insights Card */}
-          <InsightsCard
-            data={summaryStats.peak_hours?.insights}
-            analysisMetadata={summaryStats.peak_hours?.analysis_metadata}
-            loading={isLoadingData}
+            variant="area"
           />
         </div>
       )}
 
-      {/* NEW: Peak Hours Analysis - Full Width */}
-      {!isLoadingData && summaryStats?.peak_hours && (
-        <PeakHoursCard data={summaryStats.peak_hours} loading={isLoadingData} />
+      {/* Row 4: Temporal + Forecast */}
+      {summaryStats && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TemporalTrendsCard
+            data={summaryStats!.trends.temporal_trends}
+            loading={isLoadingData}
+          />
+          <ForecastCard
+            data={summaryStats!.trends}
+            loading={isLoadingData}
+            // title="forecast"
+          />
+        </div>
       )}
 
-      {/* Existing: Top Performers Section (Keep this for additional insights) */}
-      {!isLoadingData && dashboardData?.top_performers && (
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5" />
-                <span>Top Performers</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {dashboardData.top_performers.length > 0 ? (
-                <div className="space-y-3">
-                  {dashboardData.top_performers
-                    .slice(0, 5)
-                    .map((performer, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
-                        onClick={() => handleUserClick(performer.user_id || "")}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <Badge variant="outline">#{performer.rank}</Badge>
-                          <div>
-                            <p className="font-medium">{performer.user_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {performer.total_calls} calls
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-lg">
-                            {performer.score}%
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            success rate
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No performance data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {/* Row 5: Insights (Keep existing) */}
+      {summaryStats && (
+        <InsightsCard
+          data={summaryStats!.peak_hours?.insights}
+          analysisMetadata={summaryStats!.peak_hours?.analysis_metadata}
+          loading={isLoadingData}
+        />
       )}
 
       {/* User Performance Table */}

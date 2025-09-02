@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import {
   UserCallStats,
   SortState,
-  PaginationState,
+  // PaginationState,
 } from "@/models/types/callDashboard";
 
 interface UserPerformanceTableProps {

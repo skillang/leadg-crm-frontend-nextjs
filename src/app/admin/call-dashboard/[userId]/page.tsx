@@ -79,7 +79,7 @@ export default function UserDetailPage() {
   useEffect(() => {
     if (userPerformance?.call_records) {
       const totalRecordings =
-        userPerformance.stats.daily_recordings ||
+        userPerformance.stats.recordings_count ||
         userPerformance.call_records.length;
       console.log("📌 [Pagination Update] count:", totalRecordings);
       setPagination((prev) => ({

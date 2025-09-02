@@ -210,14 +210,16 @@ export const callDashboardApi = createApi({
       {
         date_from?: string;
         date_to?: string;
+        user_ids?: string;
       }
     >({
       query: (params) => {
         const queryParams = new URLSearchParams();
         if (params.date_from) queryParams.append("date_from", params.date_from);
         if (params.date_to) queryParams.append("date_to", params.date_to);
+        if (params.user_ids) queryParams.append("user_ids", params.user_ids);
 
-        return `/summary-stats?${queryParams.toString()}`;
+        return `/summary-stats?${queryParams.toString()}`; // ← ADD THIS RETURN STATEMENT
       },
       providesTags: ["SummaryStats"],
     }),
@@ -318,8 +320,6 @@ export const buildDashboardQuery = (filters: {
   userIds?: string[];
   callStatus?: string;
   callDirection?: string;
-  page?: number;
-  limit?: number;
 }): AdminDashboardRequest => ({
   date_from: filters.dateFrom,
   date_to: filters.dateTo,
@@ -327,8 +327,6 @@ export const buildDashboardQuery = (filters: {
   user_ids: filters.userIds?.join(","),
   call_status: filters.callStatus as CallStatus,
   call_direction: filters.callDirection as CallDirection,
-  page: filters.page || 1,
-  limit: filters.limit || 50,
 });
 
 // Helper to build user performance query

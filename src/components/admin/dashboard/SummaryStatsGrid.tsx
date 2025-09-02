@@ -56,6 +56,54 @@ interface StatCardData {
   subtitle?: string;
 }
 
+// Skeleton component for individual stat cards
+const StatCardSkeleton: React.FC<{
+  hasProgress?: boolean;
+  hasTrend?: boolean;
+  hasSubtitle?: boolean;
+}> = ({ hasProgress = false, hasTrend = false, hasSubtitle = false }) => (
+  <Card className="min-w-[200px] animate-pulse">
+    <CardContent className="p-4">
+      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-20 bg-muted rounded"></div>
+          <div className="h-4 w-4 bg-muted rounded"></div>
+        </div>
+
+        {/* Main Value */}
+        <div className="space-y-1">
+          <div className="flex items-baseline space-x-1">
+            <div className="h-8 w-16 bg-muted rounded"></div>
+            <div className="h-4 w-8 bg-muted rounded"></div>
+          </div>
+
+          {hasSubtitle && <div className="h-3 w-24 bg-muted rounded"></div>}
+        </div>
+
+        {/* Progress Bar */}
+        {hasProgress && (
+          <div className="space-y-2">
+            <div className="h-2 w-full bg-muted rounded"></div>
+            <div className="h-3 w-20 bg-muted rounded"></div>
+          </div>
+        )}
+
+        {/* Trend Information */}
+        {hasTrend && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              <div className="h-3 w-3 bg-muted rounded"></div>
+              <div className="h-3 w-10 bg-muted rounded"></div>
+            </div>
+            <div className="h-3 w-16 bg-muted rounded"></div>
+          </div>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+);
+
 // Helper function to format numbers
 const formatNumber = (num: number): string => {
   if (num >= 1000000) {
@@ -277,25 +325,28 @@ export function SummaryStatsGrid({
     return (
       <div className={cn("space-y-4", className)}>
         {/* Filter info skeleton */}
-        <div className="h-8 w-64 bg-muted rounded animate-pulse"></div>
-
-        {/* Cards skeleton */}
-        <div className=" grid grid-cols-1 space-x-4 overflow-x-auto pb-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="min-w-[200px] animate-pulse">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 w-20 bg-muted rounded"></div>
-                    <div className="h-4 w-4 bg-muted rounded"></div>
-                  </div>
-                  <div className="h-8 w-16 bg-muted rounded"></div>
-                  <div className="h-2 w-full bg-muted rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex items-center space-x-2">
+          <div className="h-6 w-32 bg-muted rounded-md animate-pulse"></div>
+          <div className="h-6 w-20 bg-muted rounded-md animate-pulse"></div>
         </div>
+
+        {/* Cards skeleton - matches the grid layout */}
+        <div className="grid grid-cols-5 gap-4">
+          {/* Different skeleton patterns based on typical card content */}
+          <StatCardSkeleton hasTrend hasSubtitle />
+          <StatCardSkeleton hasSubtitle />
+          <StatCardSkeleton hasProgress />
+          <StatCardSkeleton hasProgress />
+          <StatCardSkeleton hasSubtitle />
+          <StatCardSkeleton hasProgress />
+          <StatCardSkeleton />
+          <StatCardSkeleton hasProgress />
+          <StatCardSkeleton />
+          <StatCardSkeleton hasSubtitle />
+        </div>
+
+        {/* Mobile scroll hint skeleton */}
+        <div className="h-4 w-48 bg-muted rounded mx-auto animate-pulse md:hidden"></div>
       </div>
     );
   }

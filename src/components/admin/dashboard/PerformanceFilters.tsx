@@ -24,7 +24,6 @@ import {
   Calendar,
   Users,
   Phone,
-  TrendingUp,
   Search,
   Download,
 } from "lucide-react";
@@ -114,14 +113,6 @@ export function PerformanceFilters({
     onFiltersChange({
       ...filters,
       dateRange: dateRange.range,
-    });
-  };
-
-  // Handle period change
-  const handlePeriodChange = (period: PerformancePeriod) => {
-    onFiltersChange({
-      ...filters,
-      period,
     });
   };
 
@@ -244,27 +235,7 @@ export function PerformanceFilters({
             />
           </div>
 
-          {/* Performance Period */}
-          <div className="space-y-2">
-            <Label className="flex items-center space-x-1">
-              <TrendingUp className="h-4 w-4" />
-              <span>Period</span>
-            </Label>
-            <Select value={filters.period} onValueChange={handlePeriodChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select period" />
-              </SelectTrigger>
-              <SelectContent>
-                {PERFORMANCE_PERIODS.map((period) => (
-                  <SelectItem key={period.value} value={period.value}>
-                    {period.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex gap-2 items-center justify-between">
+          <div className="items-center flex flex-col">
             <div className="space-y-2">
               <Label className="flex items-center space-x-1">
                 <Phone className="h-4 w-4" />
@@ -297,36 +268,36 @@ export function PerformanceFilters({
                 </SelectContent>
               </Select>
             </div>
-            {/* Call Direction Filter */}
-            <div className="space-y-2">
-              <Label>Call Direction</Label>
-              <Select
-                value={filters.callDirection}
-                onValueChange={handleDirectionChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select call direction" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CALL_DIRECTION_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            option.value === "inbound"
-                              ? "bg-blue-500"
-                              : option.value === "outbound"
-                              ? "bg-purple-500"
-                              : "bg-gray-500"
-                          }`}
-                        />
-                        <span>{option.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+          {/* Call Direction Filter */}
+          <div className="space-y-2">
+            <Label>Call Direction</Label>
+            <Select
+              value={filters.callDirection}
+              onValueChange={handleDirectionChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select call direction" />
+              </SelectTrigger>
+              <SelectContent>
+                {CALL_DIRECTION_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          option.value === "inbound"
+                            ? "bg-blue-500"
+                            : option.value === "outbound"
+                            ? "bg-purple-500"
+                            : "bg-gray-500"
+                        }`}
+                      />
+                      <span>{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

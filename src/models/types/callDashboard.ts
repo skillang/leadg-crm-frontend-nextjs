@@ -226,9 +226,9 @@ export interface SummaryStatsResponse {
   filter_info: {
     applied: boolean;
     scope: string;
-    user_count: number;
-    user_ids: string[];
-    agent_id: string[];
+    user_count?: number;
+    user_ids?: string[];
+    agent_id?: string[];
   };
   summary: {
     total_calls: number;
@@ -242,17 +242,17 @@ export interface SummaryStatsResponse {
     avg_calls_per_day: number;
     avg_call_duration_seconds: number;
   };
-  trends: {
-    trend: "increasing" | "decreasing" | "stable" | "insufficient_data";
-    change_percent: number;
-    first_half_avg: number;
-    second_half_avg: number;
-    total_days_analyzed: number;
-  };
+  trends: EnhancedTrendsData; // Updated to use enhanced structure
   peak_hours: {
     peak_hours: Array<{
       hour: number;
+      display: string;
       calls: number;
+      answered: number;
+      success_rate: number;
+      avg_duration: number;
+      agent_count: number;
+      productivity_score: number;
       percentage: number;
     }>;
     total_calls: number;
@@ -263,6 +263,10 @@ export interface SummaryStatsResponse {
       percentage: number;
       hour_display: string;
       calls_type: "answered";
+      success_rate: number;
+      agent_count: number;
+      avg_duration: number;
+      efficiency_score: number;
     }>;
     peak_missed_hours: Array<{
       hour: number;
@@ -270,6 +274,10 @@ export interface SummaryStatsResponse {
       percentage: number;
       hour_display: string;
       calls_type: "missed";
+      success_rate: number;
+      agent_count: number;
+      avg_duration: number;
+      efficiency_score: number;
     }>;
     insights: {
       best_calling_time: number;
@@ -284,6 +292,8 @@ export interface SummaryStatsResponse {
       most_active_hour: number;
       best_answer_hour: number;
       worst_miss_hour: number;
+      total_active_agents: number;
+      peak_agent_hour: number;
     };
   };
   optimization_info: {
@@ -386,4 +396,154 @@ export interface FilterState {
   selectedUsers: string[];
   callStatus: CallStatus;
   callDirection: CallDirection;
+}
+
+// ============================================================================
+// CHART DATA
+// ============================================================================
+
+// Hourly Heatmap Data Structure
+
+export interface HourlyHeatmapData {
+  data: Array<{
+    hour: number;
+    display: string; // "HH:MM" format
+    call_count: number;
+    answered_count: number;
+    success_rate: number;
+    intensity: number; // 0.0 to 1.0 for heatmap coloring
+    is_active: boolean;
+  }>;
+  max_calls: number;
+  best_hour: {
+    hour: number;
+    success_rate: number;
+  };
+  total_active_hours: number;
+}
+
+// Duration Distribution Data Structure
+export interface DurationDistributionData {
+  buckets: Array<{
+    range: string; // "0-30s", "30-60s", etc.
+    count: number;
+    percentage: number;
+    is_quality: boolean; // Whether this duration range is considered quality
+  }>;
+  avg_duration: number;
+  quality_threshold: number; // Seconds threshold for quality calls
+  quality_calls: number;
+  quality_percentage: number;
+  total_analyzed: number;
+  median_duration: number;
+}
+
+// Temporal Trends Data Structure
+export interface TemporalTrendsData {
+  daily_series: Array<{
+    date: string; // YYYY-MM-DD
+    total_calls: number;
+    answered_calls: number;
+    success_rate: number;
+    avg_duration: number;
+    active_agents: number;
+  }>;
+  hourly_series: Array<{
+    hour: number;
+    display: string; // "HH:MM" format
+    calls: number;
+    answered: number;
+    success_rate: number;
+    avg_duration: number;
+  }>;
+  date_range: string;
+  total_days: number;
+  active_hours: number;
+}
+
+// Peak Hours Analysis Data Structure
+export interface PeakHoursAnalysisData {
+  hourly_data: Array<{
+    hour: number;
+    display: string;
+    total_calls: number;
+    answered_calls: number;
+    success_rate: number;
+    is_active: boolean;
+    rank?: number;
+    is_peak?: boolean;
+  }>;
+  active_hours: Array<{
+    hour: number;
+    display: string;
+    total_calls: number;
+    answered_calls: number;
+    success_rate: number;
+    is_active: boolean;
+    rank: number;
+    is_peak: boolean;
+  }>;
+  peak_summary: {
+    best_hours: number[];
+    worst_hours: number[];
+    recommended_calling_window: string;
+    peak_success_rate: number;
+  };
+  analysis_metadata: {
+    total_active_hours: number;
+    peak_threshold: number;
+  };
+}
+
+// Trend Forecast Data Structure
+export interface TrendForecastData {
+  historical: Array<{
+    date: string; // YYYY-MM-DD
+    total_calls: number;
+    answered_calls: number;
+    success_rate: number;
+    avg_duration: number;
+    active_agents: number;
+  }>;
+  trend_direction: "increasing" | "decreasing" | "stable" | "insufficient_data";
+  trend_strength: number;
+  slope: number;
+  analysis_period: number;
+}
+
+// Enhanced Trends Data Structure (Updated)
+export interface EnhancedTrendsData {
+  trend: "increasing" | "decreasing" | "stable" | "insufficient_data" | "error";
+  change_percent: number;
+  trend_strength: "strong" | "moderate" | "weak" | "none";
+
+  // Performance Gauge
+  performance_gauge: {
+    current_rate: number;
+    target_rate: number;
+    status: "above_target" | "below_target" | "at_target";
+    color_zone: "green" | "yellow" | "red";
+    previous_period: number | null;
+    improvement: number | null;
+    progress_to_target: number;
+  };
+
+  // Temporal Trends
+  temporal_trends: TemporalTrendsData;
+
+  // Hourly Heatmap
+  hourly_heatmap: HourlyHeatmapData;
+
+  // Duration Distribution
+  duration_distribution: DurationDistributionData;
+
+  // Peak Hours Analysis
+  peak_hours_analysis: PeakHoursAnalysisData;
+
+  // Trend Forecast
+  historical_analysis: TrendForecastData;
+
+  // Available chart types
+  charts_available: string[];
+  view_type: "individual" | "team" | "all";
 }

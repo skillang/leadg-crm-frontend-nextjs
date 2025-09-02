@@ -32,6 +32,7 @@ import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import MultiSelect, {
+  SelectOption,
   STUDY_DESTINATIONS,
 } from "@/components/common/MultiSelect";
 import CourseLevelDropdown from "../common/CourseLevelDropdown";
@@ -46,6 +47,13 @@ import LeadAssignmentDropdown from "../common/LeadAssignmentDropdown";
 const formatCountriesForBackend = (countries: string[]): string => {
   if (!countries || countries.length === 0) return "";
   return countries.join(", ");
+};
+
+const transformDestinationsToOptions = (): SelectOption[] => {
+  return STUDY_DESTINATIONS.map((destination) => ({
+    value: destination.value,
+    label: destination.label,
+  }));
 };
 
 // Course level constants - ✅ FIXED: Match backend enum values
@@ -791,10 +799,13 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
                 <div className="space-y-2">
                   <Label>Countries of Interest</Label>
                   <MultiSelect
-                    options={STUDY_DESTINATIONS}
+                    options={transformDestinationsToOptions()}
                     value={formData.country_of_interest}
-                    onChange={(value) =>
-                      handleInputChange("country_of_interest", value)
+                    onChange={(countries) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        country_of_interest: countries,
+                      }))
                     }
                     disabled={isCreating}
                     placeholder="Select countries..."
