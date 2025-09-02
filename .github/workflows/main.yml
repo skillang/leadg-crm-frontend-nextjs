@@ -45,14 +45,13 @@ jobs:
     - name: Deploy to AWS EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: 3.6.102.32
+        host: 3.6.102.31
         username: ec2-user
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           cd frontend
-          git pull origin main
-          npm ci --only=production
-          pm2 restart leadg-crm || pm2 start npm --name "leadg-crm" -- start
+          git pull
+          pm2 restart leadg-frontend
 
     - name: Copy build files to EC2
       uses: appleboy/scp-action@v0.1.7
