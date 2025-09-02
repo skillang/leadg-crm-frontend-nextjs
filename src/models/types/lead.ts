@@ -44,11 +44,16 @@ export interface LeadFilters {
   stage: string;
   department: string;
   source: string;
+  assigned_to?: string;
   assignedTo?: string;
   includeMultiAssigned?: boolean;
   assignedToMe?: boolean;
-  category?: string; // Category filter
-  dateFrom?: string; // Start date (YYYY-MM-DD format)
+  category?: string;
+  dateFrom?: string;
+  updatedFrom?: string; // 🆕 NEW: updated_from
+  updatedTo?: string; // 🆕 NEW: updated_to
+  lastContactedFrom?: string; // 🆕 NEW: last_contacted_from
+  lastContactedTo?: string; // 🆕 NEW: last_contacted_to
   dateTo?: string;
 }
 

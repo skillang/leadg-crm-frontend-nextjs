@@ -47,9 +47,18 @@ export default function DemoPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all"); // Add type annotation
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState<{
     created_from?: string;
     created_to?: string;
+  }>({});
+  const [updatedDateFilter, setUpdatedDateFilter] = useState<{
+    updated_from?: string;
+    updated_to?: string;
+  }>({});
+  const [lastContactedDateFilter, setLastContactedDateFilter] = useState<{
+    last_contacted_from?: string;
+    last_contacted_to?: string;
   }>({});
 
   const [isClearingFilters, setIsClearingFilters] = useState(false);
@@ -80,7 +89,12 @@ export default function DemoPage() {
       status: statusFilter !== "all" ? statusFilter : undefined,
       category: categoryFilter !== "all" ? categoryFilter : undefined,
       source: sourceFilter !== "all" ? sourceFilter : undefined,
+      ...(isAdmin && userFilter !== "all" && { assigned_to: userFilter }),
       ...dateFilter,
+      updated_from: updatedDateFilter.updated_from, // 🆕 NEW
+      updated_to: updatedDateFilter.updated_to, // 🆕 NEW
+      last_contacted_from: lastContactedDateFilter.last_contacted_from, // 🆕 NEW
+      last_contacted_to: lastContactedDateFilter.last_contacted_to, //
     },
     {
       skip: !isAdmin,
@@ -103,6 +117,10 @@ export default function DemoPage() {
       category: categoryFilter !== "all" ? categoryFilter : undefined,
       source: sourceFilter !== "all" ? sourceFilter : undefined,
       ...dateFilter,
+      updated_from: updatedDateFilter.updated_from, // 🆕 NEW
+      updated_to: updatedDateFilter.updated_to, // 🆕 NEW
+      last_contacted_from: lastContactedDateFilter.last_contacted_from, // 🆕 NEW
+      last_contacted_to: lastContactedDateFilter.last_contacted_to, //
     },
     {
       skip: isAdmin,
@@ -231,6 +249,26 @@ export default function DemoPage() {
     setCurrentPage(1);
   }, []);
 
+  const handleUpdatedDateFilterChange = ({ range }: { range: DateRange }) => {
+    setUpdatedDateFilter({
+      updated_from: range.from?.toISOString().split("T")[0],
+      updated_to: range.to?.toISOString().split("T")[0],
+    });
+    setCurrentPage(1);
+  };
+
+  const handleLastContactedDateFilterChange = ({
+    range,
+  }: {
+    range: DateRange;
+  }) => {
+    setLastContactedDateFilter({
+      last_contacted_from: range.from?.toISOString().split("T")[0],
+      last_contacted_to: range.to?.toISOString().split("T")[0],
+    });
+    setCurrentPage(1);
+  };
+
   // Helper function to extract error message
   const getErrorMessage = (error: unknown): string => {
     if (!error) return "Unknown error occurred";
@@ -306,11 +344,27 @@ export default function DemoPage() {
         statusFilter={statusFilter}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={handleCategoryFilterChange}
-        dateFilter={dateFilter}
-        onDateFilterChange={handleDateRangeChange}
+        // dateFilter={dateFilter}
+        // onDateFilterChange={handleDateRangeChange}
         onStageFilterChange={handleStageFilterChange}
         onStatusFilterChange={handleStatusFilterChange}
         onSourceFilterChange={handleSourceFilterChange}
+        allDateFilters={{
+          created: dateFilter,
+          updated: updatedDateFilter,
+          lastContacted: lastContactedDateFilter,
+        }}
+        onAllDateFiltersChange={{
+          onCreated: handleDateRangeChange,
+          onUpdated: handleUpdatedDateFilterChange,
+          onLastContacted: handleLastContactedDateFilterChange,
+        }}
+        // updatedDateFilter={updatedDateFilter} // 🆕 NEW
+        // lastContactedDateFilter={lastContactedDateFilter} // 🆕 NEW
+        // onUpdatedDateFilterChange={handleUpdatedDateFilterChange} // 🆕 NEW
+        // onLastContactedDateFilterChange={handleLastContactedDateFilterChange} //
+        userFilter={userFilter}
+        onUserFilterChange={setUserFilter}
         router={router}
       />
     </div>

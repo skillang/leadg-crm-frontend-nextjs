@@ -55,6 +55,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
 import { useStageUtils } from "@/components/common/StageDisplay";
 import MultiSelect from "@/components/common/MultiSelect";
@@ -72,6 +81,8 @@ import { DateRange, DateRangePicker } from "@/components/ui/date-range-picker";
 import { Source } from "@/models/types/source";
 import { useGetSourcesQuery } from "@/redux/slices/sourcesApi";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/redux/hooks/useAuth";
+import { useGetAssignableUsersWithDetailsQuery } from "@/redux/slices/leadsApi";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -101,12 +112,34 @@ interface DataTableProps<TData, TValue> {
   statusFilter?: string;
   categoryFilter?: string;
   onCategoryFilterChange?: (value: string) => void;
-  dateFilter?: { created_from?: string; created_to?: string };
-  onDateFilterChange?: ({ range }: { range: DateRange }) => void;
+  // dateFilter?: { created_from?: string; created_to?: string };
+  // onDateFilterChange?: ({ range }: { range: DateRange }) => void;
   sourceFilter?: string; // Add this
   onSourceFilterChange?: (value: string) => void;
   onStageFilterChange?: (value: string) => void;
   onStatusFilterChange?: (value: string) => void;
+  userFilter?: string; // 🆕 NEW
+  onUserFilterChange?: (value: string) => void; // 🆕 NEW
+  // updatedDateFilter?: { updated_from?: string; updated_to?: string }; // 🆕 NEW
+  // lastContactedDateFilter?: {
+  //   last_contacted_from?: string;
+  //   last_contacted_to?: string;
+  // }; // 🆕 NEW
+  // onUpdatedDateFilterChange?: ({ range }: { range: DateRange }) => void; // 🆕 NEW
+  // onLastContactedDateFilterChange?: ({ range }: { range: DateRange }) => void; // 🆕 NEW
+  allDateFilters?: {
+    created?: { created_from?: string; created_to?: string };
+    updated?: { updated_from?: string; updated_to?: string };
+    lastContacted?: {
+      last_contacted_from?: string;
+      last_contacted_to?: string;
+    };
+  };
+  onAllDateFiltersChange?: {
+    onCreated?: ({ range }: { range: DateRange }) => void;
+    onUpdated?: ({ range }: { range: DateRange }) => void;
+    onLastContacted?: ({ range }: { range: DateRange }) => void;
+  };
   router?: AppRouterInstance;
 }
 
@@ -129,11 +162,19 @@ export function DataTable<TData extends Lead, TValue>({
   statusFilter = "all",
   categoryFilter = "all", // ADD THIS
   onCategoryFilterChange,
-  dateFilter,
-  onDateFilterChange,
+  // dateFilter,
+  // onDateFilterChange,
   onStageFilterChange,
   onStatusFilterChange,
   onSourceFilterChange,
+  userFilter = "all",
+  onUserFilterChange,
+  // updatedDateFilter,
+  // lastContactedDateFilter,
+  // onUpdatedDateFilterChange,
+  // onLastContactedDateFilterChange,
+  allDateFilters, // 🆕 NEW: Unified date filters
+  onAllDateFiltersChange,
   router,
 }: DataTableProps<TData, TValue>) {
   const { showWarning } = useNotifications();
@@ -162,6 +203,10 @@ export function DataTable<TData extends Lead, TValue>({
   const { data: categoriesData } = useGetCategoriesQuery({
     include_inactive: false,
   });
+  const { isAdmin } = useAuth();
+  const { data: assignableUsersResponse, isLoading: usersLoading } =
+    useGetAssignableUsersWithDetailsQuery();
+  const assignableUsers = assignableUsersResponse?.users || [];
   const { getStageDisplayName } = useStageUtils();
 
   const table = useReactTable({
@@ -202,7 +247,8 @@ export function DataTable<TData extends Lead, TValue>({
     stageFilter !== "all" ||
     departmentFilter !== "all" ||
     categoryFilter !== "all" ||
-    statusFilter !== "all";
+    statusFilter !== "all" ||
+    (isAdmin && userFilter !== "all");
 
   // const activeFiltersCount = [
   //   stageFilter !== "all" ? 1 : 0,
@@ -217,6 +263,7 @@ export function DataTable<TData extends Lead, TValue>({
     onStatusFilterChange?.("all");
     setDepartmentFilter("all");
     onCategoryFilterChange?.("all");
+    onUserFilterChange?.("all");
     // onDateFilterChange?.({ range: { from: undefined, to: undefined } });
     // 🔥 Also clear search when clearing all filters
     if (onClearSearch) {
@@ -443,32 +490,32 @@ export function DataTable<TData extends Lead, TValue>({
     );
   };
 
-  const DateFilterSelect = () => {
-    // Convert string dates back to Date objects for the picker
-    const getInitialDates = () => {
-      if (dateFilter?.created_from) {
-        return {
-          from: new Date(dateFilter.created_from),
-          to: dateFilter.created_to
-            ? new Date(dateFilter.created_to)
-            : new Date(dateFilter.created_from),
-        };
-      }
-      return undefined;
-    };
+  // const DateFilterSelect = () => {
+  //   // Convert string dates back to Date objects for the picker
+  //   const getInitialDates = () => {
+  //     if (dateFilter?.created_from) {
+  //       return {
+  //         from: new Date(dateFilter.created_from),
+  //         to: dateFilter.created_to
+  //           ? new Date(dateFilter.created_to)
+  //           : new Date(dateFilter.created_from),
+  //       };
+  //     }
+  //     return undefined;
+  //   };
 
-    const initialRange = getInitialDates();
+  //   const initialRange = getInitialDates();
 
-    return (
-      <DateRangePicker
-        onUpdate={onDateFilterChange}
-        initialDateFrom={initialRange?.from}
-        initialDateTo={initialRange?.to}
-        placeholder="Select date range"
-        className="w-[200px]"
-      />
-    );
-  };
+  //   return (
+  //     <DateRangePicker
+  //       onUpdate={onDateFilterChange}
+  //       initialDateFrom={initialRange?.from}
+  //       initialDateTo={initialRange?.to}
+  //       placeholder="Select date range"
+  //       className="w-[200px]"
+  //     />
+  //   );
+  // };
 
   const SourceFilterSelect = () => {
     const { data: sourcesData, isLoading: sourcesLoading } = useGetSourcesQuery(
@@ -500,6 +547,239 @@ export function DataTable<TData extends Lead, TValue>({
       </Select>
     );
   };
+
+  const UnifiedDateFilterSelect = () => {
+    const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
+    const [activeTab, setActiveTab] = React.useState("created");
+
+    const getActiveFilterCount = () => {
+      let count = 0;
+      if (
+        allDateFilters?.created?.created_from &&
+        allDateFilters?.created?.created_to
+      )
+        count++;
+      if (
+        allDateFilters?.updated?.updated_from &&
+        allDateFilters?.updated?.updated_to
+      )
+        count++;
+      if (
+        allDateFilters?.lastContacted?.last_contacted_from &&
+        allDateFilters?.lastContacted?.last_contacted_to
+      )
+        count++;
+      return count;
+    };
+
+    const activeCount = getActiveFilterCount();
+
+    return (
+      <div className="relative">
+        <Button
+          variant="outline"
+          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          className="w-[140px] relative"
+        >
+          Date filters
+          {activeCount > 0 && (
+            <span className="absolute -top-1 -left-1 h-4 w-4 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+
+        {isPopoverOpen && (
+          <div className="absolute top-12 right-0 z-50 bg-white border rounded-lg shadow-lg w-96">
+            <div className="p-4">
+              <div className="text-sm font-medium mb-3">Date Range Filters</div>
+
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="created">Created on</TabsTrigger>
+                  <TabsTrigger value="updated">Updated on</TabsTrigger>
+                  <TabsTrigger value="last_contacted">
+                    Last contacted
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="created" className="mt-4">
+                  <div className="space-y-2">
+                    <Label>Filter leads by creation date</Label>
+                    <DateRangePicker
+                      onUpdate={({ range }) =>
+                        onAllDateFiltersChange?.onCreated?.({ range })
+                      }
+                      initialDateFrom={
+                        allDateFilters?.created?.created_from
+                          ? new Date(allDateFilters.created.created_from)
+                          : undefined
+                      }
+                      initialDateTo={
+                        allDateFilters?.created?.created_to
+                          ? new Date(allDateFilters.created.created_to)
+                          : undefined
+                      }
+                      placeholder="Select creation date range"
+                      className="w-full"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="updated" className="mt-4">
+                  <div className="space-y-2">
+                    <Label>Filter leads by last update date</Label>
+                    <DateRangePicker
+                      onUpdate={({ range }) =>
+                        onAllDateFiltersChange?.onUpdated?.({ range })
+                      }
+                      initialDateFrom={
+                        allDateFilters?.updated?.updated_from
+                          ? new Date(allDateFilters.updated.updated_from)
+                          : undefined
+                      }
+                      initialDateTo={
+                        allDateFilters?.updated?.updated_to
+                          ? new Date(allDateFilters.updated.updated_to)
+                          : undefined
+                      }
+                      placeholder="Select update date range"
+                      className="w-full"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="last_contacted" className="mt-4">
+                  <div className="space-y-2">
+                    <Label>Filter leads by last contact date</Label>
+                    <DateRangePicker
+                      onUpdate={({ range }) =>
+                        onAllDateFiltersChange?.onLastContacted?.({ range })
+                      }
+                      initialDateFrom={
+                        allDateFilters?.lastContacted?.last_contacted_from
+                          ? new Date(
+                              allDateFilters.lastContacted.last_contacted_from
+                            )
+                          : undefined
+                      }
+                      initialDateTo={
+                        allDateFilters?.lastContacted?.last_contacted_to
+                          ? new Date(
+                              allDateFilters.lastContacted.last_contacted_to
+                            )
+                          : undefined
+                      }
+                      placeholder="Select contact date range"
+                      className="w-full"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <div className="flex justify-end mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPopoverOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 🆕 NEW: Admin-only User Filter Component
+  const UserFilterSelect = () => {
+    if (!isAdmin) return null; // Hide for non-admins
+
+    if (usersLoading) {
+      return <Skeleton className="h-10 w-[140px]" />;
+    }
+
+    return (
+      <Select
+        value={userFilter === "all" ? "" : userFilter}
+        onValueChange={(value) => onUserFilterChange?.(value || "all")}
+      >
+        <SelectTrigger className="w-[140px]">
+          <SelectValue placeholder="All Users" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Users</SelectItem>
+          {assignableUsers.map((user) => (
+            <SelectItem key={user.email} value={user.email}>
+              {user.name}
+              <span className="ml-1 text-xs text-gray-500">
+                ({user.current_lead_count})
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
+
+  // const UpdatedDateFilterSelect = () => {
+  //   const getInitialDates = () => {
+  //     if (updatedDateFilter?.updated_from) {
+  //       return {
+  //         from: new Date(updatedDateFilter.updated_from),
+  //         to: updatedDateFilter.updated_to
+  //           ? new Date(updatedDateFilter.updated_to)
+  //           : new Date(updatedDateFilter.updated_from),
+  //       };
+  //     }
+  //     return undefined;
+  //   };
+
+  //   const initialRange = getInitialDates();
+
+  //   return (
+  //     <DateRangePicker
+  //       onUpdate={onUpdatedDateFilterChange}
+  //       initialDateFrom={initialRange?.from}
+  //       initialDateTo={initialRange?.to}
+  //       placeholder="Last updated"
+  //       className="w-[160px]"
+  //     />
+  //   );
+  // };
+
+  // 🆕 NEW: Last Contacted Date Filter Component
+  // const LastContactedDateFilterSelect = () => {
+  //   const getInitialDates = () => {
+  //     if (lastContactedDateFilter?.last_contacted_from) {
+  //       return {
+  //         from: new Date(lastContactedDateFilter.last_contacted_from),
+  //         to: lastContactedDateFilter.last_contacted_to
+  //           ? new Date(lastContactedDateFilter.last_contacted_to)
+  //           : new Date(lastContactedDateFilter.last_contacted_from),
+  //       };
+  //     }
+  //     return undefined;
+  //   };
+
+  //   const initialRange = getInitialDates();
+
+  //   return (
+  //     <DateRangePicker
+  //       onUpdate={onLastContactedDateFilterChange}
+  //       initialDateFrom={initialRange?.from}
+  //       initialDateTo={initialRange?.to}
+  //       placeholder="Last contacted"
+  //       className="w-[160px]"
+  //     />
+  //   );
+  // };
 
   // Get column display name helper
   const getColumnDisplayName = (col: Column<TData, unknown>) => {
@@ -715,7 +995,11 @@ export function DataTable<TData extends Lead, TValue>({
                   <StatusFilterSelect />
                   <CategoryFilterSelect />
                   <SourceFilterSelect />
-                  <DateFilterSelect />
+                  <UserFilterSelect />
+                  <UnifiedDateFilterSelect />
+                  {/* <DateFilterSelect />
+                  <UpdatedDateFilterSelect />
+                  <LastContactedDateFilterSelect /> */}
                 </div>
               </div>
             </div>
@@ -780,6 +1064,22 @@ export function DataTable<TData extends Lead, TValue>({
                 size="sm"
                 className="h-auto p-0 ml-1"
                 onClick={() => onCategoryFilterChange?.("all")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+
+          {isAdmin && userFilter !== "all" && (
+            <Badge variant="secondary" className="gap-1">
+              User:{" "}
+              {assignableUsers.find((u) => u.email === userFilter)?.name ||
+                userFilter}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
+                onClick={() => onUserFilterChange?.("all")}
               >
                 <X className="h-3 w-3" />
               </Button>

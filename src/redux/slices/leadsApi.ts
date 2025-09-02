@@ -45,17 +45,21 @@ export const leadsApi = createApi({
       {
         page?: number;
         limit?: number;
-        lead_status?: string; // Keep for backward compatibility
-        status?: string; // NEW: Backend status filter
-        stage?: string; // NEW: Backend stage filter
-        category?: string; // NEW: Backend category filter
-        source?: string; // NEW: Backend source filter
+        lead_status?: string;
+        status?: string;
+        stage?: string;
+        category?: string;
+        source?: string;
         assigned_to?: string;
         search?: string;
         include_multi_assigned?: boolean;
         assigned_to_me?: boolean;
-        created_from?: string; // NEW: Date range
-        created_to?: string; // NEW: Date range
+        created_from?: string;
+        created_to?: string;
+        updated_from?: string; // 🆕 NEW
+        updated_to?: string; // 🆕 NEW
+        last_contacted_from?: string; // 🆕 NEW
+        last_contacted_to?: string; // 🆕 NEW
       }
     >({
       query: (params = {}) => {
@@ -130,15 +134,19 @@ export const leadsApi = createApi({
       {
         page?: number;
         limit?: number;
-        lead_status?: string; // Keep for backward compatibility
-        status?: string; // NEW: Backend status filter
-        stage?: string; // NEW: Backend stage filter
-        category?: string; // NEW: Backend category filter
-        source?: string; // NEW: Backend source filter
+        lead_status?: string;
+        status?: string;
+        stage?: string;
+        category?: string;
+        source?: string;
         search?: string;
         include_co_assignments?: boolean;
-        created_from?: string; // NEW: Date range
-        created_to?: string; // NEW: Date range
+        created_from?: string;
+        created_to?: string;
+        updated_from?: string; // 🆕 NEW
+        updated_to?: string; // 🆕 NEW
+        last_contacted_from?: string; // 🆕 NEW
+        last_contacted_to?: string; // 🆕 NEW
       }
     >({
       query: (params = {}) => {

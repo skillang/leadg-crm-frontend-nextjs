@@ -43,7 +43,7 @@ const leadsSlice = createSlice({
     },
 
     setAssignedToFilter: (state, action: PayloadAction<string>) => {
-      state.filters.assignedTo = action.payload;
+      state.filters.assigned_to = action.payload;
     },
 
     setIncludeMultiAssignedFilter: (state, action: PayloadAction<boolean>) => {
@@ -74,18 +74,54 @@ const leadsSlice = createSlice({
       state.filters.dateTo = action.payload.to;
     },
 
+    setUpdatedFromFilter: (state, action: PayloadAction<string>) => {
+      state.filters.updatedFrom = action.payload;
+    },
+
+    setUpdatedToFilter: (state, action: PayloadAction<string>) => {
+      state.filters.updatedTo = action.payload;
+    },
+
+    setLastContactedFromFilter: (state, action: PayloadAction<string>) => {
+      state.filters.lastContactedFrom = action.payload;
+    },
+
+    setLastContactedToFilter: (state, action: PayloadAction<string>) => {
+      state.filters.lastContactedTo = action.payload;
+    },
+
+    setUpdatedDateRangeFilter: (
+      state,
+      action: PayloadAction<{ from?: string; to?: string }>
+    ) => {
+      state.filters.updatedFrom = action.payload.from;
+      state.filters.updatedTo = action.payload.to;
+    },
+
+    setLastContactedDateRangeFilter: (
+      state,
+      action: PayloadAction<{ from?: string; to?: string }>
+    ) => {
+      state.filters.lastContactedFrom = action.payload.from;
+      state.filters.lastContactedTo = action.payload.to;
+    },
+
     clearFilters: (state) => {
       state.filters = {
         name: "",
         stage: "",
         department: "",
         source: "",
-        assignedTo: "",
+        assigned_to: "",
         category: "",
-        dateFrom: "",
-        dateTo: "",
         includeMultiAssigned: false,
         assignedToMe: true,
+        dateFrom: undefined,
+        dateTo: undefined,
+        updatedFrom: undefined, // 🆕 NEW
+        updatedTo: undefined, // 🆕 NEW
+        lastContactedFrom: undefined, // 🆕 NEW
+        lastContactedTo: undefined, // 🆕 NEW
       };
     },
 
@@ -138,6 +174,12 @@ export const {
   setAssignedToFilter,
   setIncludeMultiAssignedFilter,
   setAssignedToMeFilter,
+  setUpdatedFromFilter,
+  setUpdatedToFilter,
+  setLastContactedFromFilter,
+  setLastContactedToFilter,
+  setUpdatedDateRangeFilter,
+  setLastContactedDateRangeFilter,
   clearFilters,
   toggleLeadSelection,
   selectAllLeads,
