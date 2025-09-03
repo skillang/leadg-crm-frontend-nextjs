@@ -573,11 +573,25 @@ export interface SelectiveRoundRobinTestRequest {
 // =============== RESPONSE TYPES ===============
 export interface LeadStatsResponse {
   total_leads: number;
-  open_leads: number;
-  in_progress_leads: number;
-  closed_won_leads: number;
-  closed_lost_leads: number;
   my_leads: number;
+  unassigned_leads: number;
+
+  // Core metrics for dashboard cards
+  dnp_count: number;
+  counseled_count: number;
+  conversion_rate: number;
+
+  // Dynamic breakdowns for charts
+  status_breakdown?: Record<string, number>;
+  stage_breakdown?: Record<string, number>;
+
+  // Assignment efficiency (admin only)
+  assignment_stats?: {
+    multi_assigned_leads: number;
+    workload_distribution: Record<string, number>;
+    average_leads_per_user: number;
+    assignment_balance_score: number;
+  };
 }
 
 export interface PaginatedResponse<T> {

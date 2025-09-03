@@ -371,23 +371,6 @@ const StatusManagement: React.FC = () => {
                 </div>
               )}
 
-              {/* Loading State - Show skeleton when loading and no data */}
-              {isLoading && filteredStatuses.length === 0 && (
-                <div className="space-y-4">
-                  {[...Array(2)].map((_, i) => (
-                    <AdminDataConfCard
-                      key={`loading-${i}`}
-                      title=""
-                      badges={[]}
-                      canEdit={false}
-                      canDelete={false}
-                      canReorder={false}
-                      isLoading={true}
-                    />
-                  ))}
-                </div>
-              )}
-
               {/* Empty State - Show only when not loading and no data */}
               {filteredStatuses.length === 0 && !isLoading && (
                 <div className="text-center py-12">
