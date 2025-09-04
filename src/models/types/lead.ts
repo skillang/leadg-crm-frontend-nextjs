@@ -588,10 +588,18 @@ export interface LeadStatsResponse {
   // Assignment efficiency (admin only)
   assignment_stats?: {
     multi_assigned_leads: number;
-    workload_distribution: Record<string, number>;
+    workload_distribution: UserWorkloadItem[];
     average_leads_per_user: number;
     assignment_balance_score: number;
   };
+}
+
+interface UserWorkloadItem {
+  name: string;
+  email: string;
+  total_leads: number;
+  dnp_count: number;
+  counselled_count: number;
 }
 
 export interface PaginatedResponse<T> {

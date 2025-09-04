@@ -40,17 +40,17 @@ const COLORS = [
 ];
 
 // Simple tooltip
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-2 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-medium capitalize text-gray-900">{label}</p>
-        <p className="text-primary">{payload[0].value} leads</p>
-      </div>
-    );
-  }
-  return null;
-};
+// const CustomTooltip = ({ active, payload, label }: any) => {
+//   if (active && payload && payload.length) {
+//     return (
+//       <div className="bg-white p-2 border border-gray-200 rounded-lg shadow-lg">
+//         <p className="font-medium capitalize text-gray-900">{label}</p>
+//         <p className="text-primary">{payload[0].value} leads</p>
+//       </div>
+//     );
+//   }
+//   return null;
+// };
 
 export const DistributionChart: React.FC<DistributionChartProps> = ({
   data,
@@ -189,7 +189,12 @@ export const DistributionChart: React.FC<DistributionChartProps> = ({
               axisLine={{ stroke: "#cbd5e1" }}
               width={95}
             />
-            <Tooltip content={<CustomTooltip />} />
+            {/* <Tooltip content={<CustomTooltip />} /> */}
+            <Tooltip
+              formatter={(value: number) => [`${value} leads`, "Count"]}
+              labelFormatter={(label) => `Category: ${label}`}
+            />
+
             <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={40}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />

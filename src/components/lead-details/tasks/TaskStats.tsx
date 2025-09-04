@@ -31,8 +31,8 @@ const TaskStats: React.FC<TaskStatsProps> = ({ stats, isLoading = false }) => {
 
   const statsItems = [
     {
-      label: "Total task due",
-      value: Math.max(0, safeStats.total_tasks - safeStats.completed_tasks),
+      label: "Total tasks",
+      value: safeStats.total_tasks,
       className: "bg-gray-50 border-gray-200",
     },
     {
@@ -41,9 +41,14 @@ const TaskStats: React.FC<TaskStatsProps> = ({ stats, isLoading = false }) => {
       className: "bg-red-50 border-red-200 text-red-600",
     },
     {
+      label: "Pending tasks",
+      value: safeStats.pending_tasks,
+      className: "bg-yellow-50 border-yellow-200 text-yellow-600",
+    },
+    {
       label: "Due today",
       value: safeStats.due_today,
-      className: "bg-blue-50 border-blue-200",
+      className: "bg-pink-50 border-pink-200",
     },
   ];
 
@@ -65,7 +70,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({ stats, isLoading = false }) => {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       {statsItems.map((item, index) => (
         <Card
           key={index}

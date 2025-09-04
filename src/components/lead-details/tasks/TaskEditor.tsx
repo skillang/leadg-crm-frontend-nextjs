@@ -50,7 +50,13 @@ interface TaskEditorProps {
 type TaskFormData = {
   task_title: string;
   task_description: string;
-  task_type: "call" | "email" | "meeting" | "follow_up" | "other";
+  task_type:
+    | "call"
+    | "email"
+    | "meeting"
+    | "follow_up"
+    | "other"
+    | "whatsapp_followup";
   priority: "low" | "medium" | "high" | "urgent";
   assigned_to: string;
   due_date: string;
@@ -95,6 +101,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
     { value: "email", label: "Email" },
     { value: "meeting", label: "Meeting" },
     { value: "follow_up", label: "Follow Up" },
+    { value: "whatsapp_followup", label: "WhatsApp FollowUp" },
     { value: "other", label: "Other" },
   ] as const;
 

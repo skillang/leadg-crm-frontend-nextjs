@@ -174,35 +174,49 @@ const DashboardPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-left">User</TableHead>
-                  <TableHead className="text-right">Assigned Leads</TableHead>
+                  <TableHead className="text-right">Total Leads</TableHead>
+                  <TableHead className="text-right">DNP Count</TableHead>
+                  <TableHead className="text-right">Counselled</TableHead>
                   <TableHead className="text-right">% of Total</TableHead>
                   <TableHead className="text-center">Load Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(stats.assignment_stats.workload_distribution)
-                  .sort(([, a], [, b]) => b - a) // Sort by lead count descending
-                  .map(([email, leadCount]) => {
+                {[...stats.assignment_stats.workload_distribution]
+                  .sort((a, b) => b.total_leads - a.total_leads) // Sort by total_leads descending
+                  .map((user) => {
                     const percentage = (
-                      (leadCount / stats.total_leads) *
+                      (user.total_leads / stats.total_leads) *
                       100
                     ).toFixed(1);
                     const avgLeads =
                       stats.assignment_stats?.average_leads_per_user || 0;
-                    const isOverloaded = leadCount > avgLeads * 1.2;
-                    const isUnderloaded = leadCount < avgLeads * 0.8;
+                    const isOverloaded = user.total_leads > avgLeads * 1.2;
+                    const isUnderloaded = user.total_leads < avgLeads * 0.8;
 
                     return (
-                      <TableRow key={email}>
+                      <TableRow key={user.email}>
                         <TableCell>
                           <div className="text-sm font-medium text-gray-900">
-                            {email.split("@")[0]}
+                            {user.name}
                           </div>
-                          <div className="text-xs text-gray-500">{email}</div>
+                          <div className="text-xs text-gray-500">
+                            {user.email}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-lg font-semibold text-gray-900">
-                            {leadCount}
+                            {user.total_leads}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-lg font-semibold text-gray-900">
+                            {user.dnp_count}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-lg font-semibold text-gray-900">
+                            {user.counselled_count}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">

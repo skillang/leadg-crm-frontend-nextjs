@@ -6,7 +6,13 @@ export interface Task {
   task_title: string;
   task_description: string | "";
   priority: "low" | "medium" | "high" | "urgent";
-  task_type: "call" | "email" | "meeting" | "follow_up" | "other";
+  task_type:
+    | "call"
+    | "email"
+    | "meeting"
+    | "follow_up"
+    | "other"
+    | "whatsapp_followup";
   string: string;
   assigned_to: string;
   assigned_to_name: string;
@@ -14,6 +20,7 @@ export interface Task {
   due_time: string; // e.g., "14:30"
   notes: string;
   lead_id: string;
+  lead_name: string;
   status: "pending" | "in_progress" | "completed" | "overdue" | "cancelled";
   created_by: string;
   created_by_name: string;
@@ -28,7 +35,13 @@ export interface CreateTaskRequest {
   task_title: string;
   task_description: string;
   priority: "low" | "medium" | "high" | "urgent";
-  task_type: "call" | "email" | "meeting" | "follow_up" | "other";
+  task_type:
+    | "call"
+    | "email"
+    | "meeting"
+    | "follow_up"
+    | "other"
+    | "whatsapp_followup";
   string: string;
   assigned_to: string;
   due_date: string;
@@ -41,7 +54,13 @@ export interface UpdateTaskRequest {
   task_title?: string;
   task_description?: string;
   priority: "low" | "medium" | "high" | "urgent";
-  task_type?: "call" | "email" | "meeting" | "follow_up" | "other";
+  task_type?:
+    | "call"
+    | "email"
+    | "meeting"
+    | "follow_up"
+    | "other"
+    | "whatsapp_followup";
   string?: string;
   assigned_to?: string;
   due_date?: string;

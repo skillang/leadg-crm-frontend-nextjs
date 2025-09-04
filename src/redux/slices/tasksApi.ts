@@ -35,6 +35,7 @@ const transformTask = (apiTask: Record<string, unknown>): Task => ({
   due_time: apiTask.due_time as string,
   notes: apiTask.notes as string,
   lead_id: apiTask.lead_id as string,
+  lead_name: apiTask.lead_name as string,
   status: apiTask.status as
     | "pending"
     | "in_progress"
@@ -186,7 +187,7 @@ export const tasksApi = createApi({
       query: ({ status_filter }) => {
         const params = new URLSearchParams();
         if (status_filter) params.append("status_filter", status_filter);
-        return `/tasks/my-tasks?${params.toString()}`;
+        return `/tasks/tasks/my-tasks?${params.toString()}`;
       },
       transformResponse: (response: unknown): TasksResponse => {
         const parsed = response as {
