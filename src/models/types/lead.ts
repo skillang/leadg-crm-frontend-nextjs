@@ -37,6 +37,8 @@ export interface Lead {
   leadCategory: string;
   tags: string[];
   priority?: string;
+
+  callStats?: CallStats;
 }
 
 export interface LeadFilters {
@@ -55,6 +57,19 @@ export interface LeadFilters {
   lastContactedFrom?: string; // 🆕 NEW: last_contacted_from
   lastContactedTo?: string; // 🆕 NEW: last_contacted_to
   dateTo?: string;
+}
+
+export interface CallStats {
+  total_calls: number;
+  answered_calls: number;
+  missed_calls: number;
+  last_call_date: string | null;
+  user_calls: Record<
+    string,
+    { total: number; answered: number; missed: number }
+  >;
+  last_updated: string | null;
+  initialized: boolean;
 }
 
 // Enhanced lead creation interface
@@ -375,6 +390,8 @@ export interface ApiLead {
   date_of_birth?: string;
   course_level?: string;
   country_of_interest?: string;
+
+  call_stats?: CallStats;
 }
 
 export interface RawLeadDetails {
@@ -742,6 +759,7 @@ export const transformApiLead = (apiLead: ApiLead): Lead => ({
   leadCategory: apiLead.category || "",
   tags: [],
   priority: "medium",
+  callStats: apiLead.call_stats,
 });
 
 export const transformLeadDetailsResponse = (

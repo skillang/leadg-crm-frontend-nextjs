@@ -498,6 +498,55 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     ),
   },
   {
+    accessorKey: "callStats.total_calls",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Total Calls
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const lead = row.original;
+      const totalCalls = lead.callStats?.total_calls ?? 0;
+
+      return (
+        <div className="flex items-center">
+          <Badge
+            variant="outline"
+            className="text-xs bg-gray-50 text-gray-700 border-gray-200"
+          >
+            {totalCalls}
+          </Badge>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "callStats.answered_calls",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Answered Calls
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const lead = row.original;
+      const answeredCalls = lead.callStats?.answered_calls ?? 0;
+      const totalCalls = lead.callStats?.total_calls ?? 0;
+      return (
+        <div className="flex items-center ">
+          <Badge variant="success-light">{answeredCalls}</Badge>
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "createdAt",
     header: "Created On",
     cell: ({ row }) => {

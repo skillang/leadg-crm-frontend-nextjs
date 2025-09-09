@@ -56,10 +56,10 @@ export const leadsApi = createApi({
         assigned_to_me?: boolean;
         created_from?: string;
         created_to?: string;
-        updated_from?: string; // 🆕 NEW
-        updated_to?: string; // 🆕 NEW
-        last_contacted_from?: string; // 🆕 NEW
-        last_contacted_to?: string; // 🆕 NEW
+        updated_from?: string;
+        updated_to?: string;
+        last_contacted_from?: string;
+        last_contacted_to?: string;
       }
     >({
       query: (params = {}) => {
