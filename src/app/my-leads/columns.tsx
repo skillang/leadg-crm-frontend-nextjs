@@ -538,7 +538,6 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
     cell: ({ row }) => {
       const lead = row.original;
       const answeredCalls = lead.callStats?.answered_calls ?? 0;
-      const totalCalls = lead.callStats?.total_calls ?? 0;
       return (
         <div className="flex items-center ">
           <Badge variant="success-light">{answeredCalls}</Badge>
