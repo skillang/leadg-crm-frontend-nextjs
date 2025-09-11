@@ -1023,7 +1023,9 @@ const BulkWhatsAppPage: React.FC = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Job Name</TableHead>
+                            <TableHead>Created By</TableHead>
                             <TableHead>Type</TableHead>
+                            <TableHead>Template Name</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Recipients</TableHead>
                             <TableHead>Progress</TableHead>
@@ -1039,9 +1041,19 @@ const BulkWhatsAppPage: React.FC = () => {
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline">
+                                  {job.created_by_name}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
                                   {job.message_type === "template"
                                     ? "Template"
                                     : "Text"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {job.template_name}
                                 </Badge>
                               </TableCell>
                               <TableCell>
@@ -1091,9 +1103,9 @@ const BulkWhatsAppPage: React.FC = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                {(job.status === "pending" ||
-                                  job.status === "processing" ||
-                                  job.status === "scheduled") && (
+                                {job.status === "pending" ||
+                                job.status === "processing" ||
+                                job.status === "scheduled" ? (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1106,6 +1118,10 @@ const BulkWhatsAppPage: React.FC = () => {
                                     <StopCircle className="h-3 w-3" />
                                     Cancel
                                   </Button>
+                                ) : (
+                                  <p>
+                                    Job is not pending / processing / scheduled
+                                  </p>
                                 )}
                               </TableCell>
                             </TableRow>

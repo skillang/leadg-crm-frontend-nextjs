@@ -7,7 +7,14 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Phone, Mail, Pen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useGetLeadDetailsQuery,
@@ -733,7 +740,73 @@ export default function LeadDetailsPage() {
           </div>
 
           {/* Right Column - Tabbed Interface */}
-          <div className="col-span-12 md:col-span-7">
+          <div className="col-span-12 md:col-span-7 flex flex-col gap-4">
+            {/* Call Statistics Card - Add this after the Extra Info Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Call Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {leadDetails!.callStats!.user_calls!.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableCell className="font-medium">User</TableCell>
+                          <TableCell className="font-medium text-center">
+                            Total
+                          </TableCell>
+                          <TableCell className="font-medium text-center">
+                            Answered
+                          </TableCell>
+                          <TableCell className="font-medium text-center">
+                            Missed
+                          </TableCell>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {leadDetails!.callStats!.user_calls.map(
+                          (userCall, index) => (
+                            <TableRow
+                              key={userCall.user_id || index}
+                              className="border-b"
+                            >
+                              <TableCell className="">
+                                <div>
+                                  <div className="font-medium text-gray-900">
+                                    {userCall.user_name}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className=" text-center">
+                                <Badge variant="primary-ghost">
+                                  {userCall.total || 0}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className=" text-center">
+                                <Badge variant="success-light">
+                                  {userCall.answered}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className=" text-center">
+                                <Badge variant="destructive-light">
+                                  {userCall.missed}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No Call data to display
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               {/* Tab Navigation */}
               <div className="border-b overflow-x-auto ">

@@ -74,6 +74,11 @@ const mainMenuItems = [
     icon: Users,
   },
   {
+    title: "Notification",
+    url: "/notifications",
+    icon: BellRingIcon,
+  },
+  {
     title: "My Tasks",
     url: "/my-tasks",
     icon: NotebookText,
@@ -395,14 +400,6 @@ const SideNavBarComp = () => {
                       <span>Profile</span>
                     </DropdownMenuItem>
                   </Link>
-
-                  <Link href="/notifications">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <BellRingIcon className="w-4 h-4 mr-2" />
-                      <span>Notifications</span>
-                    </DropdownMenuItem>
-                  </Link>
-
                   <DropdownMenuSeparator />
 
                   {/* Sign Out Button */}

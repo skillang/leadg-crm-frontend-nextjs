@@ -64,12 +64,18 @@ export interface CallStats {
   answered_calls: number;
   missed_calls: number;
   last_call_date: string | null;
-  user_calls: Record<
-    string,
-    { total: number; answered: number; missed: number }
-  >;
+  user_calls: UserCallStats[];
   last_updated: string | null;
   initialized: boolean;
+}
+
+export interface UserCallStats {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  total: number;
+  answered: number;
+  missed: number;
 }
 
 // Enhanced lead creation interface
@@ -417,6 +423,7 @@ export interface RawLeadDetails {
     nationality?: string;
     date_of_birth?: string;
     current_location?: string;
+    call_stats: CallStats;
   };
   status_and_tags: {
     stage: string;
@@ -474,6 +481,8 @@ export interface LeadDetailsResponse {
   status: string;
   assignmentHistory: AssignmentHistory[];
   leadCategory: string;
+
+  callStats?: CallStats;
 }
 
 // =============== BULK LEAD TYPES ===============
@@ -800,4 +809,6 @@ export const transformLeadDetailsResponse = (
   status: data.system_info.status,
   assignmentHistory: data.assignment.assignment_history,
   leadCategory: data.basic_info.category,
+
+  callStats: data.basic_info.call_stats,
 });
