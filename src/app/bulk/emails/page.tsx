@@ -1,38 +1,9 @@
 // src/app/bulk-email/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/redux/store";
-import {
-  setBulkEmailNameFilter,
-  setBulkEmailStageFilter,
-  setBulkEmailStatusFilter,
-  clearBulkEmailFilters,
-  toggleLeadForBulkEmail,
-  selectAllLeadsForBulkEmail,
-  clearBulkEmailSelection,
-  resetBulkEmailForm,
-  setSelectedTemplate,
-  setSenderPrefix,
-  setIsScheduled,
-  setScheduledDateTime,
-  setError,
-} from "@/redux/slices/emailSlice";
-import { StageSelect } from "@/components/common/StageSelect";
-import { StatusSelect } from "@/components/common/StatusSelect";
-import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
-import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
-import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
-import {
-  useGetEmailTemplatesQuery,
-  useSendBulkEmailMutation,
-} from "@/redux/slices/emailApi";
-import { useNotifications } from "@/components/common/NotificationSystem";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -40,9 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -54,160 +23,48 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Mail,
-  Send,
-  Users,
-  Filter,
-  X,
+  History,
+  BarChart3,
+  RefreshCw,
+  TrendingUp,
+  Activity,
   Calendar,
   Loader2,
-  CheckSquare,
-  Square,
-  AlertCircle,
+  User,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
+import StatsCard from "@/components/custom/cards/StatsCard";
+import {
+  useGetEmailStatsQuery,
+  useGetScheduledEmailsQuery,
+} from "@/redux/slices/emailApi";
 
 const BulkEmailPage: React.FC = () => {
-  const dispatch = useDispatch();
+  const [emailsPage] = useState(1);
+  const [emailsFilter, setEmailsFilter] = useState("all");
+
+  // API queries for email history and stats
+  const { data: statsData, isLoading: statsLoading } = useGetEmailStatsQuery();
+
   const {
-    bulkEmailFilters,
-    selectedLeadsForBulk,
-    selectedTemplateKey,
-    selectedSenderPrefix,
-    isScheduled,
-    scheduledDateTime,
-    error,
-  } = useSelector((state: RootState) => state.email);
-
-  const [customScheduleDate, setCustomScheduleDate] = useState("");
-  const [customScheduleTime, setCustomScheduleTime] = useState("");
-  const [currentPage] = useState(1); // Removed setCurrentPage since it's not used
-
-  const { showSuccess, showError } = useNotifications();
-  const { isAdmin } = useAdminAccess();
-
-  // Initialize filters with default values
-  useEffect(() => {
-    if (!bulkEmailFilters.stage) {
-      dispatch(setBulkEmailStageFilter("all"));
-    }
-    if (!bulkEmailFilters.status) {
-      dispatch(setBulkEmailStatusFilter("all"));
-    }
-  }, [bulkEmailFilters.stage, bulkEmailFilters.status, dispatch]); // Added missing dependencies
-
-  // Prepare query parameters
-  const queryParams = {
-    page: currentPage,
-    limit: 50,
-    search: bulkEmailFilters.name,
-    stage:
-      bulkEmailFilters.stage !== "all" ? bulkEmailFilters.stage : undefined,
+    data: emailsData,
+    isLoading: emailsLoading,
+    refetch: refetchEmails,
+  } = useGetScheduledEmailsQuery({
+    page: emailsPage,
+    limit: 20,
     status:
-      bulkEmailFilters.status !== "all" ? bulkEmailFilters.status : undefined,
-  };
-
-  // API queries - moved to unconditional calls
-  const adminLeadsQuery = useGetLeadsQuery(queryParams, {
-    skip: !isAdmin,
-    refetchOnMountOrArgChange: true,
+      emailsFilter !== "all"
+        ? (emailsFilter as "pending" | "sent" | "failed" | "cancelled")
+        : undefined,
   });
 
-  const userLeadsQuery = useGetMyLeadsQuery(queryParams, {
-    skip: isAdmin,
-    refetchOnMountOrArgChange: true,
-  });
-
-  // Select the appropriate query result
-  const { data: leadsData, isLoading: leadsLoading } = isAdmin
-    ? adminLeadsQuery
-    : userLeadsQuery;
-
-  const { data: templates, isLoading: templatesLoading } =
-    useGetEmailTemplatesQuery();
-  const [sendBulkEmail, { isLoading: sendingEmail }] =
-    useSendBulkEmailMutation();
-  const { data: stagesData, isLoading: stagesLoading } =
-    useGetActiveStagesQuery({});
-  const { data: statusesData, isLoading: statusesLoading } =
-    useGetActiveStatusesQuery({});
-
-  const leads = Array.isArray(leadsData) ? leadsData : leadsData?.leads || [];
-  const totalLeads = Array.isArray(leadsData)
-    ? leadsData.length
-    : leadsData?.total || 0;
-
-  useEffect(() => {
-    if (isScheduled && customScheduleDate && customScheduleTime) {
-      const dateTimeString = `${customScheduleDate}T${customScheduleTime}:00`;
-      dispatch(setScheduledDateTime(dateTimeString));
-    } else {
-      dispatch(setScheduledDateTime(""));
-    }
-  }, [isScheduled, customScheduleDate, customScheduleTime, dispatch]);
-
-  const handleSelectAllLeads = () => {
-    if (selectedLeadsForBulk.length === leads.length) {
-      dispatch(clearBulkEmailSelection());
-    } else {
-      dispatch(selectAllLeadsForBulkEmail(leads.map((lead) => lead.id)));
-    }
-  };
-
-  const handleSendBulkEmail = async () => {
-    if (selectedLeadsForBulk.length === 0) {
-      dispatch(setError("Please select at least one lead"));
-      return;
-    }
-
-    if (!selectedTemplateKey) {
-      dispatch(setError("Please select an email template"));
-      return;
-    }
-
-    try {
-      const emailData = {
-        lead_ids: selectedLeadsForBulk,
-        template_key: selectedTemplateKey,
-        sender_email_prefix: selectedSenderPrefix,
-        ...(isScheduled &&
-          scheduledDateTime && { scheduled_time: scheduledDateTime }),
-      };
-
-      await sendBulkEmail(emailData).unwrap();
-      showSuccess(
-        `${isScheduled ? "Scheduled" : "Sent"} bulk email to ${
-          selectedLeadsForBulk.length
-        } leads!`
-      );
-      dispatch(resetBulkEmailForm());
-      setCustomScheduleDate("");
-      setCustomScheduleTime("");
-    } catch (error: unknown) {
-      // Changed from 'any' to 'unknown'
-      const errorMessage =
-        error &&
-        typeof error === "object" &&
-        "data" in error &&
-        error.data &&
-        typeof error.data === "object" &&
-        "detail" in error.data
-          ? String(error.data.detail)
-          : "Failed to send bulk email";
-      dispatch(setError(errorMessage));
-      showError(errorMessage);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
+  const getEmailStatusBadge = (status: string) => {
     const variants = {
-      New: "bg-blue-100 text-blue-800",
-      Contacted: "bg-yellow-100 text-yellow-800",
-      Qualified: "bg-green-100 text-green-800",
-      Proposal: "bg-purple-100 text-purple-800",
-      Negotiation: "bg-orange-100 text-orange-800",
-      "Closed Won": "bg-green-100 text-green-800",
-      "Closed Lost": "bg-red-100 text-red-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      sent: "bg-green-100 text-green-800",
+      failed: "bg-red-100 text-red-800",
+      cancelled: "bg-red-100 text-red-800",
     };
 
     return (
@@ -217,196 +74,190 @@ const BulkEmailPage: React.FC = () => {
           "bg-gray-100 text-gray-800"
         } border-0`}
       >
-        {status}
-      </Badge>
-    );
-  };
-
-  const getStageBadge = (stage: string) => {
-    const variants = {
-      Lead: "bg-blue-100 text-blue-800",
-      Prospect: "bg-yellow-100 text-yellow-800",
-      Opportunity: "bg-green-100 text-green-800",
-      Customer: "bg-purple-100 text-purple-800",
-    };
-
-    return (
-      <Badge
-        variant="outline"
-        className={
-          variants[stage as keyof typeof variants] ||
-          "bg-gray-100 text-gray-800"
-        }
-      >
-        {stage}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bulk Email</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Bulk Email History
+          </h1>
           <p className="text-muted-foreground">
-            Send emails to multiple leads at once
+            View email statistics and manage email history
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-gray-500" />
-          <span className="text-sm text-gray-600">
-            {selectedLeadsForBulk.length} of {totalLeads} selected
-          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Filters and Lead Selection */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filters (Coming Soon)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Search by Name</Label>
-                  <Input
-                    placeholder="Enter lead name..."
-                    value={bulkEmailFilters.name}
-                    onChange={(e) =>
-                      dispatch(setBulkEmailNameFilter(e.target.value))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <StageSelect
-                    value={
-                      bulkEmailFilters.stage === "all"
-                        ? ""
-                        : bulkEmailFilters.stage
-                    }
-                    onValueChange={(value) =>
-                      dispatch(setBulkEmailStageFilter(value || "all"))
-                    }
-                    stages={stagesData?.stages || []}
-                    disabled={stagesLoading}
-                    isLoading={stagesLoading}
-                    className="w-full"
-                    showLabel={true}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <StatusSelect
-                    value={
-                      bulkEmailFilters.status === "all"
-                        ? ""
-                        : bulkEmailFilters.status
-                    }
-                    onValueChange={(value) =>
-                      dispatch(setBulkEmailStatusFilter(value || "all"))
-                    }
-                    statuses={statusesData?.statuses || []}
-                    disabled={statusesLoading}
-                    isLoading={statusesLoading}
-                    className="w-full"
-                    showLabel={true}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => dispatch(clearBulkEmailFilters())}
-                  className="flex items-center gap-2"
-                >
-                  <X className="h-4 w-4" />
-                  Clear Filters
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-4">
+        {/* Statistics Cards */}
+        <div className="lg:col-span-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <StatsCard
+              title="Total Sent"
+              value={statsData?.stats?.total_sent || 0}
+              icon={<BarChart3 className="h-8 w-8 text-blue-600" />}
+              isLoading={statsLoading}
+            />
 
-          {/* Lead Selection Table */}
+            <StatsCard
+              title="Total Pending"
+              value={statsData?.stats?.total_pending || 0}
+              icon={<Calendar className="h-8 w-8 text-yellow-500" />}
+              isLoading={statsLoading}
+            />
+
+            <StatsCard
+              title="Success Rate"
+              value={`${statsData?.stats?.success_rate || 0}%`}
+              icon={<TrendingUp className="h-8 w-8 text-green-500" />}
+              isLoading={statsLoading}
+            />
+
+            <StatsCard
+              title="Total Failed"
+              value={statsData?.stats?.total_failed || 0}
+              icon={<Activity className="h-8 w-8 text-red-500" />}
+              isLoading={statsLoading}
+            />
+          </div>
+        </div>
+
+        {/* Email History */}
+        <div className="lg:col-span-4">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Select Leads</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Email History
+                </CardTitle>
                 <div className="flex items-center gap-2">
+                  <Select value={emailsFilter} onValueChange={setEmailsFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Emails</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleSelectAllLeads}
+                    onClick={() => refetchEmails()}
                     className="flex items-center gap-2"
                   >
-                    {selectedLeadsForBulk.length === leads.length ? (
-                      <CheckSquare className="h-4 w-4" />
-                    ) : (
-                      <Square className="h-4 w-4" />
-                    )}
-                    {selectedLeadsForBulk.length === leads.length
-                      ? "Deselect All"
-                      : "Select All"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => dispatch(clearBulkEmailSelection())}
-                    disabled={selectedLeadsForBulk.length === 0}
-                  >
-                    Clear Selection
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px]">
-                {leadsLoading ? (
+              <ScrollArea className="h-[600px]">
+                {emailsLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : leads.length > 0 ? (
+                ) : emailsData?.emails && emailsData.emails.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">Select</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Stage</TableHead>
+                        <TableHead>Email ID</TableHead>
+                        <TableHead>Lead Name</TableHead>
+                        <TableHead>Template</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Last Contacted</TableHead>
+                        <TableHead>Scheduled Time</TableHead>
+                        <TableHead>Created At</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {leads.map((lead) => (
-                        <TableRow key={lead.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedLeadsForBulk.includes(lead.id)}
-                              onCheckedChange={() =>
-                                dispatch(toggleLeadForBulkEmail(lead.id))
-                              }
-                            />
+                      {emailsData?.emails?.map((email) => (
+                        <TableRow key={email.email_id}>
+                          <TableCell className="font-medium font-mono text-sm">
+                            {email.email_id.slice(0, 8)}...
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {lead.name}
-                          </TableCell>
-                          <TableCell>{lead.email}</TableCell>
-                          <TableCell>{getStageBadge(lead.stage)}</TableCell>
-                          <TableCell>{getStatusBadge(lead.status)}</TableCell>
                           <TableCell>
-                            {lead.lastContacted
-                              ? format(
-                                  parseISO(lead.lastContacted),
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              {email.lead_name}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {email.template_name}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {getEmailStatusBadge(email.status)}
+                          </TableCell>
+                          <TableCell>
+                            {email.scheduled_time ? (
+                              <div className="text-sm">
+                                <div>
+                                  {format(
+                                    parseISO(email.scheduled_time),
+                                    "MMM dd, yyyy"
+                                  )}
+                                </div>
+                                <div className="text-gray-500">
+                                  {format(
+                                    parseISO(email.scheduled_time),
+                                    "HH:mm"
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">
+                                Not scheduled
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>
+                                {format(
+                                  parseISO(email.created_at),
                                   "MMM dd, yyyy"
-                                )
-                              : "Never"}
+                                )}
+                              </div>
+                              <div className="text-gray-500">
+                                {format(parseISO(email.created_at), "HH:mm")}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {email.status === "pending" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // You can implement cancel functionality here
+                                  console.log("Cancel email:", email.email_id);
+                                }}
+                                className="flex items-center gap-1"
+                              >
+                                <Mail className="h-3 w-3" />
+                                Cancel
+                              </Button>
+                            ) : (
+                              <span className="text-gray-400 text-sm">
+                                {email.status === "sent"
+                                  ? "Completed"
+                                  : email.status === "failed"
+                                  ? "Failed"
+                                  : "Cancelled"}
+                              </span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -414,159 +265,16 @@ const BulkEmailPage: React.FC = () => {
                   </Table>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    No leads found matching your filters
+                    <Mail className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium">No emails found</p>
+                    <p className="text-sm">
+                      {emailsFilter !== "all"
+                        ? `No ${emailsFilter} emails found. Try changing the filter.`
+                        : "No emails have been sent yet. Start by creating your first bulk email campaign."}
+                    </p>
                   </div>
                 )}
               </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Email Composition */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Compose Bulk Email
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                  <div className="flex items-center gap-2 text-red-700">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm">{error}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="template">Email Template *</Label>
-                <Select
-                  value={selectedTemplateKey}
-                  onValueChange={(value) =>
-                    dispatch(setSelectedTemplate(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templatesLoading ? (
-                      <div className="p-2 text-center">
-                        <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                      </div>
-                    ) : (
-                      templates?.templates?.map((template, index) => (
-                        <SelectItem key={index} value={template.key}>
-                          {template.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sender">Sender Email Prefix</Label>
-                <Select
-                  value={selectedSenderPrefix}
-                  onValueChange={(value) => dispatch(setSenderPrefix(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="noreply">noreply</SelectItem>
-                    <SelectItem value="partnerships">partnerships</SelectItem>
-                    <SelectItem value="school.connect">
-                      school.connect
-                    </SelectItem>
-                    <SelectItem value="outreach">outreach</SelectItem>
-                    <SelectItem value="marketing">marketing</SelectItem>
-                    <SelectItem value="admin">admin</SelectItem>
-                    <SelectItem value="nhr">nhr</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="schedule"
-                    checked={isScheduled}
-                    onCheckedChange={(checked) =>
-                      dispatch(setIsScheduled(checked as boolean))
-                    }
-                  />
-                  <Label htmlFor="schedule" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Schedule for later
-                  </Label>
-                </div>
-
-                {isScheduled && (
-                  <div className="space-y-3 p-4 bg-gray-50 rounded-md">
-                    <div className="space-y-2">
-                      <Label htmlFor="date">Date</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={customScheduleDate}
-                        onChange={(e) => setCustomScheduleDate(e.target.value)}
-                        min={new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="time">Time</Label>
-                      <Input
-                        id="time"
-                        type="time"
-                        value={customScheduleTime}
-                        onChange={(e) => setCustomScheduleTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="text-sm text-gray-600 mb-4">
-                  Ready to send to{" "}
-                  <strong>{selectedLeadsForBulk.length}</strong> lead
-                  {selectedLeadsForBulk.length !== 1 ? "s" : ""}
-                </div>
-
-                <Button
-                  onClick={handleSendBulkEmail}
-                  disabled={
-                    sendingEmail ||
-                    selectedLeadsForBulk.length === 0 ||
-                    !selectedTemplateKey
-                  }
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                  {sendingEmail ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="mr-2 h-4 w-4" />
-                  )}
-                  {isScheduled ? "Schedule Bulk Email" : "Send Bulk Email"}
-                </Button>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => dispatch(resetBulkEmailForm())}
-                  className="w-full"
-                >
-                  Reset Form
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>

@@ -16,6 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Column,
   ColumnDef,
   ColumnFiltersState,
@@ -45,6 +52,10 @@ import {
   Grid2X2PlusIcon,
   Filter,
   ListFilterIcon,
+  ChevronDown,
+  Mail,
+  MessageSquareText,
+  Zap,
 } from "lucide-react";
 import {
   Pagination,
@@ -76,6 +87,8 @@ import { useGetSourcesQuery } from "@/redux/slices/sourcesApi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/redux/hooks/useAuth";
 import { useGetAssignableUsersWithDetailsQuery } from "@/redux/slices/leadsApi";
+import BulkEmailPopUp from "@/components/communication/bulk-pop-up/BulkEmailPopUp";
+import BulkWhatsAppPopUp from "@/components/communication/bulk-pop-up/BulkWhatsAppPopUp";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -164,6 +177,8 @@ export function DataTable<TData extends Lead, TValue>({
   const { showWarning } = useNotifications();
   const isMobile = useIsMobile();
   const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
+  const [isBulkEmailOpen, setIsBulkEmailOpen] = React.useState(false);
+  const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = React.useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -226,6 +241,10 @@ export function DataTable<TData extends Lead, TValue>({
       ...(paginationMeta ? {} : { pagination }),
     },
   });
+
+  const selectedRowIds = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original.id);
 
   const hasActiveFilters =
     stageFilter !== "all" ||
@@ -692,59 +711,6 @@ export function DataTable<TData extends Lead, TValue>({
     );
   };
 
-  // const UpdatedDateFilterSelect = () => {
-  //   const getInitialDates = () => {
-  //     if (updatedDateFilter?.updated_from) {
-  //       return {
-  //         from: new Date(updatedDateFilter.updated_from),
-  //         to: updatedDateFilter.updated_to
-  //           ? new Date(updatedDateFilter.updated_to)
-  //           : new Date(updatedDateFilter.updated_from),
-  //       };
-  //     }
-  //     return undefined;
-  //   };
-
-  //   const initialRange = getInitialDates();
-
-  //   return (
-  //     <DateRangePicker
-  //       onUpdate={onUpdatedDateFilterChange}
-  //       initialDateFrom={initialRange?.from}
-  //       initialDateTo={initialRange?.to}
-  //       placeholder="Last updated"
-  //       className="w-[160px]"
-  //     />
-  //   );
-  // };
-
-  // 🆕 NEW: Last Contacted Date Filter Component
-  // const LastContactedDateFilterSelect = () => {
-  //   const getInitialDates = () => {
-  //     if (lastContactedDateFilter?.last_contacted_from) {
-  //       return {
-  //         from: new Date(lastContactedDateFilter.last_contacted_from),
-  //         to: lastContactedDateFilter.last_contacted_to
-  //           ? new Date(lastContactedDateFilter.last_contacted_to)
-  //           : new Date(lastContactedDateFilter.last_contacted_from),
-  //       };
-  //     }
-  //     return undefined;
-  //   };
-
-  //   const initialRange = getInitialDates();
-
-  //   return (
-  //     <DateRangePicker
-  //       onUpdate={onLastContactedDateFilterChange}
-  //       initialDateFrom={initialRange?.from}
-  //       initialDateTo={initialRange?.to}
-  //       placeholder="Last contacted"
-  //       className="w-[160px]"
-  //     />
-  //   );
-  // };
-
   // Get column display name helper
   const getColumnDisplayName = (col: Column<TData, unknown>) => {
     const columnDef = col.columnDef;
@@ -920,6 +886,41 @@ export function DataTable<TData extends Lead, TValue>({
                       .csv
                     </Button>
                   )}
+                  {/* Bulk Actions Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant={"outline-primary"}
+                        disabled={selectedRowIds.length === 0} // Disable when no rows selected
+                      >
+                        <Zap />
+                        Bulk Actions
+                        <ChevronDown className="w-4 h-4" />
+                        {selectedRowIds.length > 0 && (
+                          <Badge className="text-xs rounded-full">
+                            {selectedRowIds.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => setIsBulkEmailOpen(true)}
+                        disabled={selectedRowIds.length === 0}
+                      >
+                        <Mail className="w-4 h-4" />
+                        Bulk Email ({selectedRowIds.length})
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setIsBulkWhatsAppOpen(true)}
+                        disabled={selectedRowIds.length === 0}
+                      >
+                        <MessageSquareText className="w-4 h-4" />
+                        Bulk WhatsApp ({selectedRowIds.length})
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <NewLeadDropdown />
                 </div>
               </div>
@@ -1049,42 +1050,6 @@ export function DataTable<TData extends Lead, TValue>({
               </Button>
             </Badge>
           )}
-
-          {/* {dateFilter?.created_from && dateFilter?.created_to && (
-            <Badge variant="secondary" className="gap-1">
-              Date: {format(new Date(dateFilter.created_from), "MMM dd")} -{" "}
-              {format(new Date(dateFilter.created_to), "MMM dd, yyyy")}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto p-0 ml-1"
-                onClick={() =>
-                  onDateFilterChange?.({
-                    range: { from: undefined, to: undefined },
-                  })
-                }
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )} */}
-          {/* 
-          {sourceFilter !== "all" && (
-            <Badge variant="secondary" className="gap-1">
-              Source: {sourceFilter}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto p-0 ml-1"
-                onClick={() => {
-                  setSourceFilter("all");
-                  onSourceFilterChange?.("all");
-                }}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )} */}
 
           <Button
             variant="ghost"
@@ -1225,6 +1190,16 @@ export function DataTable<TData extends Lead, TValue>({
       <TataTeliModal />
       <EmailDialog />
       <WhatsAppModal />
+      <BulkEmailPopUp
+        isOpen={isBulkEmailOpen}
+        onClose={() => setIsBulkEmailOpen(false)}
+        selectedLeadIds={selectedRowIds}
+      />
+      <BulkWhatsAppPopUp
+        isOpen={isBulkWhatsAppOpen}
+        onClose={() => setIsBulkWhatsAppOpen(false)}
+        selectedLeadIds={selectedRowIds}
+      />
     </div>
   );
 }

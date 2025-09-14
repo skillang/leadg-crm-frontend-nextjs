@@ -12,7 +12,7 @@ import {
   // ScheduledEmail,
   ScheduledEmailsResponse,
   // EmailStats,
-  EmailStatsResponse, 
+  EmailStatsResponse,
   // SchedulerStatus,
   SchedulerStatusResponse,
   // EmailStatus,

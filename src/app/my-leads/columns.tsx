@@ -504,8 +504,8 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Total Calls
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        TDC
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
@@ -513,7 +513,7 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
       const totalCalls = lead.callStats?.total_calls ?? 0;
 
       return (
-        <div className="flex items-center">
+        <div className="flex items-center justify-center">
           <Badge
             variant="outline"
             className="text-xs bg-gray-50 text-gray-700 border-gray-200"
@@ -531,7 +531,7 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Answered Calls
+        AC
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
@@ -539,7 +539,7 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
       const lead = row.original;
       const answeredCalls = lead.callStats?.answered_calls ?? 0;
       return (
-        <div className="flex items-center ">
+        <div className="flex items-center justify-center">
           <Badge variant="success-light">{answeredCalls}</Badge>
         </div>
       );

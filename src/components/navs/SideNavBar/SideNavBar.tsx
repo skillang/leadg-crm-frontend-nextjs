@@ -109,16 +109,16 @@ const mainMenuItems = [
 // Bulk Actions dropdown items
 const bulkActionItems = [
   {
-    title: "Bulk Email",
+    title: "Email History",
     url: "/bulk/emails",
     icon: Mail,
-    description: "Send emails to multiple leads",
+    description: "View Email History of Bulk Mails sent to leads",
   },
   {
-    title: "Bulk WhatsApp",
+    title: "WA History",
     url: "/bulk/whatsapp",
     icon: MessageSquareText,
-    description: "Send WhatsApp messages to multiple leads",
+    description: "View WhatsApp History of Bulk Whatsapp Jobs sent to leads",
   },
   {
     title: "Bulk Caller",
@@ -257,7 +257,7 @@ const SideNavBarComp = () => {
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton className="w-full">
                       <Zap />
-                      <span>Bulk Actions</span>
+                      <span>Bulk History</span>
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>

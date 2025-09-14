@@ -49,16 +49,6 @@ interface SingleLeadCreationCVProps {
   onClose?: () => void;
 }
 
-// Experience level options that match backend enum
-// const EXPERIENCE_LEVELS = [
-//   { value: "fresher", label: "Fresher" },
-//   { value: "less_than_1_year", label: "Less than 1 Year" },
-//   { value: "1_to_3_years", label: "1-3 Years" },
-//   { value: "3_to_5_years", label: "3-5 Years" },
-//   { value: "5_to_10_years", label: "5-10 Years" },
-//   { value: "more_than_10_years", label: "More than 10 Years" },
-// ];
-
 const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
   onLeadCreated,
   onClose,

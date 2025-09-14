@@ -52,20 +52,20 @@ const NewLeadDropdown: React.FC = () => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant={"outline-primary"}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Add Lead
-            <ChevronDown className="w-4 h-4 ml-2" />
+            <ChevronDown className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleSingleLeadClick}>
-            <User className="w-4 h-4 mr-2" />
+            <User className="w-4 h-4" />
             Single Lead
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleBulkLeadClick}>
-            <Users className="w-4 h-4 mr-2" />
+            <Users className="w-4 h-4" />
             Bulk Create Leads
           </DropdownMenuItem>
         </DropdownMenuContent>
