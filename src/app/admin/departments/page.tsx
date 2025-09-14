@@ -26,6 +26,11 @@ import { Switch } from "@/components/ui/switch";
 import { Building2, Plus } from "lucide-react";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
+import {
+  createDepartmentService,
+  deleteDepartmentService,
+  calculateDepartmentStats,
+} from "@/services/departments/departmentsService";
 
 const DepartmentManagementPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
@@ -69,74 +74,36 @@ const DepartmentManagementPage = () => {
     return AccessDeniedComponent;
   }
 
-  // Handle create department - Updated to use notifications
+  const { total, predefined, custom } =
+    calculateDepartmentStats(departmentsData);
+
+  // REPLACE the handlers with these simplified versions:
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validation
-    const newErrors: Record<string, string> = {};
-    if (!createFormData.name.trim())
-      newErrors.name = "Department name is required";
-    if (!createFormData.description.trim())
-      newErrors.description = "Description is required";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    try {
-      await createDepartment({
-        name: createFormData.name.trim(),
-        description: createFormData.description.trim(),
-        is_active: createFormData.is_active,
-      }).unwrap();
-
-      // Use notification system instead of local state
-      showSuccess(
-        `Department "${createFormData.name}" created successfully!`,
-        "Department Created"
-      );
-
-      setIsCreateDialogOpen(false);
-      setCreateFormData({ name: "", description: "", is_active: true });
-      setErrors({});
-      refetch();
-    } catch (err) {
-      console.error("Failed to create department:", err);
-      showError(
-        "Failed to create department. Please try again.",
-        "Creation Failed"
-      );
-    }
+    await createDepartmentService(createFormData, {
+      createMutation: createDepartment,
+      showSuccess,
+      showError,
+      refetch,
+      onSuccess: () => {
+        setIsCreateDialogOpen(false);
+        setCreateFormData({ name: "", description: "", is_active: true });
+        // Remove setErrors({}) since we don't use errors state anymore
+      },
+    });
   };
 
-  // Handle delete department - Updated to use confirmation dialog
   const handleDeleteDepartment = async (
     departmentId: string,
     departmentName: string
   ) => {
-    showConfirm({
-      title: "Delete Department",
-      description: `Are you sure you want to delete "${departmentName}"? This action cannot be undone.`,
-      confirmText: "Delete",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await deleteDepartment(departmentId).unwrap();
-          showSuccess(
-            `Department "${departmentName}" deleted successfully!`,
-            "Department Deleted"
-          );
-          refetch();
-        } catch (err) {
-          console.error("Failed to delete department:", err);
-          showError(
-            "Failed to delete department. Please try again.",
-            "Deletion Failed"
-          );
-        }
-      },
+    await deleteDepartmentService(departmentId, departmentName, {
+      deleteMutation: deleteDepartment,
+      showSuccess,
+      showError,
+      showConfirm,
+      refetch,
     });
   };
 
@@ -251,21 +218,21 @@ const DepartmentManagementPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <StatsCard
           title="Total Departments"
-          value={departmentsData?.total_count || 0}
+          value={total}
           icon={<Building2 className="w-8 h-8 text-blue-500" />}
           isLoading={isLoading}
         />
 
         <StatsCard
           title="Predefined"
-          value={departmentsData?.predefined_count || 0}
+          value={predefined}
           icon={<Badge variant="secondary">System</Badge>}
           isLoading={isLoading}
         />
 
         <StatsCard
           title="Custom"
-          value={departmentsData?.custom_count || 0}
+          value={custom}
           icon={<Badge variant="outline">Custom</Badge>}
           isLoading={isLoading}
         />

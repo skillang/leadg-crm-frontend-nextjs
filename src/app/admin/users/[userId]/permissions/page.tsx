@@ -44,22 +44,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { KeyRound, MailX, Lock, ShieldCheck } from "lucide-react";
-// Import RTK Query hooks
 import {
   useGetUsersPermissionsQuery,
   useUpdateUserPermissionsMutation,
 } from "@/redux/slices/permissionApi";
-import {
-  // UserWithPermissions,
-  PermissionUpdateRequest,
-} from "@/models/types/permissions";
-
-// Import auth hook
 import { useAuth } from "@/redux/hooks/useAuth";
-// Import notifications
 import { useNotifications } from "@/components/common/NotificationSystem";
-// Import API error type
-import { ApiError } from "@/models/types/apiError";
+import {
+  updateUserPermissionsService,
+  sendPasswordResetEmailService,
+  setTemporaryPasswordService,
+  handleNavigationWithChangesService,
+  extractErrorMessage,
+} from "@/services/userPermissions/userPermissionsService";
 
 export default function UserPermissionsPage() {
   const params = useParams();
@@ -114,97 +111,6 @@ export default function UserPermissionsPage() {
     }
   }, [user]);
 
-  // Helper to extract error message - IMPROVED WITH ApiError TYPE
-  const getErrorMessage = (error: unknown): string => {
-    if (!error) return "";
-
-    // Check if it's our ApiError type
-    const apiError = error as ApiError;
-
-    if (apiError.data) {
-      return apiError.data.detail || apiError.data.message || "";
-    }
-
-    if (apiError.message) {
-      return apiError.message;
-    }
-
-    if (apiError.status) {
-      return `API Error: ${apiError.status}`;
-    }
-
-    if (typeof error === "string") {
-      return error;
-    }
-
-    return "An unknown error occurred";
-  };
-
-  // Password reset handlers
-  const handleResetPasswordEmail = async () => {
-    try {
-      setResetPasswordLoading(true);
-
-      const result = await forgotPassword({
-        email: user!.email,
-      }).unwrap();
-
-      if (result.success) {
-        showSuccess(
-          `Password reset email sent to ${user!.email}`,
-          "Reset Email Sent"
-        );
-      }
-    } catch (error) {
-      console.error("Reset password error:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(
-        errorMessage || "Failed to send reset email. Please try again.",
-        "Reset Failed"
-      );
-    } finally {
-      setResetPasswordLoading(false);
-    }
-  };
-
-  const handleSetTempPassword = async () => {
-    if (!tempPassword.trim()) {
-      showError("Please enter a temporary password", "Validation Error");
-      return;
-    }
-
-    try {
-      setTempPasswordLoading(true);
-
-      const result = await adminResetPassword({
-        user_email: user!.email,
-        temporary_password: tempPassword,
-        reset_method: "admin_temporary",
-        force_change_on_login: true,
-      }).unwrap();
-
-      if (result.success) {
-        showSuccess(
-          `Temporary password set for ${
-            user!.email
-          }. User must change it on next login.`,
-          "Temporary Password Set"
-        );
-        setTempPassword("");
-        setShowTempPasswordDialog(false);
-      }
-    } catch (error) {
-      console.error("Set temp password error:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(
-        errorMessage || "Failed to set temporary password. Please try again.",
-        "Reset Failed"
-      );
-    } finally {
-      setTempPasswordLoading(false);
-    }
-  };
-
   // Check authentication
   if (!isAuthenticated || !token) {
     return (
@@ -234,70 +140,6 @@ export default function UserPermissionsPage() {
     );
   }
 
-  // Handle permission toggle
-  const handleSingleLeadToggle = (checked: boolean) => {
-    setCanCreateSingle(checked);
-    setHasChanges(true);
-  };
-
-  const handleBulkLeadToggle = (checked: boolean) => {
-    setCanCreateBulk(checked);
-    setHasChanges(true);
-  };
-
-  // Handle save
-  const handleSave = async () => {
-    if (!user) return;
-
-    const updateRequest: PermissionUpdateRequest = {
-      user_email: user.email,
-      can_create_single_lead: canCreateSingle,
-      can_create_bulk_leads: canCreateBulk,
-      reason: reason.trim() || undefined,
-    };
-
-    try {
-      await updateUserPermissions(updateRequest).unwrap();
-      setHasChanges(false);
-      setReason("");
-      refetch();
-
-      // Show success message
-      showSuccess(
-        `Permissions updated successfully for ${user.full_name}`,
-        "Permissions Updated"
-      );
-    } catch (error) {
-      console.error("Failed to update permissions:", error);
-
-      // Extract error message
-      const errorMessage = getErrorMessage(error);
-      showError(
-        errorMessage || "Failed to update permissions. Please try again.",
-        "Update Failed"
-      );
-    }
-  };
-
-  // Handle back navigation
-  const handleBack = () => {
-    if (hasChanges) {
-      showConfirm({
-        title: "Unsaved Changes",
-        description:
-          "You have unsaved changes. Are you sure you want to leave? All changes will be lost.",
-        confirmText: "Leave",
-        cancelText: "Stay",
-        variant: "destructive",
-        onConfirm: () => {
-          router.push("/admin/users");
-        },
-      });
-    } else {
-      router.push("/admin/users");
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -312,8 +154,79 @@ export default function UserPermissionsPage() {
     );
   }
 
+  //handlers
+
+  const handleSingleLeadToggle = (checked: boolean) => {
+    setCanCreateSingle(checked);
+    setHasChanges(true);
+  };
+
+  const handleBulkLeadToggle = (checked: boolean) => {
+    setCanCreateBulk(checked);
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    await updateUserPermissionsService(
+      user,
+      canCreateSingle,
+      canCreateBulk,
+      reason,
+      {
+        updateMutation: updateUserPermissions,
+        showSuccess,
+        showError,
+        refetch,
+        onSuccess: () => {
+          setHasChanges(false);
+          setReason("");
+        },
+      }
+    );
+  };
+
+  const handleResetPasswordEmail = async () => {
+    setResetPasswordLoading(true);
+
+    await sendPasswordResetEmailService(user, {
+      forgotPasswordMutation: forgotPassword,
+      showSuccess,
+      showError,
+      onSuccess: () => {
+        setResetPasswordLoading(false);
+      },
+      onError: () => {
+        setResetPasswordLoading(false);
+      },
+    });
+  };
+
+  const handleSetTempPassword = async () => {
+    setTempPasswordLoading(true);
+
+    await setTemporaryPasswordService(user, tempPassword, {
+      adminResetPasswordMutation: adminResetPassword,
+      showSuccess,
+      showError,
+      onSuccess: () => {
+        setTempPassword("");
+        setShowTempPasswordDialog(false);
+        setTempPasswordLoading(false);
+      },
+      onError: () => {
+        setTempPasswordLoading(false);
+      },
+    });
+  };
+
+  const handleBack = () => {
+    handleNavigationWithChangesService(hasChanges, router, "/admin/users", {
+      showConfirm,
+    });
+  };
+
   if (fetchError || !user) {
-    const errorMessage = fetchError ? getErrorMessage(fetchError) : null;
+    const errorMessage = fetchError ? extractErrorMessage(fetchError) : null;
 
     return (
       <div className="container mx-auto p-6 space-y-4">
@@ -391,13 +304,15 @@ export default function UserPermissionsPage() {
       {updateError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{getErrorMessage(updateError)}</AlertDescription>
+          <AlertDescription>
+            {extractErrorMessage(updateError)}
+          </AlertDescription>
         </Alert>
       )}
 
       {/* User Info Card */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
               <User className="h-8 w-8 text-blue-600" />

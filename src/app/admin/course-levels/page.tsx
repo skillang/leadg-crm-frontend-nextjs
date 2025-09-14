@@ -50,7 +50,14 @@ import {
 } from "@/models/types/courseLevel";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
-import { ApiError } from "@/models/types/apiError";
+import {
+  generateInternalName,
+  createCourseLevelService,
+  updateCourseLevelService,
+  deleteCourseLevelService,
+  activateDeactivateCourseLevelService,
+  filterAndSortCourseLevels,
+} from "@/services/courseLevels/courseLevelService";
 
 const CourseLevelManagementPage = () => {
   // State for forms and dialogs
@@ -78,17 +85,6 @@ const CourseLevelManagementPage = () => {
   const [editFormData, setEditFormData] = useState<UpdateCourseLevelRequest>(
     {}
   );
-
-  // Function to generate internal name from display name
-  const generateInternalName = (displayName: string): string => {
-    return displayName
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-") // Replace one or more spaces with single hyphen
-      .replace(/[^a-z0-9-]/g, "") // Remove any character that's not lowercase letter, number, or hyphen
-      .replace(/-+/g, "-") // Replace multiple consecutive hyphens with single hyphen
-      .replace(/^-|-$/g, ""); // Remove leading and trailing hyphens
-  };
 
   // Auto-generate internal name when display name changes in create form
   useEffect(() => {
@@ -151,148 +147,61 @@ const CourseLevelManagementPage = () => {
   const courseLevels = currentData?.course_levels || [];
 
   // Filter and sort course levels
-  const filteredAndSortedCourseLevels = courseLevels
-    .filter(
-      (level) =>
-        level.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        level.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        level.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case "name":
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case "created_at":
-          comparison =
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        case "sort_order":
-          comparison = a.sort_order - b.sort_order;
-          break;
-      }
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
+  const filteredAndSortedCourseLevels = filterAndSortCourseLevels(
+    courseLevels,
+    searchTerm,
+    sortBy,
+    sortOrder
+  );
 
   // Handlers
   const handleCreateCourseLevel = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await createCourseLevel(createFormData).unwrap();
-
-      // Close dialog and reset form first
-      setIsCreateDialogOpen(false);
-      setCreateFormData({
-        name: "",
-        display_name: "",
-        description: "",
-        sort_order: 1,
-        is_active: true,
-        is_default: false,
-      });
-
-      // Show success message
-      showSuccess(
-        `Course level "${createFormData.display_name}" created successfully!`
-      );
-
-      // Refetch active data since new course levels are created as active by default
-      refetchActive();
-    } catch (error: unknown) {
-      const apiError = error as ApiError;
-      const errorMessage =
-        apiError?.data?.detail ||
-        apiError?.data?.message ||
-        "Failed to create course level";
-      showError(errorMessage);
-    }
+    await createCourseLevelService(createFormData, {
+      createMutation: createCourseLevel,
+      showSuccess,
+      showError,
+      refetchActive,
+      onSuccess: () => {
+        setIsCreateDialogOpen(false);
+        setCreateFormData({
+          name: "",
+          display_name: "",
+          description: "",
+          sort_order: 1,
+          is_active: true,
+          is_default: false,
+        });
+      },
+    });
   };
 
   const handleUpdateCourseLevel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCourseLevel) return;
 
-    try {
-      // Remove 'name' from editFormData since it shouldn't be updated
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { name: _name, ...updateData } = editFormData;
-
-      await updateCourseLevel({
-        courseLevelId: editingCourseLevel.id,
-        data: updateData,
-      }).unwrap();
-
-      // Close dialog and reset state first
-      setIsEditDialogOpen(false);
-      setEditingCourseLevel(null);
-      setEditFormData({});
-
-      // Show success message
-      showSuccess(
-        `Course level "${editingCourseLevel.display_name}" updated successfully!`
-      );
-
-      // Refetch both tabs since status might have changed
-      refetchActive();
-      refetchInactive();
-    } catch (error: unknown) {
-      const apiError = error as ApiError;
-      const errorMessage =
-        apiError?.data?.detail ||
-        apiError?.data?.message ||
-        "Failed to update course level";
-      showError(errorMessage);
-    }
+    await updateCourseLevelService(editingCourseLevel, editFormData, {
+      updateMutation: updateCourseLevel,
+      showSuccess,
+      showError,
+      refetchActive,
+      refetchInactive,
+      onSuccess: () => {
+        setIsEditDialogOpen(false);
+        setEditingCourseLevel(null);
+        setEditFormData({});
+      },
+    });
   };
 
   const handleDeleteCourseLevel = async (courseLevel: CourseLevel) => {
-    // Check if course level has leads before showing confirmation
-    if (courseLevel.lead_count > 0) {
-      showError(
-        `Cannot delete "${courseLevel.display_name}" because it has ${courseLevel.lead_count} associated leads. Please reassign or remove the leads first.`
-      );
-      return;
-    }
-
-    // Use notification system for confirmation
-    showConfirm({
-      title: "Delete Course Level",
-      description: `Are you sure you want to permanently delete the course level "${courseLevel.display_name}"? This action cannot be undone.`,
-      confirmText: "Delete Course Level",
-      cancelText: "Cancel",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await deleteCourseLevel(courseLevel.id).unwrap();
-          showSuccess(
-            `Course level "${courseLevel.display_name}" deleted successfully!`
-          );
-
-          // Refetch only the current active tab's data
-          if (activeTab === "active") {
-            refetchActive();
-          } else {
-            refetchInactive();
-          }
-        } catch (error: unknown) {
-          // Extract meaningful error message
-          let errorMessage = "Failed to delete course level";
-          const apiError = error as ApiError;
-
-          if (apiError?.data?.detail) {
-            errorMessage = apiError.data.detail;
-          } else if (apiError?.data?.message) {
-            errorMessage = apiError.data.message;
-          } else if (apiError?.message) {
-            errorMessage = apiError.message;
-          } else if (typeof error === "string") {
-            errorMessage = error;
-          }
-
-          showError(errorMessage);
-        }
-      },
+    await deleteCourseLevelService(courseLevel, activeTab, {
+      deleteMutation: deleteCourseLevel,
+      showSuccess,
+      showError,
+      showConfirm,
+      refetchActive,
+      refetchInactive,
     });
   };
 
@@ -300,30 +209,14 @@ const CourseLevelManagementPage = () => {
     courseLevel: CourseLevel,
     action: "activate" | "deactivate"
   ) => {
-    try {
-      if (action === "activate") {
-        await activateCourseLevel(courseLevel.id).unwrap();
-        showSuccess(
-          `Course level "${courseLevel.display_name}" activated successfully!`
-        );
-      } else {
-        await deactivateCourseLevel(courseLevel.id).unwrap();
-        showSuccess(
-          `Course level "${courseLevel.display_name}" deactivated successfully!`
-        );
-      }
-
-      // Refetch both tabs since activation/deactivation moves items between tabs
-      refetchActive();
-      refetchInactive();
-    } catch (error: unknown) {
-      const apiError = error as ApiError;
-      const errorMessage =
-        apiError?.data?.detail ||
-        apiError?.data?.message ||
-        `Failed to ${action} course level`;
-      showError(errorMessage);
-    }
+    await activateDeactivateCourseLevelService(courseLevel, action, {
+      activateMutation: activateCourseLevel,
+      deactivateMutation: deactivateCourseLevel,
+      showSuccess,
+      showError,
+      refetchActive,
+      refetchInactive,
+    });
   };
 
   const openEditDialog = (courseLevel: CourseLevel) => {

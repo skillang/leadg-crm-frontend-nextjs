@@ -29,6 +29,13 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, UserPlus, Shield, Users2 } from "lucide-react";
+import {
+  registerUserService,
+  getAvailableDepartments,
+  validateAllFields,
+  isFormValid,
+} from "@/services/registerUser/registerUserService";
+import { Department } from "@/models/types/department";
 
 // Form validation types
 interface FormData {
@@ -111,55 +118,6 @@ const AdminRegisterUserPage = () => {
   if (!hasAccess) {
     return AccessDeniedComponent;
   }
-
-  // GET DEPARTMENTS FROM API (with fallback)
-  const availableDepartments = departmentsData?.departments?.all || [
-    // Fallback in case API fails
-    {
-      name: "sales",
-      display_name: "Sales",
-      description: "Sales department",
-      is_predefined: true,
-      is_active: true,
-      user_count: 0,
-    },
-    {
-      name: "pre-sales",
-      display_name: "Pre-Sales",
-      description: "Pre-sales department",
-      is_predefined: true,
-      is_active: true,
-      user_count: 0,
-    },
-    {
-      name: "admin",
-      display_name: "Admin",
-      description: "Administration department",
-      is_predefined: true,
-      is_active: true,
-      user_count: 0,
-    },
-  ];
-
-  // Helper function to extract error message with proper typing
-  const getErrorMessage = (error: unknown): string => {
-    if (!error) return "An error occurred while creating the user";
-
-    const rtkError = error as RTKQueryError;
-
-    // Try to get error message from various possible locations
-    if (rtkError.data?.detail) {
-      return rtkError.data.detail;
-    }
-    if (rtkError.data?.message) {
-      return rtkError.data.message;
-    }
-    if (rtkError.message) {
-      return rtkError.message;
-    }
-
-    return "An error occurred while creating the user";
-  };
 
   // Validation functions
   const validateField = (
@@ -257,6 +215,39 @@ const AdminRegisterUserPage = () => {
       setErrors((prev) => ({ ...prev, departments: error }));
     }
   };
+  const availableDepartments = getAvailableDepartments(departmentsData);
+  // REPLACE the form validation helper:
+  const isFormValidCheck = (): boolean => {
+    return isFormValid(formData, validateField);
+  };
+
+  // REPLACE the submit handler with:
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Force validation on all fields using service utility
+    const allErrors = validateAllFields(formData, validateField);
+    setErrors(allErrors);
+
+    // If there are errors, don't submit
+    if (Object.keys(allErrors).length > 0) {
+      showError(
+        "Please fix all validation errors before submitting.",
+        "Validation Failed"
+      );
+      return;
+    }
+
+    await registerUserService(formData, {
+      registerMutation: adminRegisterUser,
+      showSuccess,
+      showError,
+      router,
+      onSuccess: () => {
+        // Any additional success handling if needed
+      },
+    });
+  };
 
   // Handle field blur
   const handleBlur = (name: string) => {
@@ -266,144 +257,11 @@ const AdminRegisterUserPage = () => {
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  // Validate entire form
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    // Force validate ALL fields on form submission
-    Object.keys(formData).forEach((field) => {
-      if (field !== "confirmPassword") {
-        const error = validateField(
-          field,
-          formData[field as keyof FormData],
-          true
-        );
-        if (error) newErrors[field] = error;
-      }
-    });
-
-    // Validate confirm password
-    const confirmPasswordError = validateField(
-      "confirmPassword",
-      formData.confirmPassword,
-      true
-    );
-    if (confirmPasswordError) newErrors.confirmPassword = confirmPasswordError;
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle form submission - Updated to use notifications
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // console.log("🔥 Form submission started");
-    // console.log("Current form data:", formData);
-
-    // Mark all fields as touched
-    setTouched(
-      Object.keys(formData).reduce(
-        (acc, key) => ({
-          ...acc,
-          [key]: true,
-        }),
-        { confirmPassword: true }
-      )
-    );
-
-    // Validate form
-    if (!validateForm()) {
-      // console.log("❌ Form validation failed:", errors);
-      showError(
-        "Please fix the form errors before submitting.",
-        "Validation Error"
-      );
-      return;
-    }
-
-    // console.log("✅ Form validation passed");
-
-    try {
-      const result = await adminRegisterUser({
-        email: formData.email.trim().toLowerCase(),
-        username: formData.username.trim().toLowerCase(),
-        first_name: formData.firstName.trim(),
-        last_name: formData.lastName.trim(),
-        password: formData.password,
-        role: formData.role,
-        phone: formData.phone.trim(),
-        departments: formData.departments,
-      }).unwrap();
-
-      console.log("✅ User created successfully:", result);
-
-      // Refetch departments to include the new user
-      refetchDepartments();
-
-      // Use notification system instead of local state
-      showSuccess(
-        `User "${formData.firstName} ${formData.lastName}" has been successfully created!`,
-        "User Created"
-      );
-
-      // Reset form
-      setFormData({
-        email: "",
-        username: "",
-        firstName: "",
-        lastName: "",
-        password: "",
-        confirmPassword: "",
-        role: "user",
-        phone: "",
-        departments: [],
-      });
-      setErrors({});
-      setTouched({});
-    } catch (err) {
-      console.error("❌ Registration failed:", err);
-      showError(getErrorMessage(err), "Registration Failed");
-    }
-  };
-
-  // Better form validation check
-  const isFormValid = () => {
-    // Check if all required fields have values
-    const requiredFieldsComplete = {
-      email: formData.email.trim(),
-      username: formData.username.trim(),
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      password: formData.password,
-      confirmPassword: formData.confirmPassword,
-      phone: formData.phone.trim(),
-      role: formData.role,
-      departments: formData.departments.length > 0,
-    };
-
-    const allFieldsFilled = Object.values(requiredFieldsComplete).every(
-      (field) => (typeof field === "boolean" ? field : field !== "")
-    );
-
-    // Only check for errors on touched fields (not all fields)
-    const touchedFieldErrors = Object.keys(touched).filter((fieldName) => {
-      const error = validateField(
-        fieldName,
-        formData[fieldName as keyof FormData],
-        false
-      );
-      return error !== "";
-    });
-
-    return allFieldsFilled && touchedFieldErrors.length === 0;
-  };
-
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto  space-y-6">
+      <div className="container mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-6">
+        <div className="">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2 mb-2">
@@ -416,16 +274,6 @@ const AdminRegisterUserPage = () => {
                 Create new user accounts for the LeadG CRM system
               </p>
             </div>
-            {/* <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/admin/departments")}
-              >
-                <Settings2 className="w-4 h-4 mr-2" />
-                Manage Departments
-              </Button>
-            </div> */}
           </div>
         </div>
 
@@ -752,7 +600,7 @@ const AdminRegisterUserPage = () => {
 
                   {availableDepartments.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-md p-3">
-                      {availableDepartments.map((dept) => (
+                      {availableDepartments.map((dept: Department) => (
                         <div
                           key={dept.name}
                           className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded"
@@ -829,7 +677,9 @@ const AdminRegisterUserPage = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!isFormValid() || isLoading || isDepartmentsLoading}
+                  disabled={
+                    !isFormValidCheck() || isLoading || isDepartmentsLoading
+                  }
                   className="min-w-[120px]"
                 >
                   {isLoading ? "Creating..." : "Create User"}

@@ -26,6 +26,15 @@ import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
 import { Status } from "@/models/types/status";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import { ApiError } from "@/models/types/apiError";
+// ADD this import at the top
+import {
+  deleteStatusService,
+  toggleStatusService,
+  moveStatusService,
+  setupDefaultStatusesService,
+  filterStatusesByTab,
+  calculateStatusStats,
+} from "@/services/statusManagement/statusManagementService";
 
 const StatusManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -60,17 +69,8 @@ const StatusManagement: React.FC = () => {
     [statusesData?.statuses]
   );
 
-  const stats = {
-    total: statusesData?.total || 0,
-    active: statusesData?.active_count || 0,
-    inactive: statusesData?.inactive_count || 0,
-  };
-
-  const filteredStatuses = statuses.filter((status) => {
-    if (activeTab === "active") return status.is_active;
-    if (activeTab === "inactive") return !status.is_active;
-    return true; // all
-  });
+  const stats = calculateStatusStats(statusesData);
+  const filteredStatuses = filterStatusesByTab(statuses, activeTab);
 
   // Add this new function to handle opening edit modal
   const handleOpenEditModal = (status: Status) => {
@@ -78,145 +78,51 @@ const StatusManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  // Handle status deletion
+  // handlers
   const handleDeleteStatus = React.useCallback(
     (status: Status, force = false) => {
-      if (status.lead_count > 0 && !force) {
-        showConfirm({
-          title: `Status "${status.display_name}" has ${status.lead_count} leads`,
-          description: `This status cannot be deleted because it has ${status.lead_count} associated leads. You can either:\n\n1. Deactivate it (recommended) - Status will be hidden but data preserved\n2. Force delete - Permanently delete status and reassign leads to default status`,
-          confirmText: "Force Delete",
-          cancelText: "Deactivate Instead",
-          variant: "destructive",
-          onConfirm: async () => {
-            try {
-              const result = await deleteStatus({
-                statusId: status.id,
-                force: true,
-              }).unwrap();
-              showSuccess(
-                result.message || "Status force deleted successfully"
-              );
-            } catch (error: unknown) {
-              const apiError = error as ApiError;
-              showError(
-                apiError?.data?.detail || "Failed to force delete status"
-              );
-            }
-          },
-          onCancel: async () => {
-            try {
-              await deactivateStatus(status.id).unwrap();
-              showSuccess(
-                `Status "${status.display_name}" deactivated (data preserved)`
-              );
-            } catch (error: unknown) {
-              const apiError = error as ApiError;
-              showError(
-                apiError?.data?.detail || "Failed to deactivate status"
-              );
-            }
-          },
-        });
-      } else {
-        const title = force
-          ? `Force Delete Status "${status.display_name}"`
-          : `Delete Status "${status.display_name}"`;
-
-        const description = force
-          ? "This will permanently delete the status and reassign associated leads to the default status. This action cannot be undone."
-          : "Are you sure you want to delete this status? This action cannot be undone.";
-
-        showConfirm({
-          title,
-          description,
-          confirmText: force ? "Force Delete" : "Delete",
-          variant: "destructive",
-          onConfirm: async () => {
-            try {
-              const result = await deleteStatus({
-                statusId: status.id,
-                force,
-              }).unwrap();
-              showSuccess(result.message || "Status deleted successfully");
-            } catch (error: unknown) {
-              console.error("Delete error:", error);
-              const apiError = error as ApiError;
-              showError(apiError?.data?.detail || "Failed to delete status");
-            }
-          },
-        });
-      }
+      deleteStatusService(status, force, {
+        deleteMutation: deleteStatus,
+        showSuccess,
+        showError,
+        showConfirm,
+      });
     },
-    [deleteStatus, deactivateStatus, showConfirm, showSuccess, showError]
+    [deleteStatus, showConfirm, showSuccess, showError]
   );
 
-  // Handle status activation/deactivation
   const handleToggleStatus = React.useCallback(
     async (status: Status) => {
-      try {
-        if (status.is_active) {
-          await deactivateStatus(status.id).unwrap();
-          showSuccess(`Status "${status.display_name}" deactivated`);
-        } else {
-          await activateStatus(status.id).unwrap();
-          showSuccess(`Status "${status.display_name}" activated`);
-        }
-      } catch (error: unknown) {
-        const apiError = error as ApiError;
-        showError(apiError?.data?.detail || "Failed to toggle status");
-      }
+      await toggleStatusService(status, {
+        activateMutation: activateStatus,
+        deactivateMutation: deactivateStatus,
+        showSuccess,
+        showError,
+      });
     },
     [activateStatus, deactivateStatus, showSuccess, showError]
   );
 
-  // Handle status reordering
   const handleMoveStatus = React.useCallback(
     async (status: Status, direction: "up" | "down") => {
-      const currentIndex = statuses.findIndex((s) => s.id === status.id);
-      if (
-        (direction === "up" && currentIndex === 0) ||
-        (direction === "down" && currentIndex === statuses.length - 1)
-      ) {
-        return;
-      }
-
-      const newOrder = [...statuses];
-      const swapIndex =
-        direction === "up" ? currentIndex - 1 : currentIndex + 1;
-
-      [newOrder[currentIndex], newOrder[swapIndex]] = [
-        newOrder[swapIndex],
-        newOrder[currentIndex],
-      ];
-
-      const reorderData = newOrder.map((s, index) => ({
-        id: s.id,
-        sort_order: index + 1,
-      }));
-
-      try {
-        await reorderStatuses(reorderData).unwrap();
-        showSuccess("Status order updated");
-      } catch (error: unknown) {
-        const apiError = error as ApiError;
-        showError(apiError?.data?.detail || "Failed to reorder statuses");
-      }
+      await moveStatusService(status, direction, statuses, {
+        reorderMutation: reorderStatuses,
+        showSuccess,
+        showError,
+      });
     },
-    [statuses, reorderStatuses, showSuccess, showError]
+    [reorderStatuses, showSuccess, showError, statuses]
   );
 
   // Handle setup default statuses
   const handleSetupDefaults = React.useCallback(async () => {
-    try {
-      await setupDefaults().unwrap();
-      showSuccess("Default statuses created successfully");
-      refetch();
-    } catch (error: unknown) {
-      const apiError = error as ApiError;
-      showError(apiError?.data?.detail || "Failed to setup default statuses");
-    }
-  }, [setupDefaults, showSuccess, showError, refetch]);
+    await setupDefaultStatusesService({
+      setupDefaultsMutation: setupDefaults,
+      showSuccess,
+      showError,
+      showConfirm,
+    });
+  }, [setupDefaults, showSuccess, showError, showConfirm]);
 
   if (isError) {
     return (
@@ -254,11 +160,11 @@ const StatusManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          {stats.total === 0 && !isLoading && (
+          {stats.total === 0 && (
             <Button
-              onClick={handleSetupDefaults}
-              disabled={isSettingUp}
               variant="outline"
+              onClick={handleSetupDefaults} // Changed this line
+              disabled={isSettingUp}
             >
               <Settings className="w-4 h-4 mr-2" />
               Setup Defaults
