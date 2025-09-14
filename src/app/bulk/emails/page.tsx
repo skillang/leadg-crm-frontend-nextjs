@@ -90,6 +90,7 @@ const BulkEmailPage: React.FC = () => {
           <p className="text-muted-foreground">
             View email statistics and manage email history
           </p>
+          <Badge variant={"destructive"}>Page Under Construction</Badge>
         </div>
       </div>
 
