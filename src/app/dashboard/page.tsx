@@ -120,14 +120,6 @@ const DashboardPage = () => {
               subtitle={`Doc Collected + Pending Doc`}
               isLoading={statsLoading}
             />
-            {/* <StatsCard
-              title="Multi Assigned Leads"
-              value={stats?.assignment_stats?.multi_assigned_leads || 0}
-              icon={<Share2Icon className="h-8 w-8 text-purple-600" />}
-              color="bg-purple-100"
-              subtitle={`Leads with multi counsellors`}
-              isLoading={statsLoading}
-            /> */}
           </div>
 
           {/* Distribution Charts */}
@@ -245,53 +237,8 @@ const DashboardPage = () => {
               </TableBody>
             </Table>
           </div>
-
-          {/* {stats.assignment_stats.multi_assigned_leads > 0 && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>{stats.assignment_stats.multi_assigned_leads}</strong>{" "}
-                leads are assigned to multiple users
-              </p>
-            </div>
-          )} */}
         </div>
       )}
-
-      {/* System Status */}
-      {/* <div className="bg-white rounded-lg shadow border p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          System Status
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <h3 className="font-medium text-gray-700">Performance</h3>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">API Status</span>
-              <span className="flex items-center gap-1 text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                Connected
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Query Speed</span>
-              <span className="text-green-600">
-                {isAdmin ? "~200ms" : "~50ms"}
-              </span>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <h3 className="font-medium text-gray-700">Data</h3>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Last Updated</span>
-              <span className="text-gray-600">Just now</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Data Accuracy</span>
-              <span className="text-green-600">99.9%</span>
-            </div>
-          </div>
-        </div>
-      </div> */}
     </div>
   );
 };

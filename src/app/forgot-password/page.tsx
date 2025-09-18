@@ -257,7 +257,6 @@ const ForgotPasswordPage: React.FC = () => {
   };
 
   const handleBackToLogin = () => {
-    // This would typically use router.push('/login') or similar
     console.log("Navigate back to login");
   };
 
