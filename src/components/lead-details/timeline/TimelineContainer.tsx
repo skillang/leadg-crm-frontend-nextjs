@@ -45,6 +45,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   const paginationMeta: PaginationMeta = {
     total: paginationInfo?.total || 0,
     page: paginationInfo?.page || 1,
+    pages: paginationInfo?.pages || 1,
     limit: paginationInfo?.limit || filters.limit || 10, // Add || 10 as final fallback
     has_next: paginationInfo?.has_next || false,
     has_prev: paginationInfo?.has_prev || false,

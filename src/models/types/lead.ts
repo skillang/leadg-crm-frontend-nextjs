@@ -630,6 +630,14 @@ interface UserWorkloadItem {
 
 export interface PaginatedResponse<T> {
   leads?: T[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+    has_next: boolean;
+    has_prev: boolean;
+  };
   total?: number;
   page?: number;
   limit?: number;

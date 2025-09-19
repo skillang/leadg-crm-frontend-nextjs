@@ -24,7 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { PaginationMeta } from "@/models/types/pagination";
 
 interface ServerPaginationProps {
-  paginationMeta: PaginationMeta;
+  paginationMeta: PaginationMeta | undefined;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   searchQuery?: string;
@@ -46,7 +46,9 @@ export const ServerPagination: React.FC<ServerPaginationProps> = ({
   pageSizeOptions = [10, 20, 30, 50, 100],
   isLoading = false,
 }) => {
+  console.log("paginationMeta:", paginationMeta);
   const isMobile = useIsMobile();
+  if (!paginationMeta) return null;
   const { total, page, limit, has_next, has_prev } = paginationMeta;
 
   // Don't render if no data

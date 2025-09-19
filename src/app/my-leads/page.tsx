@@ -146,6 +146,8 @@ export default function DemoPage() {
 
   // Extract leads and pagination data
   const { leads, paginationMeta } = useMemo(() => {
+    console.log("Raw leadsResponse:", leadsResponse); // ADD THIS
+
     let extractedLeads: Lead[] = [];
     let extractedPaginationMeta = undefined;
 
@@ -154,15 +156,41 @@ export default function DemoPage() {
         extractedLeads = leadsResponse;
       } else if (leadsResponse.leads) {
         extractedLeads = leadsResponse.leads;
-        extractedPaginationMeta = {
-          total: leadsResponse.total || 0,
-          page: leadsResponse.page || currentPage,
-          limit: leadsResponse.limit || pageSize,
-          has_next: leadsResponse.has_next || false,
-          has_prev: leadsResponse.has_prev || false,
-        };
+
+        // Handle nested pagination object from new API format
+        if (leadsResponse.pagination) {
+          console.log("Nested pagination found:", leadsResponse.pagination); // ADD THIS
+          extractedPaginationMeta = {
+            total: leadsResponse.pagination.total || 0,
+            page: leadsResponse.pagination.page || currentPage,
+            pages:
+              leadsResponse.pagination.pages ||
+              Math.ceil(
+                (leadsResponse.pagination.total || 0) /
+                  (leadsResponse.pagination.limit || pageSize)
+              ), // ADD THIS
+            limit: leadsResponse.pagination.limit || pageSize,
+            has_next: leadsResponse.pagination.has_next || false,
+            has_prev: leadsResponse.pagination.has_prev || false,
+          };
+        } else {
+          console.log("No nested pagination, checking flat format"); // ADD THIS
+
+          // Fallback for old flat format (if any endpoints still use it)
+          extractedPaginationMeta = {
+            total: leadsResponse.total || 0,
+            page: leadsResponse.page || currentPage,
+            pages: Math.ceil(
+              (leadsResponse.total || 0) / (leadsResponse.limit || pageSize)
+            ),
+            limit: leadsResponse.limit || pageSize,
+            has_next: leadsResponse.has_next || false,
+            has_prev: leadsResponse.has_prev || false,
+          };
+        }
       }
     }
+    console.log("Final extractedPaginationMeta:", extractedPaginationMeta); // ADD THIS
 
     return { leads: extractedLeads, paginationMeta: extractedPaginationMeta };
   }, [leadsResponse, currentPage, pageSize]);

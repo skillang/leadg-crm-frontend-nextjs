@@ -5,6 +5,7 @@ export interface PaginationMeta {
   total: number;
   page: number;
   limit: number;
+  pages: number;
   has_next: boolean;
   has_prev: boolean;
 }

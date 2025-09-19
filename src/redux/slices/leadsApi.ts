@@ -92,24 +92,20 @@ export const leadsApi = createApi({
 
         const isPaginatedResponse = (
           obj: unknown
-        ): obj is PaginatedResponse<ApiLead> => {
+        ): obj is { leads: ApiLead[]; pagination: any } => {
           return (
             typeof obj === "object" &&
             obj !== null &&
             "leads" in obj &&
             Array.isArray((obj as { leads: unknown }).leads) &&
-            "total" in obj
+            "pagination" in obj
           );
         };
 
         if (isPaginatedResponse(response)) {
           return {
             leads: response.leads!.map(transformApiLead),
-            total: response.total,
-            page: response.page,
-            limit: response.limit,
-            has_next: response.has_next,
-            has_prev: response.has_prev,
+            pagination: response.pagination,
           };
         } else if (isValidResponse(response)) {
           return response.leads.map(transformApiLead);
