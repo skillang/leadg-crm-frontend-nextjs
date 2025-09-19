@@ -61,7 +61,7 @@ export default function LeadDetailsPage() {
 
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams(); // 🔥 NEW: Add this hook
+  // const searchParams = useSearchParams();
   const leadId = params?.leadId as string;
 
   const {

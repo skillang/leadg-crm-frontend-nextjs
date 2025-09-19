@@ -156,8 +156,8 @@ export function DataTable<TData extends Lead, TValue>({
   onUserFilterChange,
   allDateFilters, // 🆕 NEW: Unified date filters
   onAllDateFiltersChange,
+  // handleLeadNavigation,
   router,
-  handleLeadNavigation,
 }: DataTableProps<TData, TValue>) {
   const { showWarning } = useNotifications();
   const isMobile = useIsMobile();
