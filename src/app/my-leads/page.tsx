@@ -7,7 +7,7 @@ import { useAppSelector } from "@/redux/hooks";
 import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
 import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation"; // 🔥 FIXED: Moved imports together
 import { Lead } from "@/models/types/lead";
 import { DateRange } from "@/components/ui/date-range-picker";
 
@@ -39,12 +39,23 @@ interface RTKQueryError {
 
 export default function DemoPage() {
   const router = useRouter();
+  const searchParams = useSearchParams(); // 🔥 FIXED: Must be declared before using it
+  const pathname = usePathname(); // 🔥 FIXED: Must be declared before using it
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  // 🔥 FIXED: Now searchParams is available for the useState initialization
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = searchParams.get("page");
+    return pageParam ? parseInt(pageParam, 10) : 1;
+  });
+
+  const [pageSize, setPageSize] = useState(() => {
+    const limitParam = searchParams.get("limit");
+    return limitParam ? parseInt(limitParam, 10) : 20;
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all"); // Add type annotation
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState("all");
@@ -64,154 +75,113 @@ export default function DemoPage() {
   const [isClearingFilters, setIsClearingFilters] = useState(false);
 
   const isAdmin = useAppSelector(selectIsAdmin);
-  const columns = useMemo(() => createColumns(router), [router]);
+
+  // 🔥 ADD this new function after your existing handlers
+  const handleLeadNavigation = useCallback(
+    (leadId: string) => {
+      // Store current pagination state before navigating
+      const pageInfo = {
+        page: currentPage,
+        limit: pageSize,
+        stage: stageFilter,
+        status: statusFilter,
+        category: categoryFilter,
+        source: sourceFilter,
+        search: searchQuery,
+      };
+
+      // console.log("📦 Storing page info before navigation:", pageInfo);
+      sessionStorage.setItem("leadsPageInfo", JSON.stringify(pageInfo));
+
+      // Navigate to lead detail
+      router.push(`/my-leads/${leadId}`);
+    },
+    [
+      currentPage,
+      pageSize,
+      stageFilter,
+      statusFilter,
+      categoryFilter,
+      sourceFilter,
+      searchQuery,
+      router,
+    ]
+  );
+  const columns = useMemo(
+    () => createColumns(router, handleLeadNavigation),
+    [router, handleLeadNavigation]
+  );
 
   // 🔥 FIXED: Debounced search query
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // 🔥 NEW: Function to update URL with pagination - MOVED BEFORE HANDLERS
+  const updateURLWithPagination = useCallback(
+    (page: number, limit: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      // Update or add pagination params
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+
+      // Use replace to avoid cluttering browser history
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, pathname, router]
+  );
 
   // 🔥 FIXED: Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchQuery]);
 
-  // API calls with proper search parameters
-  const {
-    data: adminLeadsResponse,
-    isLoading: adminLoading,
-    error: adminError,
-    refetch: refetchAdmin,
-  } = useGetLeadsQuery(
-    {
-      page: currentPage,
-      limit: pageSize,
-      search: debouncedSearchQuery.trim() || undefined,
-      stage: stageFilter !== "all" ? stageFilter : undefined,
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      category: categoryFilter !== "all" ? categoryFilter : undefined,
-      source: sourceFilter !== "all" ? sourceFilter : undefined,
-      ...(isAdmin && userFilter !== "all" && { assigned_to: userFilter }),
-      ...dateFilter,
-      updated_from: updatedDateFilter.updated_from, // 🆕 NEW
-      updated_to: updatedDateFilter.updated_to, // 🆕 NEW
-      last_contacted_from: lastContactedDateFilter.last_contacted_from, // 🆕 NEW
-      last_contacted_to: lastContactedDateFilter.last_contacted_to, //
-    },
-    {
-      skip: !isAdmin,
-      refetchOnMountOrArgChange: true,
-    }
-  );
-
-  const {
-    data: userLeadsResponse,
-    isLoading: userLoading,
-    error: userError,
-    refetch: refetchUser,
-  } = useGetMyLeadsQuery(
-    {
-      page: currentPage,
-      limit: pageSize,
-      search: debouncedSearchQuery.trim() || undefined,
-      stage: stageFilter !== "all" ? stageFilter : undefined,
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      category: categoryFilter !== "all" ? categoryFilter : undefined,
-      source: sourceFilter !== "all" ? sourceFilter : undefined,
-      ...dateFilter,
-      updated_from: updatedDateFilter.updated_from, // 🆕 NEW
-      updated_to: updatedDateFilter.updated_to, // 🆕 NEW
-      last_contacted_from: lastContactedDateFilter.last_contacted_from, // 🆕 NEW
-      last_contacted_to: lastContactedDateFilter.last_contacted_to, //
-    },
-    {
-      skip: isAdmin,
-      refetchOnMountOrArgChange: true,
-    }
-  );
-
-  const leadsResponse = isAdmin ? adminLeadsResponse : userLeadsResponse;
-  const isLoading = isAdmin ? adminLoading : userLoading; // Move this here
-  const error = isAdmin ? adminError : userError;
-  const refetch = isAdmin ? refetchAdmin : refetchUser;
-
-  // 🔥 FIXED: Reset clearing state when API responds
+  // 🔥 REPLACE the existing URL sync useEffect with this CORRECTED version:
   useEffect(() => {
-    if (isClearingFilters && !isLoading) {
-      setIsClearingFilters(false);
-    }
-  }, [isClearingFilters, isLoading]);
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
 
-  // 🔥 FIXED: Proper search state management
-  const isSearching = searchQuery !== debouncedSearchQuery;
-  const isActuallyLoading = isLoading && !isSearching; // Don't show full page loader while searching
+    const urlPage = pageParam ? parseInt(pageParam, 10) : 1;
+    const urlLimit = limitParam ? parseInt(limitParam, 10) : 20;
 
-  // Extract leads and pagination data
-  const { leads, paginationMeta } = useMemo(() => {
-    console.log("Raw leadsResponse:", leadsResponse); // ADD THIS
+    // console.log("🔄 URL changed - syncing state:", {
+    //   urlPage,
+    //   urlLimit,
+    //   currentPage,
+    //   pageSize,
+    //   searchParamsString: searchParams.toString(),
+    // });
 
-    let extractedLeads: Lead[] = [];
-    let extractedPaginationMeta = undefined;
+    // Force state update even if values seem the same
+    setCurrentPage(urlPage);
+    setPageSize(urlLimit);
+  }, [searchParams.toString()]); // 🔥 FIXED: Use searchParams.toString() instead of searchParams
 
-    if (leadsResponse) {
-      if (Array.isArray(leadsResponse)) {
-        extractedLeads = leadsResponse;
-      } else if (leadsResponse.leads) {
-        extractedLeads = leadsResponse.leads;
+  // useEffect(() => {
+  //   // Force refetch when pagination changes
+  //   if (isAdmin) {
+  //     refetchAdmin();
+  //   } else {
+  //     refetchUser();
+  //   }
+  // }, [currentPage, pageSize, isAdmin, refetchAdmin, refetchUser]);
 
-        // Handle nested pagination object from new API format
-        if (leadsResponse.pagination) {
-          console.log("Nested pagination found:", leadsResponse.pagination); // ADD THIS
-          extractedPaginationMeta = {
-            total: leadsResponse.pagination.total || 0,
-            page: leadsResponse.pagination.page || currentPage,
-            pages:
-              leadsResponse.pagination.pages ||
-              Math.ceil(
-                (leadsResponse.pagination.total || 0) /
-                  (leadsResponse.pagination.limit || pageSize)
-              ), // ADD THIS
-            limit: leadsResponse.pagination.limit || pageSize,
-            has_next: leadsResponse.pagination.has_next || false,
-            has_prev: leadsResponse.pagination.has_prev || false,
-          };
-        } else {
-          console.log("No nested pagination, checking flat format"); // ADD THIS
-
-          // Fallback for old flat format (if any endpoints still use it)
-          extractedPaginationMeta = {
-            total: leadsResponse.total || 0,
-            page: leadsResponse.page || currentPage,
-            pages: Math.ceil(
-              (leadsResponse.total || 0) / (leadsResponse.limit || pageSize)
-            ),
-            limit: leadsResponse.limit || pageSize,
-            has_next: leadsResponse.has_next || false,
-            has_prev: leadsResponse.has_prev || false,
-          };
-        }
-      }
-    }
-    console.log("Final extractedPaginationMeta:", extractedPaginationMeta); // ADD THIS
-
-    return { leads: extractedLeads, paginationMeta: extractedPaginationMeta };
-  }, [leadsResponse, currentPage, pageSize]);
-
-  // Smart data selection: server search vs Redux filters
-  const filteredLeadsSelector = useMemo(
-    () => createFilteredLeadsSelector(leads),
-    [leads]
+  // Event handlers - NOW AFTER updateURLWithPagination is defined
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      updateURLWithPagination(page, pageSize);
+    },
+    [pageSize, updateURLWithPagination]
   );
-  const reduxFilteredLeads = useAppSelector(filteredLeadsSelector);
-  const finalLeads = debouncedSearchQuery.trim() ? leads : reduxFilteredLeads;
 
-  // Event handlers
-  const handlePageChange = useCallback((newPage: number) => {
-    setCurrentPage(newPage);
-  }, []);
-
-  const handlePageSizeChange = useCallback((newSize: number) => {
-    setPageSize(newSize);
-    setCurrentPage(1);
-  }, []);
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size);
+      setCurrentPage(1);
+      updateURLWithPagination(1, size);
+    },
+    [updateURLWithPagination]
+  );
 
   const handleSearchChange = useCallback((newSearch: string) => {
     setSearchQuery(newSearch);
@@ -258,15 +228,15 @@ export default function DemoPage() {
   const handleDateRangeChange = useCallback(
     ({ range }: { range: DateRange }) => {
       if (range?.from) {
-        const created_from = range.from.toISOString().split("T")[0]; // YYYY-MM-DD format
+        const created_from = range.from.toISOString().split("T")[0];
         const created_to = range.to
           ? range.to.toISOString().split("T")[0]
           : created_from;
 
         setDateFilter({ created_from, created_to });
-        setCurrentPage(1); // Reset pagination
+        setCurrentPage(1);
       } else {
-        setDateFilter({}); // Clear date filter
+        setDateFilter({});
       }
     },
     []
@@ -296,6 +266,131 @@ export default function DemoPage() {
     });
     setCurrentPage(1);
   };
+
+  // API calls with proper search parameters
+  const {
+    data: adminLeadsResponse,
+    isLoading: adminLoading,
+    error: adminError,
+    refetch: refetchAdmin,
+  } = useGetLeadsQuery(
+    {
+      page: currentPage,
+      limit: pageSize,
+      search: debouncedSearchQuery.trim() || undefined,
+      stage: stageFilter !== "all" ? stageFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      source: sourceFilter !== "all" ? sourceFilter : undefined,
+      ...(isAdmin && userFilter !== "all" && { assigned_to: userFilter }),
+      ...dateFilter,
+      updated_from: updatedDateFilter.updated_from,
+      updated_to: updatedDateFilter.updated_to,
+      last_contacted_from: lastContactedDateFilter.last_contacted_from,
+      last_contacted_to: lastContactedDateFilter.last_contacted_to,
+    },
+    {
+      skip: !isAdmin,
+      refetchOnMountOrArgChange: true,
+    }
+  );
+
+  const {
+    data: userLeadsResponse,
+    isLoading: userLoading,
+    error: userError,
+    refetch: refetchUser,
+  } = useGetMyLeadsQuery(
+    {
+      page: currentPage,
+      limit: pageSize,
+      search: debouncedSearchQuery.trim() || undefined,
+      stage: stageFilter !== "all" ? stageFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      source: sourceFilter !== "all" ? sourceFilter : undefined,
+      ...dateFilter,
+      updated_from: updatedDateFilter.updated_from,
+      updated_to: updatedDateFilter.updated_to,
+      last_contacted_from: lastContactedDateFilter.last_contacted_from,
+      last_contacted_to: lastContactedDateFilter.last_contacted_to,
+    },
+    {
+      skip: isAdmin,
+      refetchOnMountOrArgChange: true,
+    }
+  );
+
+  const leadsResponse = isAdmin ? adminLeadsResponse : userLeadsResponse;
+  const isLoading = isAdmin ? adminLoading : userLoading;
+  const error = isAdmin ? adminError : userError;
+  const refetch = isAdmin ? refetchAdmin : refetchUser;
+
+  // 🔥 FIXED: Reset clearing state when API responds
+  useEffect(() => {
+    if (isClearingFilters && !isLoading) {
+      setIsClearingFilters(false);
+    }
+  }, [isClearingFilters, isLoading]);
+
+  // 🔥 FIXED: Proper search state management
+  const isSearching = searchQuery !== debouncedSearchQuery;
+  const isActuallyLoading = isLoading && !isSearching;
+
+  // Extract leads and pagination data
+  const { leads, paginationMeta } = useMemo(() => {
+    let extractedLeads: Lead[] = [];
+    let extractedPaginationMeta = undefined;
+
+    if (leadsResponse) {
+      if (Array.isArray(leadsResponse)) {
+        extractedLeads = leadsResponse;
+      } else if (leadsResponse.leads) {
+        extractedLeads = leadsResponse.leads;
+
+        // Handle nested pagination object from new API format
+        if (leadsResponse.pagination) {
+          extractedPaginationMeta = {
+            total: leadsResponse.pagination.total || 0,
+            page: leadsResponse.pagination.page || currentPage,
+            pages:
+              leadsResponse.pagination.pages ||
+              Math.ceil(
+                (leadsResponse.pagination.total || 0) /
+                  (leadsResponse.pagination.limit || pageSize)
+              ),
+            limit: leadsResponse.pagination.limit || pageSize,
+            has_next: leadsResponse.pagination.has_next || false,
+            has_prev: leadsResponse.pagination.has_prev || false,
+          };
+        } else {
+          // console.log("No nested pagination, checking flat format");
+
+          // Fallback for old flat format (if any endpoints still use it)
+          extractedPaginationMeta = {
+            total: leadsResponse.total || 0,
+            page: leadsResponse.page || currentPage,
+            pages: Math.ceil(
+              (leadsResponse.total || 0) / (leadsResponse.limit || pageSize)
+            ),
+            limit: leadsResponse.limit || pageSize,
+            has_next: leadsResponse.has_next || false,
+            has_prev: leadsResponse.has_prev || false,
+          };
+        }
+      }
+    }
+
+    return { leads: extractedLeads, paginationMeta: extractedPaginationMeta };
+  }, [leadsResponse, currentPage, pageSize]);
+
+  // Smart data selection: server search vs Redux filters
+  const filteredLeadsSelector = useMemo(
+    () => createFilteredLeadsSelector(leads),
+    [leads]
+  );
+  const reduxFilteredLeads = useAppSelector(filteredLeadsSelector);
+  const finalLeads = debouncedSearchQuery.trim() ? leads : reduxFilteredLeads;
 
   // Helper function to extract error message
   const getErrorMessage = (error: unknown): string => {
@@ -366,34 +461,67 @@ export default function DemoPage() {
         isLoading={isLoading}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        onClearSearch={handleClearSearch}
+        onClearSearch={() => {
+          setSearchQuery("");
+          setCurrentPage(1);
+          updateURLWithPagination(1, pageSize);
+        }}
         isSearching={isSearching}
         stageFilter={stageFilter}
+        onStageFilterChange={(stage) => {
+          handleStageFilterChange(stage);
+          setCurrentPage(1);
+          updateURLWithPagination(1, pageSize);
+        }}
         statusFilter={statusFilter}
+        onStatusFilterChange={(status) => {
+          handleStatusFilterChange(status);
+          setCurrentPage(1);
+          updateURLWithPagination(1, pageSize);
+        }}
         categoryFilter={categoryFilter}
-        onCategoryFilterChange={handleCategoryFilterChange}
-        // dateFilter={dateFilter}
-        // onDateFilterChange={handleDateRangeChange}
-        onStageFilterChange={handleStageFilterChange}
-        onStatusFilterChange={handleStatusFilterChange}
-        onSourceFilterChange={handleSourceFilterChange}
+        onCategoryFilterChange={(category) => {
+          handleCategoryFilterChange(category);
+          setCurrentPage(1);
+          updateURLWithPagination(1, pageSize);
+        }}
+        sourceFilter={sourceFilter} // 🔥 FIXED: Was "ourceFilter"
+        onSourceFilterChange={(source) => {
+          handleSourceFilterChange(source);
+          setCurrentPage(1);
+          updateURLWithPagination(1, pageSize);
+        }}
         allDateFilters={{
+          // 🔥 FIXED: Was "lDateFilters"
           created: dateFilter,
           updated: updatedDateFilter,
           lastContacted: lastContactedDateFilter,
         }}
         onAllDateFiltersChange={{
-          onCreated: handleDateRangeChange,
-          onUpdated: handleUpdatedDateFilterChange,
-          onLastContacted: handleLastContactedDateFilterChange,
+          onCreated: (dateRange) => {
+            handleDateRangeChange(dateRange);
+            setCurrentPage(1);
+            updateURLWithPagination(1, pageSize);
+          },
+          onUpdated: (dateRange) => {
+            handleUpdatedDateFilterChange(dateRange);
+            setCurrentPage(1);
+            updateURLWithPagination(1, pageSize);
+          },
+          onLastContacted: (dateRange) => {
+            handleLastContactedDateFilterChange(dateRange);
+            setCurrentPage(1);
+            updateURLWithPagination(1, pageSize);
+          },
         }}
-        // updatedDateFilter={updatedDateFilter} // 🆕 NEW
-        // lastContactedDateFilter={lastContactedDateFilter} // 🆕 NEW
-        // onUpdatedDateFilterChange={handleUpdatedDateFilterChange} // 🆕 NEW
-        // onLastContactedDateFilterChange={handleLastContactedDateFilterChange} //
         userFilter={userFilter}
-        onUserFilterChange={setUserFilter}
+        onUserFilterChange={(user) => {
+          setUserFilter(user);
+          setCurrentPage(1);
+          updateURLWithPagination(1, pageSize);
+        }}
         router={router}
+        handleLeadNavigation={handleLeadNavigation}
       />
     </div>
   );

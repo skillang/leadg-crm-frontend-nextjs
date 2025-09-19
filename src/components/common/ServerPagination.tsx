@@ -46,7 +46,6 @@ export const ServerPagination: React.FC<ServerPaginationProps> = ({
   pageSizeOptions = [10, 20, 30, 50, 100],
   isLoading = false,
 }) => {
-  console.log("paginationMeta:", paginationMeta);
   const isMobile = useIsMobile();
   if (!paginationMeta) return null;
   const { total, page, limit, has_next, has_prev } = paginationMeta;

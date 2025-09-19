@@ -57,15 +57,6 @@ import {
   MessageSquareText,
   Zap,
 } from "lucide-react";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useGetActiveStagesQuery } from "@/redux/slices/stagesApi";
@@ -134,6 +125,7 @@ interface DataTableProps<TData, TValue> {
     onLastContacted?: ({ range }: { range: DateRange }) => void;
   };
   router?: AppRouterInstance;
+  handleLeadNavigation?: (leadId: string) => void; // 🔥 ADD this line
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -162,13 +154,10 @@ export function DataTable<TData extends Lead, TValue>({
   onSourceFilterChange,
   userFilter = "all",
   onUserFilterChange,
-  // updatedDateFilter,
-  // lastContactedDateFilter,
-  // onUpdatedDateFilterChange,
-  // onLastContactedDateFilterChange,
   allDateFilters, // 🆕 NEW: Unified date filters
   onAllDateFiltersChange,
   router,
+  handleLeadNavigation,
 }: DataTableProps<TData, TValue>) {
   const { showWarning } = useNotifications();
   const isMobile = useIsMobile();
@@ -249,14 +238,6 @@ export function DataTable<TData extends Lead, TValue>({
     statusFilter !== "all" ||
     (isAdmin && userFilter !== "all");
 
-  // const activeFiltersCount = [
-  //   stageFilter !== "all" ? 1 : 0,
-  //   departmentFilter !== "all" ? 1 : 0,
-  //   statusFilter !== "all" ? 1 : 0,
-  //   categoryFilter !== "all" ? 1 : 0,
-  //   dateFilter?.created_from && dateFilter?.created_to ? 1 : 0, // ADD THIS
-  // ].reduce((a, b) => a + b, 0);
-
   const clearAllFilters = () => {
     onStageFilterChange?.("all"); // ADD THIS
     onStatusFilterChange?.("all");
@@ -267,153 +248,6 @@ export function DataTable<TData extends Lead, TValue>({
       onClearSearch();
     }
   };
-
-  // 🔥 Server Pagination Component
-  // const ServerPagination = () => {
-  //   if (!paginationMeta || !onPageChange || !onPageSizeChange) return null;
-
-  //   const { total, page, limit, has_next, has_prev } = paginationMeta;
-  //   const totalPages = Math.ceil(total / limit);
-  //   const startRecord = (page - 1) * limit + 1;
-  //   const endRecord = Math.min(page * limit, total);
-
-  //   const getVisiblePages = () => {
-  //     if (totalPages <= 3) {
-  //       return Array.from({ length: totalPages }, (_, i) => i + 1);
-  //     }
-
-  //     if (page <= 2) {
-  //       return [1, 2, 3];
-  //     }
-
-  //     if (page >= totalPages - 1) {
-  //       return [totalPages - 2, totalPages - 1, totalPages];
-  //     }
-
-  //     return [page - 1, page, page + 1];
-  //   };
-
-  //   const visiblePages = getVisiblePages();
-  //   const showStartEllipsis = visiblePages[0] > 1;
-  //   const showEndEllipsis = visiblePages[visiblePages.length - 1] < totalPages;
-
-  //   return (
-  //     <div className="flex items-center justify-between w-full px-4 py-4 border-t bg-white">
-  //       {/* LEFT SIDE - Results info and page size selector */}
-  //       <div className="flex items-center space-x-6">
-  //         <div className="text-sm text-muted-foreground whitespace-nowrap">
-  //           Showing {startRecord} to {endRecord} of {total} results
-  //           {searchQuery && (
-  //             <span className="text-blue-600"> (search results)</span>
-  //           )}
-  //         </div>
-
-  //         <div className="flex items-center space-x-2 whitespace-nowrap">
-  //           <span className="text-sm text-muted-foreground">
-  //             Rows per page:
-  //           </span>
-  //           <Select
-  //             value={limit.toString()}
-  //             onValueChange={(value) => {
-  //               onPageSizeChange(Number(value));
-  //               onPageChange(1);
-  //             }}
-  //           >
-  //             <SelectTrigger className="h-8 w-[70px] border-input">
-  //               <SelectValue />
-  //             </SelectTrigger>
-  //             <SelectContent>
-  //               <SelectItem value="10">10</SelectItem>
-  //               <SelectItem value="20">20</SelectItem>
-  //               <SelectItem value="30">30</SelectItem>
-  //               <SelectItem value="50">50</SelectItem>
-  //               <SelectItem value="100">100</SelectItem>
-  //             </SelectContent>
-  //           </Select>
-  //         </div>
-  //       </div>
-
-  //       {/* RIGHT SIDE - Pagination controls */}
-  //       <div className="flex items-center">
-  //         <Pagination>
-  //           <PaginationContent className="flex items-center space-x-1">
-  //             <PaginationItem>
-  //               <PaginationPrevious
-  //                 onClick={() => has_prev && onPageChange(page - 1)}
-  //                 className={`h-8 px-3 text-sm ${
-  //                   !has_prev
-  //                     ? "pointer-events-none opacity-50 cursor-not-allowed"
-  //                     : "cursor-pointer hover:bg-accent"
-  //                 }`}
-  //               />
-  //             </PaginationItem>
-
-  //             {showStartEllipsis && (
-  //               <>
-  //                 <PaginationItem>
-  //                   <PaginationLink
-  //                     onClick={() => onPageChange(1)}
-  //                     isActive={page === 1}
-  //                     className="h-8 w-8 p-0 text-sm cursor-pointer hover:bg-accent"
-  //                   >
-  //                     1
-  //                   </PaginationLink>
-  //                 </PaginationItem>
-  //                 <PaginationItem>
-  //                   <PaginationEllipsis className="h-8 w-8 text-sm" />
-  //                 </PaginationItem>
-  //               </>
-  //             )}
-
-  //             {visiblePages.map((pageNum) => (
-  //               <PaginationItem key={pageNum}>
-  //                 <PaginationLink
-  //                   onClick={() => onPageChange(pageNum)}
-  //                   isActive={page === pageNum}
-  //                   className={`h-8 w-8 p-0 text-sm cursor-pointer ${
-  //                     page === pageNum
-  //                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
-  //                       : "hover:bg-accent"
-  //                   }`}
-  //                 >
-  //                   {pageNum}
-  //                 </PaginationLink>
-  //               </PaginationItem>
-  //             ))}
-
-  //             {showEndEllipsis && (
-  //               <>
-  //                 <PaginationItem>
-  //                   <PaginationEllipsis className="h-8 w-8 text-sm" />
-  //                 </PaginationItem>
-  //                 <PaginationItem>
-  //                   <PaginationLink
-  //                     onClick={() => onPageChange(totalPages)}
-  //                     isActive={page === totalPages}
-  //                     className="h-8 w-8 p-0 text-sm cursor-pointer hover:bg-accent"
-  //                   >
-  //                     {totalPages}
-  //                   </PaginationLink>
-  //                 </PaginationItem>
-  //               </>
-  //             )}
-
-  //             <PaginationItem>
-  //               <PaginationNext
-  //                 onClick={() => has_next && onPageChange(page + 1)}
-  //                 className={`h-8 px-3 text-sm ${
-  //                   !has_next
-  //                     ? "pointer-events-none opacity-50 cursor-not-allowed"
-  //                     : "cursor-pointer hover:bg-accent"
-  //                 }`}
-  //               />
-  //             </PaginationItem>
-  //           </PaginationContent>
-  //         </Pagination>
-  //       </div>
-  //     </div>
-  //   );
-  // };
 
   // 🔥 Stage Filter Component
   const StageFilterSelect = () => {

@@ -2,8 +2,8 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useCallback, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Phone, Mail, Pen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,7 @@ export default function LeadDetailsPage() {
 
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams(); // 🔥 NEW: Add this hook
   const leadId = params?.leadId as string;
 
   const {
@@ -80,9 +81,47 @@ export default function LeadDetailsPage() {
 
   const { showSuccess, showError } = useNotifications();
 
-  const handleBack = () => {
-    router.push("/my-leads");
-  };
+  // 🔥 REPLACE your existing handleBack function with this:
+  const handleBack = useCallback(() => {
+    // Try to get stored page info
+    const previousPageInfo = sessionStorage.getItem("leadsPageInfo");
+    if (previousPageInfo) {
+      try {
+        const pageInfo = JSON.parse(previousPageInfo);
+        const params = new URLSearchParams();
+
+        params.set("page", pageInfo.page.toString());
+        params.set("limit", pageInfo.limit.toString());
+
+        // Add filters if they exist
+        if (pageInfo.stage && pageInfo.stage !== "all")
+          params.set("stage", pageInfo.stage);
+        if (pageInfo.status && pageInfo.status !== "all")
+          params.set("status", pageInfo.status);
+        if (pageInfo.category && pageInfo.category !== "all")
+          params.set("category", pageInfo.category);
+        if (pageInfo.source && pageInfo.source !== "all")
+          params.set("source", pageInfo.source);
+        if (pageInfo.search) params.set("search", pageInfo.search);
+
+        const backUrl = `/my-leads?${params.toString()}`;
+        // console.log("🔄 Navigating to stored page info:", backUrl);
+
+        // Clear the stored info
+        sessionStorage.removeItem("leadsPageInfo");
+
+        // Navigate using router.push
+        router.push(backUrl);
+        return;
+      } catch (error) {
+        console.error("Failed to parse stored page info:", error);
+      }
+    }
+
+    // Fallback: use browser back
+    // console.log("🔄 Using browser back navigation");
+    router.back();
+  }, [router]);
 
   const handleCall = () => {
     if (!leadDetails?.leadId && !leadDetails?.id) {

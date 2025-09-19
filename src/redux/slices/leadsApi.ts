@@ -26,6 +26,7 @@ import {
   transformApiLead,
   transformLeadDetailsResponse,
 } from "@/models/types/lead";
+import { PaginationMeta } from "@/models/types/pagination";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -73,11 +74,30 @@ export const leadsApi = createApi({
         return url;
       },
       serializeQueryArgs: ({ queryArgs }) => {
-        const cacheKey = `page=${queryArgs.page || 1}-limit=${
-          queryArgs.limit || 20
-        }-status=${queryArgs.lead_status || "all"}-search=${
-          queryArgs.search || ""
-        }`;
+        // 🔥 FIXED: Include ALL parameters that affect the query result
+        const params = {
+          page: queryArgs.page || 1,
+          limit: queryArgs.limit || 20,
+          lead_status: queryArgs.lead_status || queryArgs.status || "all",
+          stage: queryArgs.stage || "all",
+          category: queryArgs.category || "all",
+          source: queryArgs.source || "all",
+          assigned_to: queryArgs.assigned_to || "all",
+          search: queryArgs.search || "",
+          created_from: queryArgs.created_from || "",
+          created_to: queryArgs.created_to || "",
+          updated_from: queryArgs.updated_from || "",
+          updated_to: queryArgs.updated_to || "",
+          last_contacted_from: queryArgs.last_contacted_from || "",
+          last_contacted_to: queryArgs.last_contacted_to || "",
+        };
+
+        // Create a comprehensive cache key
+        const cacheKey = `allLeads-${Object.entries(params)
+          .map(([key, value]) => `${key}=${value}`)
+          .join("-")}`;
+
+        // console.log("🔑 Admin cache key:", cacheKey); // Debug log
         return cacheKey;
       },
       transformResponse: (response: unknown) => {
@@ -92,7 +112,7 @@ export const leadsApi = createApi({
 
         const isPaginatedResponse = (
           obj: unknown
-        ): obj is { leads: ApiLead[]; pagination: any } => {
+        ): obj is { leads: ApiLead[]; pagination: PaginationMeta } => {
           return (
             typeof obj === "object" &&
             obj !== null &&
@@ -156,11 +176,29 @@ export const leadsApi = createApi({
         return url;
       },
       serializeQueryArgs: ({ queryArgs }) => {
-        const cacheKey = `myLeads-page=${queryArgs.page || 1}-limit=${
-          queryArgs.limit || 20
-        }-status=${queryArgs.lead_status || "all"}-search=${
-          queryArgs.search || ""
-        }`;
+        // 🔥 FIXED: Include ALL parameters that affect the query result
+        const params = {
+          page: queryArgs.page || 1,
+          limit: queryArgs.limit || 20,
+          lead_status: queryArgs.lead_status || queryArgs.status || "all",
+          stage: queryArgs.stage || "all",
+          category: queryArgs.category || "all",
+          source: queryArgs.source || "all",
+          search: queryArgs.search || "",
+          created_from: queryArgs.created_from || "",
+          created_to: queryArgs.created_to || "",
+          updated_from: queryArgs.updated_from || "",
+          updated_to: queryArgs.updated_to || "",
+          last_contacted_from: queryArgs.last_contacted_from || "",
+          last_contacted_to: queryArgs.last_contacted_to || "",
+        };
+
+        // Create a comprehensive cache key
+        const cacheKey = `myLeads-${Object.entries(params)
+          .map(([key, value]) => `${key}=${value}`)
+          .join("-")}`;
+
+        // console.log("🔑 Cache key:", cacheKey); // Debug log
         return cacheKey;
       },
       transformResponse: (response: unknown) => {

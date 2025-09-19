@@ -254,9 +254,11 @@ const ContactCell = ({ row }: { row: Row<Lead> }) => {
 const ActionsCell = ({
   row,
   router,
+  handleLeadNavigation,
 }: {
   row: Row<Lead>;
   router: AppRouterInstance;
+  handleLeadNavigation?: (leadId: string) => void;
 }) => {
   const lead = row.original;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -323,7 +325,13 @@ const ActionsCell = ({
             Copy Email
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push(`/my-leads/${lead.id}`)}>
+          <DropdownMenuItem
+            onClick={() =>
+              handleLeadNavigation
+                ? handleLeadNavigation(lead.id)
+                : router.push(`/my-leads/${lead.id}`)
+            }
+          >
             View Details
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleEditLead}>
@@ -355,20 +363,31 @@ const ActionsCell = ({
 };
 
 // FIXED: View Details Cell that accepts router as prop
+// 🔥 REPLACE the ViewDetailsCell component with this:
 const ViewDetailsCell = ({
   row,
   router,
+  handleLeadNavigation,
 }: {
   row: Row<Lead>;
   router: AppRouterInstance;
+  handleLeadNavigation?: (leadId: string) => void;
 }) => {
   const leadId = row.original.id;
+
+  const handleClick = () => {
+    if (handleLeadNavigation) {
+      handleLeadNavigation(leadId);
+    } else {
+      router.push(`/my-leads/${leadId}`);
+    }
+  };
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => router.push(`/my-leads/${leadId}`)}
+      onClick={handleClick} // 🔥 CHANGED: Use new handler
       className="p-2 hover:bg-gray-50 border-2 cursor-pointer"
     >
       <ArrowRight className="h-4 w-4 text-gray-600 " />
@@ -462,7 +481,10 @@ const StatusSelectCell = ({ row }: { row: Row<Lead> }) => {
 };
 
 // FIXED: Create columns as a factory function that accepts router
-export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
+export const createColumns = (
+  router: AppRouterInstance,
+  handleLeadNavigation?: (leadId: string) => void
+): ColumnDef<Lead>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -609,7 +631,13 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
   {
     id: "view_details",
     header: "View More",
-    cell: ({ row }) => <ViewDetailsCell row={row} router={router} />,
+    cell: ({ row }) => (
+      <ViewDetailsCell
+        row={row}
+        router={router}
+        handleLeadNavigation={handleLeadNavigation} // 🔥 ADD this prop
+      />
+    ),
     enableSorting: false,
   },
   {
@@ -726,12 +754,19 @@ export const createColumns = (router: AppRouterInstance): ColumnDef<Lead>[] => [
   {
     id: "actions",
     enableHiding: false,
-    cell: ({ row }) => <ActionsCell row={row} router={router} />,
+    cell: ({ row }) => (
+      <ActionsCell
+        row={row}
+        router={router}
+        handleLeadNavigation={handleLeadNavigation}
+      />
+    ),
   },
 ];
 
 export const createMobileColumns = (
-  router: AppRouterInstance
+  router: AppRouterInstance,
+  handleLeadNavigation?: (leadId: string) => void
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "name",
@@ -761,13 +796,13 @@ export const createMobileColumns = (
   {
     id: "view_details",
     header: "View More",
-    cell: ({ row }) => <ViewDetailsCell row={row} router={router} />,
+    cell: ({ row }) => (
+      <ViewDetailsCell
+        row={row}
+        router={router}
+        handleLeadNavigation={handleLeadNavigation}
+      />
+    ),
     enableSorting: false,
   },
 ];
-
-// DEPRECATED: Keep this for backward compatibility but mark as deprecated
-// export const columns: ColumnDef<Lead>[] = [];
-// console.warn(
-//   "Using deprecated 'columns' export. Use 'createColumns(router)' instead."
-// );

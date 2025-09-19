@@ -102,6 +102,7 @@ export const timelineApi = createApi({
           pagination: {
             total: pagination.total || 0,
             page: pagination.page || 1,
+            pages: pagination.page || 1,
             limit: pagination.limit || 20,
             has_next: pagination.has_next || false,
             has_prev: pagination.has_prev || false,

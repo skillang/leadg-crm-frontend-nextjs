@@ -52,9 +52,9 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({ leadId }) => {
   };
 
   const totalActivities = paginationMeta.total;
-  console.log(totalActivities, "is total activities in pagination");
-  console.log("timelineData:", timelineData);
-  console.log("paginationInfo:", paginationInfo);
+  // console.log(totalActivities, "is total activities in pagination");
+  // console.log("timelineData:", timelineData);
+  // console.log("paginationInfo:", paginationInfo);
 
   // Handlers
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
