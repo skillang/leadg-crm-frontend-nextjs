@@ -35,6 +35,85 @@ const API_BASE_URL =
 //   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 // );
 
+// Add this helper function at the top of leadsApi.ts
+const createUnifiedPaginatedResponse = (response: unknown) => {
+  const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      "leads" in obj &&
+      Array.isArray((obj as { leads: unknown }).leads)
+    );
+  };
+
+  const hasNestedPagination = (
+    obj: unknown
+  ): obj is {
+    leads: ApiLead[];
+    pagination: any;
+  } => {
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      "leads" in obj &&
+      "pagination" in obj
+    );
+  };
+
+  const hasFlatPagination = (
+    obj: unknown
+  ): obj is {
+    leads: ApiLead[];
+    total: number;
+    page: number;
+    limit: number;
+    has_next: boolean;
+    has_prev: boolean;
+  } => {
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      "leads" in obj &&
+      "total" in obj &&
+      "page" in obj
+    );
+  };
+
+  // Handle nested pagination format (/leads endpoint)
+  if (hasNestedPagination(response)) {
+    return {
+      leads: response.leads!.map(transformApiLead),
+      pagination: response.pagination,
+    };
+  }
+
+  // Handle flat pagination format (/my-leads endpoint)
+  if (hasFlatPagination(response)) {
+    return {
+      leads: response.leads!.map(transformApiLead),
+      pagination: {
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        pages: Math.ceil(response.total / response.limit),
+        has_next: response.has_next,
+        has_prev: response.has_prev,
+      },
+    };
+  }
+
+  // Handle simple leads array
+  if (isValidResponse(response)) {
+    return response.leads.map(transformApiLead);
+  }
+
+  if (Array.isArray(response)) {
+    return response.map(transformApiLead);
+  }
+
+  return [];
+};
+
 export const leadsApi = createApi({
   reducerPath: "leadsApi",
   baseQuery: createBaseQueryWithReauth(`${API_BASE_URL}`),
@@ -201,44 +280,7 @@ export const leadsApi = createApi({
         // console.log("🔑 Cache key:", cacheKey); // Debug log
         return cacheKey;
       },
-      transformResponse: (response: unknown) => {
-        const isValidResponse = (obj: unknown): obj is { leads: ApiLead[] } => {
-          return (
-            typeof obj === "object" &&
-            obj !== null &&
-            "leads" in obj &&
-            Array.isArray((obj as { leads: unknown }).leads)
-          );
-        };
-
-        const isPaginatedResponse = (
-          obj: unknown
-        ): obj is PaginatedResponse<ApiLead> => {
-          return (
-            typeof obj === "object" &&
-            obj !== null &&
-            "leads" in obj &&
-            Array.isArray((obj as { leads: unknown }).leads) &&
-            "total" in obj
-          );
-        };
-
-        if (isPaginatedResponse(response)) {
-          return {
-            leads: response.leads!.map(transformApiLead),
-            total: response.total,
-            page: response.page,
-            limit: response.limit,
-            has_next: response.has_next,
-            has_prev: response.has_prev,
-          };
-        } else if (isValidResponse(response)) {
-          return response.leads.map(transformApiLead);
-        } else if (Array.isArray(response)) {
-          return [];
-        }
-        return [];
-      },
+      transformResponse: createUnifiedPaginatedResponse,
       providesTags: (result) => [
         { type: "Lead", id: "MY_LIST" },
         ...(Array.isArray(result)
