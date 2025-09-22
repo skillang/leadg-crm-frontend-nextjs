@@ -15,6 +15,7 @@ import {
   // CancelBulkJobRequest,
   // BulkWhatsAppStatsResponse,
   // ValidatePhoneNumbersResponse,
+  NotificationHistoryFilters,
 } from "@/models/types/whatsapp";
 
 const initialState: WhatsAppState = {
@@ -40,6 +41,13 @@ const initialState: WhatsAppState = {
   // Current context
   currentLead: null,
   currentUser: null,
+
+  notificationHistoryFilters: {
+    date_from: undefined,
+    date_to: undefined,
+    notification_type: undefined,
+    search: undefined,
+  },
 
   bulkWhatsappFilters: {
     name: "",
@@ -413,6 +421,53 @@ const whatsappSlice = createSlice({
       state.isLoadingHistory = false;
       state.chatError = null;
     },
+
+    setNotificationHistoryFilters: (
+      state,
+      action: PayloadAction<Partial<NotificationHistoryFilters>>
+    ) => {
+      state.notificationHistoryFilters = {
+        ...state.notificationHistoryFilters,
+        ...action.payload,
+      };
+    },
+
+    setNotificationHistoryDateFrom: (
+      state,
+      action: PayloadAction<string | undefined>
+    ) => {
+      state.notificationHistoryFilters.date_from = action.payload;
+    },
+
+    setNotificationHistoryDateTo: (
+      state,
+      action: PayloadAction<string | undefined>
+    ) => {
+      state.notificationHistoryFilters.date_to = action.payload;
+    },
+
+    setNotificationHistoryType: (
+      state,
+      action: PayloadAction<string | undefined>
+    ) => {
+      state.notificationHistoryFilters.notification_type = action.payload;
+    },
+
+    setNotificationHistorySearch: (
+      state,
+      action: PayloadAction<string | undefined>
+    ) => {
+      state.notificationHistoryFilters.search = action.payload;
+    },
+
+    clearNotificationHistoryFilters: (state) => {
+      state.notificationHistoryFilters = {
+        date_from: undefined,
+        date_to: undefined,
+        notification_type: undefined,
+        search: undefined,
+      };
+    },
   },
 });
 
@@ -462,6 +517,12 @@ export const {
   initializeChatHistory,
   appendChatHistory,
   resetChatPagination,
+  setNotificationHistoryFilters,
+  setNotificationHistoryDateFrom,
+  setNotificationHistoryDateTo,
+  setNotificationHistoryType,
+  setNotificationHistorySearch,
+  clearNotificationHistoryFilters,
 } = whatsappSlice.actions;
 
 export default whatsappSlice.reducer;

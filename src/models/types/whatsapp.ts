@@ -1,5 +1,7 @@
 // src/models/types/whatsapp.ts
 
+import { PaginationMeta } from "./pagination";
+
 // WhatsApp Message Types
 export const MESSAGE_TYPES = {
   TEXT: "text",
@@ -160,6 +162,46 @@ export interface TemplateParameters {
   [key: string]: string;
 }
 
+export interface NotificationHistoryItem {
+  id: string;
+  type: string;
+  lead_id?: string;
+  lead_name: string;
+  message: string;
+  message_id?: string;
+  direction?: string;
+  timestamp: string;
+  read: boolean;
+  read_at: string | null;
+}
+
+export interface NotificationHistoryFilters {
+  date_from?: string;
+  date_to?: string;
+  notification_type?: string;
+  search?: string;
+}
+
+export interface NotificationHistoryResponse {
+  success: boolean;
+  notifications: NotificationHistoryItem[];
+  pagination: PaginationMeta;
+  filters: {
+    page: number;
+    limit: number;
+    date_from: string | null;
+    date_to: string | null;
+    notification_type: string | null;
+    search: string | null;
+  };
+  summary: {
+    total_notifications: number;
+    current_page_count: number;
+    filtered: boolean;
+    user_email: string;
+  };
+}
+
 // ============================================================================
 // 💬 CHAT HISTORY TYPES (NEW ADDITIONS)
 // ============================================================================
@@ -300,6 +342,8 @@ export interface WhatsAppState {
   // Current context
   currentLead: LeadData | null;
   currentUser: UserData | null;
+
+  notificationHistoryFilters: NotificationHistoryFilters;
 
   // 💬 NEW: Chat History States
   chatHistory: ChatMessage[];

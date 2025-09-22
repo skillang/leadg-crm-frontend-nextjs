@@ -21,6 +21,9 @@ import type {
   SendChatMessageResponse,
   ActiveChatsResponse,
   BulkUnreadStatusResponse,
+  NotificationHistoryItem,
+  NotificationHistoryFilters,
+  NotificationHistoryResponse,
 } from "@/models/types/whatsapp";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 import { AdminNotificationOverviewResponse } from "@/models/types/notification";
@@ -257,10 +260,49 @@ export const whatsappApi = createApi({
       ],
     }),
 
-    // Health check for bulk WhatsApp service
-    // getWhatsAppHealth: builder.query<any, void>({
-    //   query: () => "/bulk-whatsapp/health",
-    // }),
+    getNotificationHistory: builder.query<
+      NotificationHistoryResponse,
+      {
+        page?: number;
+        limit?: number;
+        date_from?: string;
+        date_to?: string;
+        notification_type?: string;
+        search?: string;
+      }
+    >({
+      query: (filters = {}) => {
+        const params = new URLSearchParams();
+
+        params.append("page", (filters.page || 1).toString());
+        params.append("limit", (filters.limit || 10).toString());
+
+        // Add optional filters only if they have values
+        if (filters.date_from) {
+          params.append("date_from", filters.date_from);
+        }
+        if (filters.date_to) {
+          params.append("date_to", filters.date_to);
+        }
+        if (filters.notification_type) {
+          params.append("notification_type", filters.notification_type);
+        }
+        if (filters.search) {
+          params.append("search", filters.search);
+        }
+
+        return {
+          url: `/notifications/history?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      // Cache for 5 minutes since notification history doesn't change frequently
+      keepUnusedDataFor: 300,
+      // Provide tags for potential cache invalidation
+      providesTags: (result) => [
+        { type: "WhatsAppStatus" as const, id: "NOTIFICATION_HISTORY" },
+      ],
+    }),
   }),
 });
 
@@ -284,4 +326,5 @@ export const {
   useGetActiveChatsQuery,
   useLoadMoreChatHistoryQuery,
   useLazyLoadMoreChatHistoryQuery,
+  useGetNotificationHistoryQuery,
 } = whatsappApi;
