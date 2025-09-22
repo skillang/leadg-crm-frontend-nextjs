@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface StatsCardProps {
   title: string;
   value: string | number;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   subtitle?: string; // For trends like "+12% from last month"
   isLoading?: boolean;
   className?: string;
