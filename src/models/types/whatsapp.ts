@@ -503,10 +503,7 @@ export interface UnreadLead {
 export interface BulkWhatsAppJobsResponse {
   success: boolean;
   jobs: BulkWhatsAppJob[];
-  total_jobs: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
+  pagination: PaginationMeta;
 }
 
 export interface BulkWhatsAppJobStatusResponse {

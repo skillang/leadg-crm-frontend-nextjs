@@ -48,6 +48,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import StatsCard from "@/components/custom/cards/StatsCard";
+import ServerPagination from "@/components/common/ServerPagination";
 
 const BulkWhatsAppPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -56,11 +57,22 @@ const BulkWhatsAppPage: React.FC = () => {
   );
 
   const [currentPage] = useState(1);
-  const [jobsPage] = useState(1);
+  const [jobsPage, setJobsPage] = useState(1);
+  const [jobsPageSize, setJobsPageSize] = useState(20);
   const [jobsFilter, setJobsFilter] = useState("all");
 
   const { showSuccess, showError } = useNotifications();
   const { isAdmin } = useAdminAccess();
+
+  // Pagination handlers
+  const handleJobsPageChange = (page: number) => {
+    setJobsPage(page);
+  };
+
+  const handleJobsPageSizeChange = (size: number) => {
+    setJobsPageSize(size);
+    setJobsPage(1); // Reset to first page when page size changes
+  };
 
   // Initialize filters with default values
   useEffect(() => {
@@ -102,15 +114,12 @@ const BulkWhatsAppPage: React.FC = () => {
   const { data: leadsData } = isAdmin ? adminLeadsQuery : userLeadsQuery;
 
   // History tab queries
-  const {
-    data: jobsData,
-    isLoading: jobsLoading,
-    refetch: refetchJobs,
-  } = useGetBulkWhatsAppJobsQuery({
-    page: jobsPage,
-    per_page: 20,
-    status: jobsFilter !== "all" ? jobsFilter : undefined,
-  });
+  const { data: jobsData, isLoading: isLoadingJobs } =
+    useGetBulkWhatsAppJobsQuery({
+      page: jobsPage,
+      limit: jobsPageSize,
+      status: jobsFilter !== "all" ? jobsFilter : undefined,
+    });
 
   const { data: statsData } = useGetBulkWhatsAppStatsQuery();
   const [cancelJob, { isLoading: isCancelling }] =
@@ -125,7 +134,6 @@ const BulkWhatsAppPage: React.FC = () => {
     try {
       await cancelJob({ jobId, reason: "Cancelled by user" }).unwrap();
       showSuccess(`Job "${jobName}" has been cancelled successfully`);
-      refetchJobs();
     } catch (error) {
       showError(`Because of ${error}`, "Failed to cancel job");
     }
@@ -177,28 +185,28 @@ const BulkWhatsAppPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <StatsCard
               title="Total Jobs"
-              value={statsData?.stats?.total_jobs || 0}
+              value={statsData?.total_jobs || 0}
               icon={<BarChart3 className="h-8 w-8 text-blue-600" />}
               // isLoading={isloading}
             />
 
             <StatsCard
               title="Messages Sent"
-              value={statsData?.stats?.total_messages_sent || 0}
+              value={statsData?.total_messages_sent || 0}
               icon={<TrendingUp className="h-8 w-8 text-green-500" />}
               // isLoading={isloading}
             />
 
             <StatsCard
-              title="Success Rate"
-              value={statsData?.stats?.success_rate || 0}
+              title="Jobs Today"
+              value={statsData?.jobs_today || 0}
               icon={<TrendingUp className="h-8 w-8 text-purple-500" />}
               // isLoading={isloading}
             />
 
             <StatsCard
-              title="Active Jobs"
-              value={statsData?.stats?.active_jobs || 0}
+              title="Messages Today"
+              value={statsData?.messages_sent_today || 0}
               icon={<PlayCircle className="h-8 w-8 text-orange-500" />}
               // isLoading={isloading}
             />
@@ -229,25 +237,16 @@ const BulkWhatsAppPage: React.FC = () => {
                       <SelectItem value="scheduled">Scheduled</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refetchJobs()}
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh
-                  </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[600px]">
-                {jobsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : jobsData?.jobs && jobsData.jobs.length > 0 ? (
+              {isLoadingJobs ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : jobsData?.jobs && jobsData.jobs.length > 0 ? (
+                <div>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -349,13 +348,32 @@ const BulkWhatsAppPage: React.FC = () => {
                       )) || []}
                     </TableBody>
                   </Table>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No jobs found. Create your first WhatsApp job in the Send
-                    Message tab.
-                  </div>
-                )}
-              </ScrollArea>
+                  {/* Add this after your jobs table */}
+                  {jobsData?.pagination && (
+                    <ServerPagination
+                      paginationMeta={{
+                        total: jobsData.pagination.total,
+                        page: jobsData.pagination.page,
+                        pages: jobsData.pagination.pages,
+                        limit: jobsData.pagination.limit,
+                        has_next: jobsData.pagination.has_next,
+                        has_prev: jobsData.pagination.has_prev,
+                      }}
+                      onPageChange={handleJobsPageChange}
+                      onPageSizeChange={handleJobsPageSizeChange}
+                      showResultsInfo={true}
+                      showPageSizeSelector={true}
+                      pageSizeOptions={[10, 20, 50, 100]}
+                      className="flex-row"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No jobs found. Create your first WhatsApp job in the Send
+                  Message tab.
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

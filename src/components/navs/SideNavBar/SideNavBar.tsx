@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import {
   Settings,
   BarChart2,
-  Contact,
+  // Contact,
   Users,
   LayoutDashboard,
   NotebookText,
@@ -27,6 +27,9 @@ import {
   Phone,
   ChevronsLeftRightEllipsis,
   BellRingIcon,
+  Facebook,
+  UserPlus2,
+  UserRoundMinus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -88,11 +91,11 @@ const mainMenuItems = [
     url: "/admin/call-dashboard",
     icon: ChevronsLeftRightEllipsis,
   },
-  {
-    title: "Contacts",
-    url: "#",
-    icon: Contact,
-  },
+  // {
+  //   title: "Contacts",
+  //   url: "#",
+  //   icon: Contact,
+  // },
   {
     title: "Reports",
     url: "#",
@@ -103,6 +106,19 @@ const mainMenuItems = [
     title: "Settings",
     url: "#",
     icon: Settings,
+  },
+];
+
+const LeadSourceItems = [
+  {
+    title: "FaceBook Leads",
+    url: "/facebook-integration",
+    icon: Facebook,
+  },
+  {
+    title: "Unassigned Leads",
+    url: "/admin/unassigned-leads",
+    icon: UserRoundMinus,
   },
 ];
 
@@ -299,6 +315,32 @@ const SideNavBarComp = () => {
             </div>
             <SidebarGroupContent>
               <SidebarMenu>
+                <Collapsible defaultOpen={true} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="w-full">
+                        <UserPlus2 />
+                        <span>Lead Source</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {LeadSourceItems.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild>
+                              <Link href={item.url}>
+                                <item.icon />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+
                 {/* User Actions with Collapsible Sub-Menu */}
                 <Collapsible defaultOpen={false} className="group/collapsible">
                   <SidebarMenuItem>

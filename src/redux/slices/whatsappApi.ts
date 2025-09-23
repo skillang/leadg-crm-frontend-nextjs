@@ -24,6 +24,7 @@ import type {
   NotificationHistoryItem,
   NotificationHistoryFilters,
   NotificationHistoryResponse,
+  BulkWhatsAppStats,
 } from "@/models/types/whatsapp";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 import { AdminNotificationOverviewResponse } from "@/models/types/notification";
@@ -114,12 +115,12 @@ export const whatsappApi = createApi({
     // List bulk WhatsApp jobs with pagination
     getBulkWhatsAppJobs: builder.query<
       BulkWhatsAppJobsResponse,
-      { page?: number; per_page?: number; status?: string }
+      { page?: number; limit?: number; status?: string }
     >({
-      query: ({ page = 1, per_page = 20, status }) => {
+      query: ({ page = 1, limit = 20, status }) => {
         const params = new URLSearchParams();
         params.append("page", page.toString());
-        params.append("per_page", per_page.toString());
+        params.append("limit", limit.toString());
         if (status) params.append("status", status);
 
         return `/bulk-whatsapp/jobs?${params.toString()}`;
@@ -163,7 +164,7 @@ export const whatsappApi = createApi({
     }),
 
     // Get bulk WhatsApp statistics
-    getBulkWhatsAppStats: builder.query<BulkWhatsAppStatsResponse, void>({
+    getBulkWhatsAppStats: builder.query<BulkWhatsAppStats, void>({
       query: () => "/bulk-whatsapp/stats",
       providesTags: ["WhatsAppStatus"],
     }),
