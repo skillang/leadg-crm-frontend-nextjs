@@ -32,6 +32,7 @@ import { passwordResetApi } from "../slices/passwordResetApi";
 import { cvExtractionApi } from "../slices/cvExtractionApi";
 import cvExtractionReducer from "../slices/cvExtractionSlice";
 import { facebookApi } from "../slices/facebookApi";
+import { userApi } from "../slices/userApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -46,6 +47,7 @@ const rootReducer = combineReducers({
   // RTK Query APIs
   [leadsApi.reducerPath]: leadsApi.reducer,
   [authApi.reducerPath]: authApi.reducer,
+  [userApi.reducerPath]: userApi.reducer,
   [notesApi.reducerPath]: notesApi.reducer,
   [tasksApi.reducerPath]: tasksApi.reducer,
   [documentsApi.reducerPath]: documentsApi.reducer,
@@ -103,6 +105,7 @@ export const store = configureStore({
     }).concat(
       leadsApi.middleware,
       authApi.middleware,
+      userApi.middleware,
       notesApi.middleware,
       tasksApi.middleware,
       documentsApi.middleware,

@@ -144,14 +144,6 @@ export const authApi = createApi({
       },
     }),
 
-    getCurrentUser: builder.query<CurrentUserResponse, void>({
-      query: () => ({
-        url: "/me",
-        method: "GET",
-      }),
-      providesTags: ["Auth", "User"],
-    }),
-
     logout: builder.mutation<LogoutResponse, LogoutRequest>({
       query: (logoutData) => ({
         url: "/logout",
@@ -168,103 +160,6 @@ export const authApi = createApi({
       },
       invalidatesTags: ["Auth", "User"],
     }),
-
-    adminRegisterUser: builder.mutation<
-      AdminRegisterResponse,
-      AdminRegisterRequest
-    >({
-      query: (userData) => ({
-        url: "/register",
-        method: "POST",
-        body: userData,
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          dispatch(setError(null));
-        } catch {
-          // Error handled in baseQueryWithErrorHandling
-        }
-      },
-      // 🔥 FIX: Invalidate both User AND Department tags
-      invalidatesTags: ["User", "Department"], // Add "Department" here
-    }),
-
-    getDepartments: builder.query<
-      DepartmentsResponse,
-      { include_user_count?: boolean }
-    >({
-      query: ({ include_user_count = true } = {}) => ({
-        url: `/departments?include_user_count=${include_user_count}`,
-        method: "GET",
-      }),
-      providesTags: ["Department"],
-      // Cache for 5 minutes since departments don't change often
-      keepUnusedDataFor: 300,
-    }),
-
-    // 🔥 NEW: Create department (admin only)
-    createDepartment: builder.mutation<
-      CreateDepartmentResponse,
-      CreateDepartmentRequest
-    >({
-      query: (departmentData) => ({
-        url: "/departments",
-        method: "POST",
-        body: departmentData,
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          dispatch(setError(null));
-        } catch (error) {
-          console.error("Department creation failed:", error);
-        }
-      },
-      invalidatesTags: ["Department"], // Refresh departments list
-    }),
-
-    // 🔥 NEW: Update department (admin only)
-    updateDepartment: builder.mutation<
-      CreateDepartmentResponse,
-      { departmentId: string; departmentData: Partial<CreateDepartmentRequest> }
-    >({
-      query: ({ departmentId, departmentData }) => ({
-        url: `/departments/${departmentId}`,
-        method: "PUT",
-        body: departmentData,
-      }),
-      invalidatesTags: ["Department"],
-    }),
-
-    deleteUser: builder.mutation<DeleteUserResponse, string>({
-      query: (userId) => ({
-        url: `/users/${userId}`,
-        method: "DELETE",
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          dispatch(setError(null));
-        } catch (error) {
-          console.error("User deletion failed:", error);
-        }
-      },
-      // Invalidate user lists to refresh data after deletion
-      invalidatesTags: ["User", "Department"],
-    }),
-
-    // 🔥 NEW: Delete department (admin only)
-    deleteDepartment: builder.mutation<
-      { success: boolean; message: string },
-      string
-    >({
-      query: (departmentId) => ({
-        url: `/departments/${departmentId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Department"],
-    }),
   }),
 });
 
@@ -272,13 +167,5 @@ export const {
   useLoginMutation,
   useRefreshTokenMutation,
   useRegisterMutation,
-  useGetCurrentUserQuery,
   useLogoutMutation,
-  // 🔥 NEW HOOKS
-  useAdminRegisterUserMutation,
-  useGetDepartmentsQuery,
-  useCreateDepartmentMutation,
-  useUpdateDepartmentMutation,
-  useDeleteDepartmentMutation,
-  useDeleteUserMutation,
 } = authApi;

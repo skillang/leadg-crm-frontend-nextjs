@@ -16,7 +16,7 @@ import {
   setLoading,
   updateUserWithPermissions,
 } from "@/redux/slices/authSlice";
-import { useGetCurrentUserQuery } from "@/redux/slices/authApi";
+import { useGetCurrentUserQuery } from "@/redux/slices/userApi";
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   useAdminRegisterUserMutation,
   useGetDepartmentsQuery,
-} from "@/redux/slices/authApi";
+} from "@/redux/slices/userApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";

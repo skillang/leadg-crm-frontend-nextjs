@@ -1,12 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  useGetDepartmentsQuery,
-  useCreateDepartmentMutation,
-  // useUpdateDepartmentMutation,
-  useDeleteDepartmentMutation,
-} from "@/redux/slices/authApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
@@ -31,6 +25,11 @@ import {
   deleteDepartmentService,
   calculateDepartmentStats,
 } from "@/services/departments/departmentsService";
+import {
+  useCreateDepartmentMutation,
+  useDeleteDepartmentMutation,
+  useGetDepartmentsQuery,
+} from "@/redux/slices/userApi";
 
 const DepartmentManagementPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals

@@ -17,19 +17,12 @@ import {
   CallStatus,
   // ApiError,
 } from "@/models/types/callDashboard";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
 // Base query with auth token
-const baseQuery = fetchBaseQuery({
-  baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin`,
-  prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.token;
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-    headers.set("content-type", "application/json");
-    return headers;
-  },
-});
+const baseQuery = createBaseQueryWithReauth(
+  `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin`
+);
 
 export const callDashboardApi = createApi({
   reducerPath: "callDashboardApi",

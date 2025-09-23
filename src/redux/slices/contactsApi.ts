@@ -15,20 +15,11 @@ import {
 import type { RootState } from "../store";
 import type { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { transformContact, RawContact } from "@/models/types/contact";
+import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
 
-const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/",
-  prepareHeaders: (headers, { getState }) => {
-    const state = getState() as RootState;
-    const token = state.auth.token;
-
-    if (token) headers.set("authorization", `Bearer ${token}`);
-    headers.set("content-type", "application/json");
-    headers.set("accept", "application/json"); // Add this
-
-    return headers;
-  },
-});
+const baseQuery = createBaseQueryWithReauth(
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/"
+);
 
 const baseQueryWithLogging: BaseQueryFn<
   string | FetchArgs,
@@ -41,7 +32,7 @@ const baseQueryWithLogging: BaseQueryFn<
   //   body: typeof args === "string" ? undefined : args.body,
   // });
 
-  const result = await rawBaseQuery(args, api, extraOptions);
+  const result = await baseQuery(args, api, extraOptions);
 
   if (result.error) {
     console.error("❌ API Error:", {

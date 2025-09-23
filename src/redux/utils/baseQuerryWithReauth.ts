@@ -145,13 +145,12 @@ const handleForceLogout = async (api: BaseQueryApi) => {
     // Clear auth state
     api.dispatch(clearAuthState());
 
-    // ✅ IMPROVED: Use notification system properly
+    // ✅ Use custom notification system instead of window.alert
     if (globalNotificationService && typeof window !== "undefined") {
-      // Use showConfirm instead of showWarning for better UX
       globalNotificationService.showConfirm({
         title: "Session Expired",
         description:
-          "Your session has expired. You will be redirected to the login page.",
+          "Your session has expired. Please log in again. To stay logged in, make sure to select 'Remember me for 30 days' next time",
         confirmText: "Go to Login",
         cancelText: "Stay Here",
         variant: "default",
@@ -159,8 +158,7 @@ const handleForceLogout = async (api: BaseQueryApi) => {
           redirectToLogin();
         },
         onCancel: () => {
-          // User chose to stay, but they won't be able to make authenticated requests
-          // You might want to show additional guidance here
+          // User chose to stay, show additional guidance
           globalNotificationService?.showWarning(
             "You will need to refresh the page or navigate to login manually to continue.",
             "Authentication Required"
@@ -168,18 +166,12 @@ const handleForceLogout = async (api: BaseQueryApi) => {
         },
       });
     } else {
-      // Fallback to browser alert if notification system not available
+      // Fallback for when notification system isn't available
       if (typeof window !== "undefined" && window.location) {
-        const message = "Your session has expired. Please log in again.";
-
-        // Use modern browser confirm if available, otherwise alert
-        if (window.confirm && window.confirm(message)) {
-          redirectToLogin();
-        } else if (window.alert) {
-          window.alert(message);
-          redirectToLogin();
-        } else {
-          // Last resort - direct redirect
+        const userConfirmed = window.confirm(
+          "Your session has expired. Please log in again."
+        );
+        if (userConfirmed) {
           redirectToLogin();
         }
       }
@@ -187,7 +179,7 @@ const handleForceLogout = async (api: BaseQueryApi) => {
   } catch (error) {
     console.error("💥 Error during force logout:", error);
 
-    // If notification system fails, show error and still try to redirect
+    // Show error notification and still redirect
     if (globalNotificationService) {
       globalNotificationService.showError(
         "An error occurred during logout. You will be redirected to login.",
@@ -195,7 +187,7 @@ const handleForceLogout = async (api: BaseQueryApi) => {
       );
     }
 
-    // Still try to redirect even if cleanup fails
+    // Still redirect even if cleanup fails
     setTimeout(() => {
       redirectToLogin();
     }, 2000);

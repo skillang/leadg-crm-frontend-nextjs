@@ -4,7 +4,6 @@
 
 import React from "react";
 import { useAppSelector } from "@/redux/hooks";
-import { useGetCurrentUserQuery } from "@/redux/slices/authApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import {
   Settings,
 } from "lucide-react";
 import { CurrentUserResponse } from "@/models/types/auth"; // ✅ Single interface
+import { useGetCurrentUserQuery } from "@/redux/slices/userApi";
 
 export default function ProfilePage() {
   // Get current user from Redux state

@@ -5,7 +5,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi";
-import { useDeleteUserMutation } from "@/redux/slices/authApi";
+import { useDeleteUserMutation } from "@/redux/slices/userApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
