@@ -31,8 +31,6 @@ import {
   Archive,
   Loader2,
   AlertCircle,
-  Mail,
-  Phone,
 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { UserActivity } from "@/models/types/notification";
@@ -50,15 +48,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Calendar,
   Filter,
   Search,
   MessageSquare,
-  Eye,
-  EyeOff,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
   ArrowUp,
   ArrowDown,
   ExternalLink,
