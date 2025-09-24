@@ -1,4 +1,4 @@
-// src/components/leads/SingleLeadCreationCV.tsx
+// src/components/leads/SingleLeadCreationCVModal.tsx
 
 "use client";
 
@@ -10,6 +10,7 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,14 +45,16 @@ import {
   ConvertToLeadRequest,
 } from "@/models/types/cvExtraction";
 
-interface SingleLeadCreationCVProps {
+interface SingleLeadCreationCVModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   onLeadCreated?: (leadId: string) => void;
-  onClose?: () => void;
 }
 
-const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
-  onLeadCreated,
+const SingleLeadCreationCVModal: React.FC<SingleLeadCreationCVModalProps> = ({
+  isOpen,
   onClose,
+  onLeadCreated,
 }) => {
   // State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -78,12 +81,30 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
   const [convertToLead, { isLoading: isConverting }] =
     useConvertToLeadMutation();
 
-  const { data: extractionsData, refetch } = useGetCVExtractionsQuery({
-    page: 1,
-    limit: 10,
-  });
-  const { data: categoriesData } = useGetCategoriesQuery({});
-  const { data: sourcesData } = useGetActiveSourcesQuery({});
+  const { data: extractionsData, refetch } = useGetCVExtractionsQuery(
+    {
+      page: 1,
+      limit: 10,
+    },
+    { skip: !isOpen } // Only fetch when modal is open
+  );
+  const { data: categoriesData } = useGetCategoriesQuery({}, { skip: !isOpen });
+  const { data: sourcesData } = useGetActiveSourcesQuery({}, { skip: !isOpen });
+
+  // Reset state when modal closes
+  const handleClose = () => {
+    setSelectedFile(null);
+    setPreviewExtraction(null);
+    setEditExtraction(null);
+    setConvertData({});
+    setIsPreviewOpen(false);
+    setIsEditOpen(false);
+    setIsConvertOpen(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    onClose();
+  };
 
   // Handlers
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,7 +142,6 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
       ...extraction,
       extracted_data: {
         ...extraction.extracted_data,
-        // Add missing fields with defaults
         age: extraction.extracted_data.age || null,
         experience: extraction.extracted_data.experience || "",
         skills: extraction.extracted_data.skills || "",
@@ -170,7 +190,7 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
     setConvertData({
       processing_id: extraction.processing_id,
       category: "",
-      source: "cv_upload", // Default source
+      source: "cv_upload",
       course_level: "intermediate",
       stage: "initial",
       lead_score: 75,
@@ -197,7 +217,7 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
       setConvertData({});
       refetch();
       onLeadCreated?.(result.lead_id);
-      onClose?.(); // Close the parent modal after successful conversion
+      handleClose(); // Close the main modal after successful conversion
     } catch (error) {
       console.error("Convert failed:", error);
     }
@@ -208,135 +228,156 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
   const sources = sourcesData?.sources || [];
 
   return (
-    <div className="space-y-4">
-      {/* Upload Section */}
-      <div className="space-y-4">
-        <div>
-          <Label>Upload CV/Resume</Label>
-          <p className="text-sm text-gray-600 mb-3">
-            Upload a CV or resume to extract information and create a lead
-          </p>
-        </div>
+    <>
+      {/* Main CV Upload Modal */}
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Upload CV to Create Lead
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="flex items-center gap-4">
-          <Input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={handleFileSelect}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-            size="sm"
-          >
-            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Upload
-          </Button>
-        </div>
-        <p className="text-xs text-gray-500">
-          Supported: PDF, DOC, DOCX (Max 10MB)
-        </p>
-      </div>
+          <div className="space-y-6">
+            {/* Upload Section */}
+            <div className="space-y-4">
+              <div>
+                <Label>Upload CV/Resume</Label>
+                <p className="text-sm text-gray-600 mb-3">
+                  Upload a CV or resume to extract information and create a lead
+                </p>
+              </div>
 
-      {/* CV Extractions List */}
-      <div className="space-y-3">
-        <Label>Recent CV Extractions</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileSelect}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isUploading}
+                  size="sm"
+                >
+                  {isUploading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Upload
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Supported: PDF, DOC, DOCX (Max 10MB)
+              </p>
+            </div>
 
-        {extractions.length === 0 ? (
-          <div className="text-center py-6 text-gray-500 border-2 border-dashed rounded-lg">
-            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No CV extractions found</p>
-            <p className="text-xs">Upload a CV above to get started</p>
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-80 overflow-y-auto">
-            {extractions.map((extraction) => (
-              <div
-                key={extraction.processing_id}
-                className="border rounded-lg p-3 space-y-2"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1 flex-1">
-                    <h4 className="font-medium text-sm">
-                      {extraction.extracted_data.name || "Name not found"}
-                    </h4>
-                    <p className="text-xs text-gray-600 truncate">
-                      {extraction.file_metadata.original_filename}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <Badge
-                        variant={
-                          extraction.status === "pending_review"
-                            ? "secondary"
-                            : extraction.status === "reviewed"
-                            ? "default"
-                            : "destructive"
-                        }
-                      >
-                        {extraction.status.replace("_", " ")}
-                      </Badge>
-                      {extraction.converted_to_lead && (
-                        <Badge variant="outline" className="text-green-600">
-                          Converted
-                        </Badge>
+            {/* CV Extractions List */}
+            <div className="space-y-3">
+              <Label>Recent CV Extractions</Label>
+
+              {extractions.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
+                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium">No CV extractions found</p>
+                  <p className="text-xs">Upload a CV above to get started</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto border rounded-lg p-4">
+                  {extractions.map((extraction) => (
+                    <div
+                      key={extraction.processing_id}
+                      className="border rounded-lg p-4 space-y-3 bg-gray-50/50"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2 flex-1">
+                          <h4 className="font-medium text-sm">
+                            {extraction.extracted_data.name || "Name not found"}
+                          </h4>
+                          <p className="text-xs text-gray-600 truncate">
+                            {extraction.file_metadata.original_filename}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                extraction.status === "pending_review"
+                                  ? "secondary"
+                                  : extraction.status === "reviewed"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {extraction.status.replace("_", " ")}
+                            </Badge>
+                            {extraction.converted_to_lead && (
+                              <Badge
+                                variant="outline"
+                                className="text-green-600"
+                              >
+                                Converted
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handlePreview(extraction)}
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(extraction)}
+                            disabled={extraction.converted_to_lead}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              handleDelete(extraction.processing_id)
+                            }
+                            disabled={isDeleting}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <p>
+                          <strong>Email:</strong>{" "}
+                          {extraction.extracted_data.email || "Not found"}
+                        </p>
+                        <p>
+                          <strong>Phone:</strong>{" "}
+                          {extraction.extracted_data.phone || "Not found"}
+                        </p>
+                      </div>
+
+                      {!extraction.converted_to_lead && (
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleConvert(extraction)}
+                        >
+                          Convert to Lead
+                        </Button>
                       )}
                     </div>
-                  </div>
-
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handlePreview(extraction)}
-                    >
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(extraction)}
-                      disabled={extraction.converted_to_lead}
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(extraction.processing_id)}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-
-                <div className="text-xs text-gray-600 space-y-1">
-                  <p>
-                    <strong>Email:</strong>{" "}
-                    {extraction.extracted_data.email || "Not found"}
-                  </p>
-                  <p>
-                    <strong>Phone:</strong>{" "}
-                    {extraction.extracted_data.phone || "Not found"}
-                  </p>
-                </div>
-
-                {!extraction.converted_to_lead && (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleConvert(extraction)}
-                  >
-                    Convert to Lead
-                  </Button>
-                )}
-              </div>
-            ))}
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
@@ -397,7 +438,7 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Modal - Enhanced with all fields */}
+      {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -405,7 +446,6 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
           </DialogHeader>
           {editExtraction && (
             <div className="space-y-4">
-              {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-name">Name *</Label>
@@ -548,7 +588,7 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Convert to Lead Modal - Enhanced with Source dropdown */}
+      {/* Convert to Lead Modal */}
       <Dialog open={isConvertOpen} onOpenChange={setIsConvertOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -641,8 +681,8 @@ const SingleLeadCreationCV: React.FC<SingleLeadCreationCVProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
-export default SingleLeadCreationCV;
+export default SingleLeadCreationCVModal;

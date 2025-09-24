@@ -606,520 +606,465 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
           <DialogTitle>Add Lead</DialogTitle>
         </DialogHeader>
 
-        <Tabs
-          value={leadCreationType}
-          onValueChange={(value) =>
-            setLeadCreationType(value as "manual" | "cv")
-          }
-          className="h-full"
-        >
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="manual" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Manual Entry
-            </TabsTrigger>
-            <TabsTrigger value="cv" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              From CV
-            </TabsTrigger>
-          </TabsList>
+        <form onSubmit={handleSubmit} className="h-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="h-full"
+          >
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="status">Status & Tags</TabsTrigger>
+              <TabsTrigger value="assignment">Assignment</TabsTrigger>
+              <TabsTrigger value="additional">Additional Info</TabsTrigger>
+            </TabsList>
 
-          {/* Wrap your existing form in manual tab */}
-          <TabsContent value="manual" className="h-full mt-0">
-            <form onSubmit={handleSubmit} className="h-full">
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="h-full"
+            <div className="mt-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+              {/* Details Tab */}
+              <TabsContent
+                value="details"
+                className="space-y-4 mt-0 overflow-x-hidden"
               >
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="status">Status & Tags</TabsTrigger>
-                  <TabsTrigger value="assignment">Assignment</TabsTrigger>
-                  <TabsTrigger value="additional">Additional Info</TabsTrigger>
-                </TabsList>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      placeholder="Enter full name"
+                      className={errors.name ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-500">{errors.name}</p>
+                    )}
+                  </div>
 
-                <div className="mt-6 max-h-[calc(90vh-200px)] overflow-y-auto">
-                  {/* Details Tab */}
-                  <TabsContent
-                    value="details"
-                    className="space-y-4 mt-0 overflow-x-hidden"
-                  >
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">
-                          Name <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) =>
-                            handleInputChange("name", e.target.value)
-                          }
-                          placeholder="Enter full name"
-                          className={errors.name ? "border-red-500" : ""}
-                          disabled={isCreating}
-                        />
-                        {errors.name && (
-                          <p className="text-sm text-red-500">{errors.name}</p>
-                        )}
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      placeholder="Enter email address"
+                      className={errors.email ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-500">{errors.email}</p>
+                    )}
+                  </div>
+                </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) =>
-                            handleInputChange("email", e.target.value)
-                          }
-                          placeholder="Enter email address"
-                          className={errors.email ? "border-red-500" : ""}
-                          disabled={isCreating}
-                        />
-                        {errors.email && (
-                          <p className="text-sm text-red-500">{errors.email}</p>
-                        )}
-                      </div>
-                    </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_number">
+                      Contact Number <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="contact_number"
+                      type="tel"
+                      value={formData.contact_number}
+                      onChange={(e) =>
+                        handleInputChange("contact_number", e.target.value)
+                      }
+                      placeholder="Enter contact number"
+                      className={errors.contact_number ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.contact_number && (
+                      <p className="text-sm text-red-500">
+                        {errors.contact_number}
+                      </p>
+                    )}
+                  </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="contact_number">
-                          Contact Number <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="contact_number"
-                          type="tel"
-                          value={formData.contact_number}
-                          onChange={(e) =>
-                            handleInputChange("contact_number", e.target.value)
-                          }
-                          placeholder="Enter contact number"
-                          className={
-                            errors.contact_number ? "border-red-500" : ""
-                          }
-                          disabled={isCreating}
-                        />
-                        {errors.contact_number && (
-                          <p className="text-sm text-red-500">
-                            {errors.contact_number}
-                          </p>
-                        )}
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      value={formData.age || ""}
+                      onChange={(e) =>
+                        handleInputChange("age", parseInt(e.target.value) || 0)
+                      }
+                      placeholder="Enter age"
+                      min="16"
+                      max="100"
+                      disabled={isCreating}
+                    />
+                    {errors.age && (
+                      <p className="text-sm text-red-500">{errors.age}</p>
+                    )}
+                  </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="age">Age</Label>
-                        <Input
-                          id="age"
-                          type="number"
-                          value={formData.age || ""}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "age",
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          placeholder="Enter age"
-                          min="16"
-                          max="100"
-                          disabled={isCreating}
-                        />
-                        {errors.age && (
-                          <p className="text-sm text-red-500">{errors.age}</p>
-                        )}
-                      </div>
+                  <div className="space-y-2">
+                    <ExperienceLevelDropdown
+                      value={formData.experience}
+                      onValueChange={(value) =>
+                        handleInputChange("experience", value)
+                      }
+                      label="Experience Level"
+                      placeholder="Select exp level"
+                      disabled={isCreating}
+                    />
+                  </div>
+                </div>
 
-                      <div className="space-y-2">
-                        <ExperienceLevelDropdown
-                          value={formData.experience}
-                          onValueChange={(value) =>
-                            handleInputChange("experience", value)
-                          }
-                          label="Experience Level"
-                          placeholder="Select exp level"
-                          disabled={isCreating}
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nationality">Nationality</Label>
+                    <Select
+                      value={formData.nationality}
+                      onValueChange={(value) =>
+                        handleInputChange("nationality", value)
+                      }
+                      disabled={isCreating}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select nationality" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NATIONALITIES.map((nationality) => (
+                          <SelectItem key={nationality} value={nationality}>
+                            {nationality}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nationality">Nationality</Label>
-                        <Select
-                          value={formData.nationality}
-                          onValueChange={(value) =>
-                            handleInputChange("nationality", value)
-                          }
-                          disabled={isCreating}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select nationality" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {NATIONALITIES.map((nationality) => (
-                              <SelectItem key={nationality} value={nationality}>
-                                {nationality}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="current_location">Current Location</Label>
+                    <Input
+                      id="current_location"
+                      type="text"
+                      value={formData.current_location}
+                      onChange={(e) =>
+                        handleInputChange("current_location", e.target.value)
+                      }
+                      placeholder="Enter current location"
+                      disabled={isCreating}
+                    />
+                  </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="current_location">
-                          Current Location
-                        </Label>
-                        <Input
-                          id="current_location"
-                          type="text"
-                          value={formData.current_location}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "current_location",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Enter current location"
-                          disabled={isCreating}
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <CourseLevelDropdown
+                      value={formData.course_level}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          course_level: value,
+                        }))
+                      }
+                      label="Course Level"
+                      placeholder="Select course level"
+                      required={false}
+                    />
+                  </div>
+                </div>
 
-                      <div className="space-y-2">
-                        <CourseLevelDropdown
-                          value={formData.course_level}
-                          onValueChange={(value) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              course_level: value,
-                            }))
-                          }
-                          label="Course Level"
-                          placeholder="Select course level"
-                          required={false}
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="source">Source *</Label>
+                    <SourceDropdown
+                      value={formData.source}
+                      onValueChange={(value) =>
+                        handleInputChange("source", value)
+                      }
+                      disabled={isCreating}
+                      placeholder="Select source"
+                    />
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="source">Source *</Label>
-                        <SourceDropdown
-                          value={formData.source}
-                          onValueChange={(value) =>
-                            handleInputChange("source", value)
-                          }
-                          disabled={isCreating}
-                          placeholder="Select source"
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">
+                      Category <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        handleInputChange("category", value)
+                      }
+                      disabled={isCreating || isLoadingCategories}
+                    >
+                      <SelectTrigger
+                        className={errors.category ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name} ({category.short_form})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.category && (
+                      <p className="text-sm text-red-500">{errors.category}</p>
+                    )}
+                  </div>
+                </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="category">
-                          Category <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={formData.category}
-                          onValueChange={(value) =>
-                            handleInputChange("category", value)
-                          }
-                          disabled={isCreating || isLoadingCategories}
-                        >
-                          <SelectTrigger
-                            className={errors.category ? "border-red-500" : ""}
-                          >
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem
-                                key={category.id}
-                                value={category.name}
-                              >
-                                {category.name} ({category.short_form})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.category && (
-                          <p className="text-sm text-red-500">
-                            {errors.category}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                <div className="space-y-2">
+                  <Label>Countries of Interest</Label>
+                  <MultiSelect
+                    options={transformDestinationsToOptions()}
+                    value={formData.country_of_interest}
+                    onChange={(countries) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        country_of_interest: countries,
+                      }))
+                    }
+                    disabled={isCreating}
+                    placeholder="Select countries..."
+                    searchPlaceholder="Search countries..."
+                    emptyMessage="No countries found."
+                    maxDisplayItems={3}
+                    showCheckbox={true}
+                    allowSingleSelect={false}
+                  />
+                </div>
+              </TabsContent>
 
+              {/* Status & Tags Tab */}
+              <TabsContent value="status" className="space-y-4 mt-0">
+                <div className="grid grid-cols-2 gap-4">
+                  <StageSelect
+                    value={formData.stage}
+                    onValueChange={(value) => handleInputChange("stage", value)}
+                    stages={stages}
+                    disabled={isCreating}
+                    isLoading={isLoadingStages}
+                    required={true}
+                    error={errors.stage}
+                  />
+
+                  <div className="space-y-2">
+                    <StatusSelect
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        handleInputChange("status", value)
+                      }
+                      statuses={statuses}
+                      disabled={isCreating}
+                      isLoading={isLoadingStatuses}
+                      error={errors.status}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lead_score">
+                      Lead Score (0-100) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="lead_score"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.lead_score}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "lead_score",
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      placeholder="Enter score"
+                      className={errors.lead_score ? "border-red-500" : ""}
+                      disabled={isCreating}
+                    />
+                    {errors.lead_score && (
+                      <p className="text-sm text-red-500">
+                        {errors.lead_score}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label>
+                    Tags <span className="text-red-500">*</span>
+                  </Label>
+
+                  {/* Add custom tag */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a tag"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyPress={handleTagKeyPress}
+                      disabled={isCreating}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddTag}
+                      disabled={!newTag.trim() || isCreating}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Predefined tags */}
+                  <div className="flex flex-wrap gap-2">
+                    {PREDEFINED_TAGS.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant={
+                          formData.tags.includes(tag) ? "default" : "outline"
+                        }
+                        className="cursor-pointer"
+                        onClick={() => handleAddPredefinedTag(tag)}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {/* Selected tags */}
+                  {formData.tags.length > 0 && (
                     <div className="space-y-2">
-                      <Label>Countries of Interest</Label>
-                      <MultiSelect
-                        options={transformDestinationsToOptions()}
-                        value={formData.country_of_interest}
-                        onChange={(countries) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            country_of_interest: countries,
-                          }))
-                        }
-                        disabled={isCreating}
-                        placeholder="Select countries..."
-                        searchPlaceholder="Search countries..."
-                        emptyMessage="No countries found."
-                        maxDisplayItems={3}
-                        showCheckbox={true}
-                        allowSingleSelect={false}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  {/* Status & Tags Tab */}
-                  <TabsContent value="status" className="space-y-4 mt-0">
-                    <div className="grid grid-cols-2 gap-4">
-                      <StageSelect
-                        value={formData.stage}
-                        onValueChange={(value) =>
-                          handleInputChange("stage", value)
-                        }
-                        stages={stages}
-                        disabled={isCreating}
-                        isLoading={isLoadingStages}
-                        required={true}
-                        error={errors.stage}
-                      />
-
-                      <div className="space-y-2">
-                        <StatusSelect
-                          value={formData.status}
-                          onValueChange={(value) =>
-                            handleInputChange("status", value)
-                          }
-                          statuses={statuses}
-                          disabled={isCreating}
-                          isLoading={isLoadingStatuses}
-                          error={errors.status}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="lead_score">
-                          Lead Score (0-100){" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="lead_score"
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={formData.lead_score}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "lead_score",
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          placeholder="Enter score"
-                          className={errors.lead_score ? "border-red-500" : ""}
-                          disabled={isCreating}
-                        />
-                        {errors.lead_score && (
-                          <p className="text-sm text-red-500">
-                            {errors.lead_score}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <Label>
-                        Tags <span className="text-red-500">*</span>
-                      </Label>
-
-                      {/* Add custom tag */}
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Add a tag"
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          onKeyPress={handleTagKeyPress}
-                          disabled={isCreating}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAddTag}
-                          disabled={!newTag.trim() || isCreating}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {/* Predefined tags */}
+                      <p className="text-sm text-gray-600">Selected tags:</p>
                       <div className="flex flex-wrap gap-2">
-                        {PREDEFINED_TAGS.map((tag) => (
+                        {formData.tags.map((tag) => (
                           <Badge
                             key={tag}
-                            variant={
-                              formData.tags.includes(tag)
-                                ? "default"
-                                : "outline"
-                            }
-                            className="cursor-pointer"
-                            onClick={() => handleAddPredefinedTag(tag)}
+                            variant="secondary"
+                            className="flex items-center gap-1"
                           >
                             {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              disabled={isCreating}
+                              className="ml-1 text-gray-500 hover:text-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           </Badge>
                         ))}
                       </div>
-
-                      {/* Selected tags */}
-                      {formData.tags.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm text-gray-600">
-                            Selected tags:
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {formData.tags.map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="secondary"
-                                className="flex items-center gap-1"
-                              >
-                                {tag}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveTag(tag)}
-                                  disabled={isCreating}
-                                  className="ml-1 text-gray-500 hover:text-red-500"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  </TabsContent>
-
-                  {/* Assignment Tab */}
-                  <TabsContent value="assignment" className="space-y-4 mt-0">
-                    <div className="space-y-4">
-                      <LeadAssignmentDropdown
-                        mode="create"
-                        currentAssignment={formData.assigned_to || "unassigned"}
-                        onAssignmentChange={handleAssignmentChange}
-                        disabled={isCreating}
-                        showLabel={true}
-                      />
-
-                      {/* Show current assignment details */}
-                      {assignmentMode === "selective_round_robin" &&
-                        selectedUserEmails.length > 0 && (
-                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 className="font-medium text-blue-900">
-                              Selective Round Robin - Selected Counselors (
-                              {selectedUserEmails.length})
-                            </h4>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {selectedUserEmails.map((email) => {
-                                const user = assignableUsers.find(
-                                  (u) => u.email === email
-                                );
-                                return (
-                                  <Badge key={email} variant="secondary">
-                                    {user?.name || email}
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                            <p className="text-sm text-blue-700 mt-1">
-                              Lead will be assigned to the next available
-                              counselor from the selected list.
-                            </p>
-                          </div>
-                        )}
-
-                      {assignmentMode === "auto_round_robin" && (
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                          <h4 className="font-medium text-green-900">
-                            Auto Round Robin Assignment
-                          </h4>
-                          <p className="text-sm text-green-700 mt-1">
-                            Lead will be automatically assigned to the next
-                            available counselor in rotation among all active
-                            users.
-                          </p>
-                        </div>
-                      )}
-
-                      {formData.assigned_to && assignmentMode === "manual" && (
-                        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                          <h4 className="font-medium text-gray-900">
-                            Manual Assignment
-                          </h4>
-                          <p className="text-sm text-gray-700 mt-1">
-                            Assigned to:{" "}
-                            <strong>
-                              {formData.assigned_to_name ||
-                                formData.assigned_to}
-                            </strong>
-                          </p>
-                        </div>
-                      )}
-
-                      {errors.assignment && (
-                        <p className="text-sm text-red-500">
-                          {errors.assignment}
-                        </p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  {/* Additional Info Tab */}
-                  <TabsContent value="additional" className="space-y-4 mt-0">
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Notes</Label>
-                      <Textarea
-                        id="notes"
-                        value={formData.notes}
-                        onChange={(e) =>
-                          handleInputChange("notes", e.target.value)
-                        }
-                        placeholder="Add any additional notes about this lead..."
-                        rows={6}
-                        disabled={isCreating}
-                      />
-                    </div>
-                  </TabsContent>
+                  )}
                 </div>
+              </TabsContent>
 
-                {/* Action buttons */}
-                <div className="flex justify-end gap-3 pt-3 border-t mt-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onClose}
+              {/* Assignment Tab */}
+              <TabsContent value="assignment" className="space-y-4 mt-0">
+                <div className="space-y-4">
+                  <LeadAssignmentDropdown
+                    mode="create"
+                    currentAssignment={formData.assigned_to || "unassigned"}
+                    onAssignmentChange={handleAssignmentChange}
                     disabled={isCreating}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isCreating}>
-                    {isCreating && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Create Lead
-                  </Button>
-                </div>
-              </Tabs>
-            </form>
-          </TabsContent>
+                    showLabel={true}
+                  />
 
-          {/* Add new CV tab */}
-          <TabsContent value="cv" className="h-full mt-0">
-            <SingleLeadCreationCV />
-          </TabsContent>
-        </Tabs>
+                  {/* Show current assignment details */}
+                  {assignmentMode === "selective_round_robin" &&
+                    selectedUserEmails.length > 0 && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-medium text-blue-900">
+                          Selective Round Robin - Selected Counselors (
+                          {selectedUserEmails.length})
+                        </h4>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedUserEmails.map((email) => {
+                            const user = assignableUsers.find(
+                              (u) => u.email === email
+                            );
+                            return (
+                              <Badge key={email} variant="secondary">
+                                {user?.name || email}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                        <p className="text-sm text-blue-700 mt-1">
+                          Lead will be assigned to the next available counselor
+                          from the selected list.
+                        </p>
+                      </div>
+                    )}
+
+                  {assignmentMode === "auto_round_robin" && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-medium text-green-900">
+                        Auto Round Robin Assignment
+                      </h4>
+                      <p className="text-sm text-green-700 mt-1">
+                        Lead will be automatically assigned to the next
+                        available counselor in rotation among all active users.
+                      </p>
+                    </div>
+                  )}
+
+                  {formData.assigned_to && assignmentMode === "manual" && (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <h4 className="font-medium text-gray-900">
+                        Manual Assignment
+                      </h4>
+                      <p className="text-sm text-gray-700 mt-1">
+                        Assigned to:{" "}
+                        <strong>
+                          {formData.assigned_to_name || formData.assigned_to}
+                        </strong>
+                      </p>
+                    </div>
+                  )}
+
+                  {errors.assignment && (
+                    <p className="text-sm text-red-500">{errors.assignment}</p>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Additional Info Tab */}
+              <TabsContent value="additional" className="space-y-4 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange("notes", e.target.value)}
+                    placeholder="Add any additional notes about this lead..."
+                    rows={6}
+                    disabled={isCreating}
+                  />
+                </div>
+              </TabsContent>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isCreating}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreating}>
+                {isCreating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Lead
+              </Button>
+            </div>
+          </Tabs>
+        </form>
       </DialogContent>
     </Dialog>
   );

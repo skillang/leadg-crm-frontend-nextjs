@@ -1,4 +1,4 @@
-// components/leads/NewLeadDropdown.tsx (Updated with Permissions)
+// components/leads/NewLeadDropdown.tsx (Fixed)
 
 import React, { useState } from "react";
 import {
@@ -9,11 +9,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, User, Users, ChevronDown } from "lucide-react";
+import { Plus, User, Users, ChevronDown, FileText } from "lucide-react";
 import { useAuth } from "@/redux/hooks/useAuth";
 import SingleLeadModal from "./SingleLeadModal";
 import BulkLeadCreation from "./BulkLeadCreation";
 import { useNotifications } from "@/components/common/NotificationSystem";
+import SingleLeadCreationCVModal from "./SingleLeadCreationCV";
 
 const NewLeadDropdown: React.FC = () => {
   // 🔥 UPDATED: Use permission hooks instead of isAdmin
@@ -21,6 +22,7 @@ const NewLeadDropdown: React.FC = () => {
 
   const [isSingleLeadModalOpen, setIsSingleLeadModalOpen] = useState(false);
   const [isBulkLeadModalOpen, setIsBulkLeadModalOpen] = useState(false);
+  const [isCVToLeadModalOpen, setIsCVToLeadModalOpen] = useState(false); // ✅ FIXED: Consistent naming
   const { showWarning } = useNotifications();
 
   // 🔥 NEW: Handle single lead creation with permission check
@@ -47,6 +49,19 @@ const NewLeadDropdown: React.FC = () => {
     }
   };
 
+  // ✅ NEW: Handle CV to lead creation with permission check
+  const handleCVToLeadClick = () => {
+    if (canCreateSingleLead) {
+      // Using same permission as single lead
+      setIsCVToLeadModalOpen(true);
+    } else {
+      showWarning(
+        "You don't have permission to upload CVs and create leads. Please contact your administrator.",
+        "Permission Required"
+      );
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -68,6 +83,13 @@ const NewLeadDropdown: React.FC = () => {
             <Users className="w-4 h-4" />
             Bulk Create Leads
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+          {/* ✅ FIXED: Now uses the correct handler */}
+          <DropdownMenuItem disabled onClick={handleCVToLeadClick}>
+            <FileText className="w-4 h-4" />
+            Upload CV to Leads
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -81,6 +103,16 @@ const NewLeadDropdown: React.FC = () => {
       <BulkLeadCreation
         isOpen={isBulkLeadModalOpen}
         onClose={() => setIsBulkLeadModalOpen(false)}
+      />
+
+      {/* ✅ FIXED: Now uses the correct modal component with proper props */}
+      <SingleLeadCreationCVModal
+        isOpen={isCVToLeadModalOpen}
+        onClose={() => setIsCVToLeadModalOpen(false)}
+        onLeadCreated={(leadId: string) => {
+          console.log("Lead created from CV:", leadId);
+          // Add any additional logic here like refreshing leads list
+        }}
       />
     </>
   );

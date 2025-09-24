@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Edit2, Check, X, FileSpreadsheet } from "lucide-react";
-import { useGetLeadsQuery } from "@/redux/slices/leadsApi";
+import { Copy, Edit2, Check, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1573,891 +1572,837 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             review uploaded data before processing.
           </p>
         </DialogHeader>
-        <Tabs
-          value={uploadType}
-          onValueChange={(value) => setUploadType(value as "csv" | "cv")}
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="csv" className="flex items-center gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              CSV Upload
-            </TabsTrigger>
-            <TabsTrigger value="cv" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              CV Upload
-            </TabsTrigger>
-          </TabsList>
 
-          {/* Wrap your existing content in CSV tab */}
-          <TabsContent value="csv" className="mt-0">
-            <div className="grid md:grid-cols-3 grid-cols-1 gap-6">
-              {/* Left Side - Configuration */}
-              <div className="space-y-4">
-                {/* Lead Configuration */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Lead Configuration
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Applied to all leads in this batch
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>
-                        Lead Category <span className="text-red-500">*</span>
-                      </Label>
-                      {categoriesLoading ? (
-                        <div className="flex items-center gap-2 p-2 border rounded">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm">Loading categories...</span>
-                        </div>
-                      ) : categoriesError ? (
-                        <div className="p-2 border border-red-200 rounded bg-red-50">
-                          <span className="text-sm text-red-600">
-                            Error loading categories
-                          </span>
-                        </div>
-                      ) : (
-                        <Select
-                          value={selectedCategory}
-                          onValueChange={setSelectedCategory}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories
-                              .filter((category) => category.is_active)
-                              .map((category) => (
-                                <SelectItem
-                                  key={category.id}
-                                  value={category.name}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span>{category.name}</span>
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {category.short_form}
-                                    </Badge>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      )}
+        <div className="grid md:grid-cols-3 grid-cols-1 gap-6">
+          {/* Left Side - Configuration */}
+          <div className="space-y-4">
+            {/* Lead Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Lead Configuration</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Applied to all leads in this batch
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>
+                    Lead Category <span className="text-red-500">*</span>
+                  </Label>
+                  {categoriesLoading ? (
+                    <div className="flex items-center gap-2 p-2 border rounded">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading categories...</span>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="source" className="text-sm font-medium">
-                        Source <span className="text-red-500">*</span>
-                      </Label>
-                      <SourceDropdown
-                        value={selectedSource}
-                        onValueChange={setSelectedSource}
-                        placeholder="Select source for all leads"
-                        required
-                      />
+                  ) : categoriesError ? (
+                    <div className="p-2 border border-red-200 rounded bg-red-50">
+                      <span className="text-sm text-red-600">
+                        Error loading categories
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
+                  ) : (
+                    <Select
+                      value={selectedCategory}
+                      onValueChange={setSelectedCategory}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories
+                          .filter((category) => category.is_active)
+                          .map((category) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              <div className="flex items-center gap-2">
+                                <span>{category.name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {category.short_form}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
 
-                {/* Important Notes */}
-                <ImportantNotesCard />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="source" className="text-sm font-medium">
+                    Source <span className="text-red-500">*</span>
+                  </Label>
+                  <SourceDropdown
+                    value={selectedSource}
+                    onValueChange={setSelectedSource}
+                    placeholder="Select source for all leads"
+                    required
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Middle - File Upload & Preview */}
-              <div className="space-y-4">
-                {/* Assignment Configuration */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Assignment Configuration
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Configure how leads will be assigned to counselors
+            {/* Important Notes */}
+            <ImportantNotesCard />
+          </div>
+
+          {/* Middle - File Upload & Preview */}
+          <div className="space-y-4">
+            {/* Assignment Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Assignment Configuration
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Configure how leads will be assigned to counselors
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <LeadAssignmentDropdown
+                  mode="create"
+                  currentAssignment="unassigned"
+                  onAssignmentChange={setAssignmentConfig}
+                  disabled={isUploading}
+                  showLabel={false}
+                  className="w-full"
+                />
+
+                {/* Assignment Summary */}
+                {assignmentConfig.type !== "unassigned" && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm font-medium text-blue-900">
+                      Assignment Summary:
+                    </div>
+                    <div className="text-sm text-blue-700 mt-1">
+                      {assignmentConfig.type === "selective_round_robin" &&
+                        assignmentConfig.assigned_users?.length &&
+                        `Round robin among ${assignmentConfig.assigned_users.length} selected counselors`}
+                      {assignmentConfig.type === "manual" &&
+                        assignmentConfig.assigned_to &&
+                        `All leads will be assigned to ${assignmentConfig.assigned_to}`}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            {/* File Upload */}
+            <Card>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      Upload CSV File
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Click to choose your CSV file
                     </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <LeadAssignmentDropdown
-                      mode="create"
-                      currentAssignment="unassigned"
-                      onAssignmentChange={setAssignmentConfig}
-                      disabled={isUploading}
-                      showLabel={false}
-                      className="w-full"
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
                     />
 
-                    {/* Assignment Summary */}
-                    {assignmentConfig.type !== "unassigned" && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="text-sm font-medium text-blue-900">
-                          Assignment Summary:
-                        </div>
-                        <div className="text-sm text-blue-700 mt-1">
-                          {assignmentConfig.type === "selective_round_robin" &&
-                            assignmentConfig.assigned_users?.length &&
-                            `Round robin among ${assignmentConfig.assigned_users.length} selected counselors`}
-                          {assignmentConfig.type === "manual" &&
-                            assignmentConfig.assigned_to &&
-                            `All leads will be assigned to ${assignmentConfig.assigned_to}`}
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                      className="w-full mb-4"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Choose File
+                    </Button>
+
+                    {csvFile && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center justify-center gap-2">
+                          <FileText className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            {csvFile.name}
+                          </span>
+                          <Badge variant="outline" className="text-green-700">
+                            {(csvFile.size / 1024).toFixed(1)} KB
+                          </Badge>
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-                {/* File Upload */}
-                <Card>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                          Upload CSV File
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Click to choose your CSV file
-                        </p>
-
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".csv"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
-
-                        <Button
-                          onClick={() => fileInputRef.current?.click()}
-                          variant="outline"
-                          className="w-full mb-4"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Choose File
-                        </Button>
-
-                        {csvFile && (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center justify-center gap-2">
-                              <FileText className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-800">
-                                {csvFile.name}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="text-green-700"
-                              >
-                                {(csvFile.size / 1024).toFixed(1)} KB
-                              </Badge>
-                            </div>
-                          </div>
-                        )}
-                        {csvFile && (
-                          <div className="text-xs mt-2 text-muted-foreground">
-                            Look Below for details of the uploded leads
-                          </div>
-                        )}
+                    {csvFile && (
+                      <div className="text-xs mt-2 text-muted-foreground">
+                        Look Below for details of the uploded leads
                       </div>
-                      {errors.file && (
-                        <Alert variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>{errors.file}</AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Stage & Status Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      Default Values
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-2 bg-green-50 rounded">
-                        <span className="text-sm font-medium">
-                          Default Stage:
-                        </span>
-                        <Badge variant="outline">{defaultStage}</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                        <span className="text-sm font-medium">
-                          Default Status:
-                        </span>
-                        <Badge variant="outline">{defaultStatus}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        If stage/status is not provided in CSV or is invalid,
-                        leads will be automatically assigned these default
-                        values.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right Side - Rules & Guidelines */}
-              <div className="space-y-4">
-                {/* CSV Format Rules */}
-                <CSVFormatRulesCard />
-
-                {/* Header Mapping Rules */}
-                <HeaderMappingRulesCard />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 w-full ">
-              {/* Summary Cards */}
-              {parsedLeads.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    Leads CSV Upload Summary:
-                  </h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-green-50 rounded-lg border">
-                      <div className="text-2xl font-bold text-green-600">
-                        {validLeads.length}
-                      </div>
-                      <div className="text-sm text-green-800">Valid</div>
-                    </div>
-                    <div className="text-center p-3 bg-yellow-50 rounded-lg border">
-                      <div className="text-2xl font-bold text-yellow-600">
-                        {duplicateLeads.length}
-                      </div>
-                      <div className="text-sm text-yellow-800">Duplicates</div>
-                    </div>
-                    <div className="text-center p-3 bg-red-50 rounded-lg border">
-                      <div className="text-2xl font-bold text-red-600">
-                        {invalidLeads.length}
-                      </div>
-                      <div className="text-sm text-red-800">Invalid</div>
-                    </div>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Tabbed Preview Section */}
-              <div className="space-y-4 border rounded-lg p-4 flex-1">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    Review Leads ({parsedLeads.length} total)
-                  </h3>
-                  {parsedLeads.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
-                      <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                      <p className="text-lg font-medium text-muted-foreground">
-                        No leads uploaded yet
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Upload a CSV file to see the preview
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Tab Navigation */}
-                      <Tabs
-                        value={activeTab}
-                        onValueChange={setActiveTab}
-                        className="w-full"
-                      >
-                        <TabsList className="grid w-full grid-cols-3">
-                          <TabsTrigger
-                            value="valid"
-                            className="flex items-center gap-2"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            Valid ({validLeads.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="duplicates"
-                            className="flex items-center gap-2"
-                          >
-                            <Copy className="h-4 w-4" />
-                            Duplicates ({duplicateLeads.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="invalid"
-                            className="flex items-center gap-2"
-                          >
-                            <XCircle className="h-4 w-4" />
-                            Invalid ({invalidLeads.length})
-                          </TabsTrigger>
-                        </TabsList>
-
-                        {/* Valid Leads Tab */}
-                        <TabsContent value="valid" className="mt-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-green-600">
-                                Ready for Upload ({validLeads.length} leads)
-                              </h4>
-                              {validLeads.length > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-green-50 text-green-700"
-                                >
-                                  All requirements met
-                                </Badge>
-                              )}
-                            </div>
-
-                            {validLeads.length === 0 ? (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <CheckCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                <p>No valid leads found</p>
-                                <p className="text-sm">
-                                  Check other tabs for issues
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-                                <Table>
-                                  <TableHeader className="sticky top-0 bg-background">
-                                    <TableRow>
-                                      <TableHead className="w-8">
-                                        Actions
-                                      </TableHead>
-                                      <TableHead className="w-8">#</TableHead>
-                                      <TableHead className="min-w-32">
-                                        Name
-                                      </TableHead>
-                                      <TableHead className="min-w-40">
-                                        Email
-                                      </TableHead>
-                                      <TableHead className="min-w-32">
-                                        Contact
-                                      </TableHead>
-                                      <TableHead className="min-w-24">
-                                        Stage
-                                      </TableHead>
-                                      <TableHead className="min-w-24">
-                                        Status
-                                      </TableHead>
-                                      <TableHead className="min-w-20">
-                                        Score
-                                      </TableHead>
-                                      <TableHead className="min-w-40">
-                                        Notes
-                                      </TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {validLeads.map((lead, leadIndex) => (
-                                      <TableRow
-                                        key={`valid-${lead.index}-${leadIndex}`}
-                                        className="hover:bg-green-50"
-                                      >
-                                        <TableCell className="p-2">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                              // Remove from valid leads completely (poof!)
-                                              const updatedValid =
-                                                validLeads.filter(
-                                                  (_, index) =>
-                                                    index !== leadIndex
-                                                );
-                                              setValidLeads(updatedValid);
-
-                                              // Also remove from parsedLeads
-                                              const updatedParsed =
-                                                parsedLeads.filter(
-                                                  (parsedLead) =>
-                                                    parsedLead.index !==
-                                                    lead.index
-                                                );
-                                              setParsedLeads(updatedParsed);
-                                            }}
-                                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
-                                            title="Remove this lead completely"
-                                          >
-                                            <XCircle className="h-4 w-4" />
-                                          </Button>
-                                        </TableCell>
-                                        <TableCell className="text-xs font-mono">
-                                          {lead.index}
-                                        </TableCell>
-                                        <TableCell className="font-medium text-sm">
-                                          {lead.name}
-                                        </TableCell>
-                                        <TableCell className="text-sm">
-                                          {lead.email}
-                                        </TableCell>
-                                        <TableCell className="text-sm font-mono">
-                                          {lead.contact_number}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs bg-blue-50 text-blue-700"
-                                          >
-                                            {lead.stage}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs bg-green-50 text-green-700"
-                                          >
-                                            {lead.status}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Badge
-                                            variant="secondary"
-                                            className="text-xs"
-                                          >
-                                            {lead.lead_score}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-sm max-w-40">
-                                          {lead.notes ? (
-                                            <div
-                                              className="truncate"
-                                              title={lead.notes}
-                                            >
-                                              {lead.notes}
-                                            </div>
-                                          ) : (
-                                            <span className="text-gray-400">
-                                              None
-                                            </span>
-                                          )}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        {/* Duplicates Tab */}
-                        <TabsContent value="duplicates" className="mt-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-yellow-600">
-                                Duplicate Leads ({duplicateLeads.length} leads)
-                              </h4>
-                              {duplicateLeads.length > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-yellow-50 text-yellow-700"
-                                >
-                                  Will be skipped
-                                </Badge>
-                              )}
-                            </div>
-
-                            {duplicateLeads.length === 0 ? (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Copy className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                <p>No duplicate leads found</p>
-                                <p className="text-sm">
-                                  Great! All leads are unique
-                                </p>
-                              </div>
-                            ) : (
-                              <>
-                                <Alert>
-                                  <AlertCircle className="h-4 w-4" />
-                                  <AlertDescription>
-                                    These leads already exist in the database
-                                    and will be skipped during upload.
-                                  </AlertDescription>
-                                </Alert>
-
-                                <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-                                  <Table>
-                                    <TableHeader className="sticky top-0 bg-background">
-                                      <TableRow>
-                                        <TableHead className="w-8">#</TableHead>
-                                        <TableHead className="min-w-32">
-                                          Name
-                                        </TableHead>
-                                        <TableHead className="min-w-40">
-                                          Email
-                                        </TableHead>
-                                        <TableHead className="min-w-32">
-                                          Contact
-                                        </TableHead>
-                                        <TableHead className="min-w-32">
-                                          Duplicate Reason
-                                        </TableHead>
-                                        <TableHead className="min-w-40">
-                                          Notes
-                                        </TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {duplicateLeads.map((lead, leadIndex) => (
-                                        <TableRow
-                                          key={`duplicate-${lead.index}-${leadIndex}`}
-                                          className="hover:bg-yellow-50"
-                                        >
-                                          <TableCell className="text-xs font-mono">
-                                            {lead.index}
-                                          </TableCell>
-                                          <TableCell className="font-medium text-sm">
-                                            {lead.name}
-                                          </TableCell>
-                                          <TableCell className="text-sm">
-                                            {lead.email}
-                                          </TableCell>
-                                          <TableCell className="text-sm font-mono">
-                                            {lead.contact_number}
-                                          </TableCell>
-                                          <TableCell>
-                                            <Badge
-                                              variant="destructive"
-                                              className="text-xs"
-                                            >
-                                              {lead.errors[
-                                                lead.errors.length - 1
-                                              ] || "Duplicate detected"}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="text-sm max-w-40">
-                                            {lead.notes ? (
-                                              <div
-                                                className="truncate"
-                                                title={lead.notes}
-                                              >
-                                                {lead.notes}
-                                              </div>
-                                            ) : (
-                                              <span className="text-gray-400">
-                                                None
-                                              </span>
-                                            )}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        {/* Invalid Leads Tab */}
-                        <TabsContent value="invalid" className="mt-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-red-600">
-                                Invalid Leads ({invalidLeads.length} leads)
-                              </h4>
-                              {invalidLeads.length > 0 && (
-                                <Badge
-                                  variant="destructive"
-                                  className="text-xs"
-                                >
-                                  Click cells to edit
-                                </Badge>
-                              )}
-                            </div>
-
-                            {invalidLeads.length === 0 ? (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <XCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                <p>No invalid leads found</p>
-                                <p className="text-sm">
-                                  All data meets requirements
-                                </p>
-                              </div>
-                            ) : (
-                              <>
-                                <Alert>
-                                  <AlertCircle className="h-4 w-4" />
-                                  <AlertDescription>
-                                    <div className="font-medium text-orange-800 mb-1">
-                                      Edit Invalid Fields
-                                    </div>
-                                    <div className="text-orange-700 text-sm">
-                                      Click on red fields to edit them. Fixed
-                                      leads will automatically move to the Valid
-                                      tab.
-                                    </div>
-                                  </AlertDescription>
-                                </Alert>
-
-                                <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-                                  <Table>
-                                    <TableHeader className="sticky top-0 bg-background">
-                                      <TableRow>
-                                        <TableHead className="w-8">
-                                          Actions
-                                        </TableHead>
-                                        <TableHead className="w-8">#</TableHead>
-                                        <TableHead className="min-w-32">
-                                          Name *
-                                        </TableHead>
-                                        <TableHead className="min-w-40">
-                                          Email *
-                                        </TableHead>
-                                        <TableHead className="min-w-32">
-                                          Contact *
-                                        </TableHead>
-                                        <TableHead className="min-w-20">
-                                          Lead Score
-                                        </TableHead>
-                                        <TableHead className="min-w-32">
-                                          Errors
-                                        </TableHead>
-                                        <TableHead className="min-w-40">
-                                          Notes
-                                        </TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {invalidLeads.map((lead, leadIndex) => (
-                                        <TableRow
-                                          key={`invalid-${lead.index}-${leadIndex}`}
-                                          className="hover:bg-red-50"
-                                        >
-                                          <TableCell className="p-2">
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => {
-                                                // Remove from invalid leads completely (poof!)
-                                                const updatedInvalid =
-                                                  invalidLeads.filter(
-                                                    (_, index) =>
-                                                      index !== leadIndex
-                                                  );
-                                                setInvalidLeads(updatedInvalid);
-
-                                                // Also remove from parsedLeads
-                                                const updatedParsed =
-                                                  parsedLeads.filter(
-                                                    (parsedLead) =>
-                                                      parsedLead.index !==
-                                                      lead.index
-                                                  );
-                                                setParsedLeads(updatedParsed);
-                                              }}
-                                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
-                                              title="Remove this lead completely"
-                                            >
-                                              <XCircle className="h-4 w-4" />
-                                            </Button>
-                                          </TableCell>
-                                          <TableCell className="text-xs font-mono">
-                                            {lead.index}
-                                          </TableCell>
-
-                                          {/* Editable Name Field */}
-                                          <TableCell className="p-1">
-                                            <EditableField
-                                              value={lead.name}
-                                              placeholder="Enter name"
-                                              hasError={
-                                                !lead.name ||
-                                                lead.name.trim() === ""
-                                              }
-                                              onSave={(newValue) =>
-                                                handleFieldEdit(
-                                                  leadIndex,
-                                                  "name",
-                                                  newValue
-                                                )
-                                              }
-                                              type="text"
-                                            />
-                                          </TableCell>
-
-                                          {/* Editable Email Field */}
-                                          <TableCell className="p-1">
-                                            <EditableField
-                                              value={lead.email}
-                                              placeholder="Enter email"
-                                              hasError={
-                                                !lead.email ||
-                                                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                                                  lead.email
-                                                )
-                                              }
-                                              onSave={(newValue) =>
-                                                handleFieldEdit(
-                                                  leadIndex,
-                                                  "email",
-                                                  newValue
-                                                )
-                                              }
-                                              type="email"
-                                            />
-                                          </TableCell>
-
-                                          {/* Editable Contact Field */}
-                                          <TableCell className="p-1">
-                                            <EditableField
-                                              value={lead.contact_number}
-                                              placeholder="Enter phone"
-                                              hasError={
-                                                !lead.contact_number ||
-                                                !/^\d{10,15}$/.test(
-                                                  lead.contact_number.replace(
-                                                    /[\s\-\(\)\+]/g,
-                                                    ""
-                                                  )
-                                                )
-                                              }
-                                              onSave={(newValue) =>
-                                                handleFieldEdit(
-                                                  leadIndex,
-                                                  "contact_number",
-                                                  newValue
-                                                )
-                                              }
-                                              type="tel"
-                                            />
-                                          </TableCell>
-
-                                          {/* Editable Lead Score Field */}
-                                          <TableCell className="p-1">
-                                            <EditableField
-                                              value={
-                                                lead.lead_score?.toString() ||
-                                                "0"
-                                              }
-                                              placeholder="0-100"
-                                              hasError={lead.errors.some(
-                                                (error) =>
-                                                  error.includes("lead score")
-                                              )}
-                                              onSave={(newValue) =>
-                                                handleFieldEdit(
-                                                  leadIndex,
-                                                  "lead_score",
-                                                  parseInt(newValue) || 0
-                                                )
-                                              }
-                                              type="number"
-                                            />
-                                          </TableCell>
-
-                                          <TableCell>
-                                            <div className="space-y-1">
-                                              {lead.errors
-                                                .slice(0, 2)
-                                                .map((error, idx) => (
-                                                  <Badge
-                                                    key={idx}
-                                                    variant="destructive"
-                                                    className="text-xs block"
-                                                  >
-                                                    {error}
-                                                  </Badge>
-                                                ))}
-                                              {lead.errors.length > 2 && (
-                                                <Badge
-                                                  variant="outline"
-                                                  className="text-xs"
-                                                  title={lead.errors
-                                                    .slice(2)
-                                                    .join(", ")}
-                                                >
-                                                  +{lead.errors.length - 2} more
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          </TableCell>
-                                          <TableCell className="text-sm max-w-40">
-                                            {lead.notes ? (
-                                              <div
-                                                className="truncate"
-                                                title={lead.notes}
-                                              >
-                                                {lead.notes}
-                                              </div>
-                                            ) : (
-                                              <span className="text-gray-400">
-                                                None
-                                              </span>
-                                            )}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-
-                      {/* Upload Progress */}
-                      {isUploading && (
-                        <div className="space-y-2 mt-4">
-                          <div className="flex justify-between text-sm">
-                            <span>Uploading leads...</span>
-                            <span>{uploadProgress}%</span>
-                          </div>
-                          <Progress value={uploadProgress} />
-                        </div>
-                      )}
-
-                      {/* Upload Button */}
-                      <Button
-                        onClick={handleUpload}
-                        disabled={
-                          validLeads.length === 0 ||
-                          isUploading ||
-                          !selectedCategory ||
-                          stagesLoading ||
-                          statusesLoading
-                        }
-                        className="w-full mt-4"
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Uploading {validLeads.length} leads...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload {validLeads.length} Valid Leads
-                          </>
-                        )}
-                      </Button>
-
-                      {errors.upload && (
-                        <Alert variant="destructive" className="mt-4">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>{errors.upload}</AlertDescription>
-                        </Alert>
-                      )}
-                    </>
+                  {errors.file && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{errors.file}</AlertDescription>
+                    </Alert>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Stage & Status Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Default Values
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <span className="text-sm font-medium">Default Stage:</span>
+                    <Badge variant="outline">{defaultStage}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                    <span className="text-sm font-medium">Default Status:</span>
+                    <Badge variant="outline">{defaultStatus}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    If stage/status is not provided in CSV or is invalid, leads
+                    will be automatically assigned these default values.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Side - Rules & Guidelines */}
+          <div className="space-y-4">
+            {/* CSV Format Rules */}
+            <CSVFormatRulesCard />
+
+            {/* Header Mapping Rules */}
+            <HeaderMappingRulesCard />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 w-full ">
+          {/* Summary Cards */}
+          {parsedLeads.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold">
+                Leads CSV Upload Summary:
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-green-50 rounded-lg border">
+                  <div className="text-2xl font-bold text-green-600">
+                    {validLeads.length}
+                  </div>
+                  <div className="text-sm text-green-800">Valid</div>
+                </div>
+                <div className="text-center p-3 bg-yellow-50 rounded-lg border">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {duplicateLeads.length}
+                  </div>
+                  <div className="text-sm text-yellow-800">Duplicates</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded-lg border">
+                  <div className="text-2xl font-bold text-red-600">
+                    {invalidLeads.length}
+                  </div>
+                  <div className="text-sm text-red-800">Invalid</div>
+                </div>
               </div>
             </div>
-          </TabsContent>
-          <TabsContent value="cv" className="mt-0">
-            <div className="text-center">
-              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">CV Upload Coming Soon</p>
-              <p className="text-sm text-muted-foreground">
-                This feature is under development
-              </p>
+          )}
+
+          {/* Tabbed Preview Section */}
+          <div className="space-y-4 border rounded-lg p-4 flex-1">
+            <div>
+              <h3 className="text-lg font-semibold">
+                Review Leads ({parsedLeads.length} total)
+              </h3>
+              {parsedLeads.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
+                  <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    No leads uploaded yet
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a CSV file to see the preview
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Tab Navigation */}
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="w-full"
+                  >
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger
+                        value="valid"
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Valid ({validLeads.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="duplicates"
+                        className="flex items-center gap-2"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Duplicates ({duplicateLeads.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="invalid"
+                        className="flex items-center gap-2"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Invalid ({invalidLeads.length})
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Valid Leads Tab */}
+                    <TabsContent value="valid" className="mt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-green-600">
+                            Ready for Upload ({validLeads.length} leads)
+                          </h4>
+                          {validLeads.length > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 text-green-700"
+                            >
+                              All requirements met
+                            </Badge>
+                          )}
+                        </div>
+
+                        {validLeads.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <CheckCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                            <p>No valid leads found</p>
+                            <p className="text-sm">
+                              Check other tabs for issues
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+                            <Table>
+                              <TableHeader className="sticky top-0 bg-background">
+                                <TableRow>
+                                  <TableHead className="w-8">Actions</TableHead>
+                                  <TableHead className="w-8">#</TableHead>
+                                  <TableHead className="min-w-32">
+                                    Name
+                                  </TableHead>
+                                  <TableHead className="min-w-40">
+                                    Email
+                                  </TableHead>
+                                  <TableHead className="min-w-32">
+                                    Contact
+                                  </TableHead>
+                                  <TableHead className="min-w-24">
+                                    Stage
+                                  </TableHead>
+                                  <TableHead className="min-w-24">
+                                    Status
+                                  </TableHead>
+                                  <TableHead className="min-w-20">
+                                    Score
+                                  </TableHead>
+                                  <TableHead className="min-w-40">
+                                    Notes
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {validLeads.map((lead, leadIndex) => (
+                                  <TableRow
+                                    key={`valid-${lead.index}-${leadIndex}`}
+                                    className="hover:bg-green-50"
+                                  >
+                                    <TableCell className="p-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          // Remove from valid leads completely (poof!)
+                                          const updatedValid =
+                                            validLeads.filter(
+                                              (_, index) => index !== leadIndex
+                                            );
+                                          setValidLeads(updatedValid);
+
+                                          // Also remove from parsedLeads
+                                          const updatedParsed =
+                                            parsedLeads.filter(
+                                              (parsedLead) =>
+                                                parsedLead.index !== lead.index
+                                            );
+                                          setParsedLeads(updatedParsed);
+                                        }}
+                                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                                        title="Remove this lead completely"
+                                      >
+                                        <XCircle className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                    <TableCell className="text-xs font-mono">
+                                      {lead.index}
+                                    </TableCell>
+                                    <TableCell className="font-medium text-sm">
+                                      {lead.name}
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                      {lead.email}
+                                    </TableCell>
+                                    <TableCell className="text-sm font-mono">
+                                      {lead.contact_number}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-blue-50 text-blue-700"
+                                      >
+                                        {lead.stage}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-green-50 text-green-700"
+                                      >
+                                        {lead.status}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {lead.lead_score}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-sm max-w-40">
+                                      {lead.notes ? (
+                                        <div
+                                          className="truncate"
+                                          title={lead.notes}
+                                        >
+                                          {lead.notes}
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-400">
+                                          None
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    {/* Duplicates Tab */}
+                    <TabsContent value="duplicates" className="mt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-yellow-600">
+                            Duplicate Leads ({duplicateLeads.length} leads)
+                          </h4>
+                          {duplicateLeads.length > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="bg-yellow-50 text-yellow-700"
+                            >
+                              Will be skipped
+                            </Badge>
+                          )}
+                        </div>
+
+                        {duplicateLeads.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Copy className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                            <p>No duplicate leads found</p>
+                            <p className="text-sm">
+                              Great! All leads are unique
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <Alert>
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>
+                                These leads already exist in the database and
+                                will be skipped during upload.
+                              </AlertDescription>
+                            </Alert>
+
+                            <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+                              <Table>
+                                <TableHeader className="sticky top-0 bg-background">
+                                  <TableRow>
+                                    <TableHead className="w-8">#</TableHead>
+                                    <TableHead className="min-w-32">
+                                      Name
+                                    </TableHead>
+                                    <TableHead className="min-w-40">
+                                      Email
+                                    </TableHead>
+                                    <TableHead className="min-w-32">
+                                      Contact
+                                    </TableHead>
+                                    <TableHead className="min-w-32">
+                                      Duplicate Reason
+                                    </TableHead>
+                                    <TableHead className="min-w-40">
+                                      Notes
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {duplicateLeads.map((lead, leadIndex) => (
+                                    <TableRow
+                                      key={`duplicate-${lead.index}-${leadIndex}`}
+                                      className="hover:bg-yellow-50"
+                                    >
+                                      <TableCell className="text-xs font-mono">
+                                        {lead.index}
+                                      </TableCell>
+                                      <TableCell className="font-medium text-sm">
+                                        {lead.name}
+                                      </TableCell>
+                                      <TableCell className="text-sm">
+                                        {lead.email}
+                                      </TableCell>
+                                      <TableCell className="text-sm font-mono">
+                                        {lead.contact_number}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="destructive"
+                                          className="text-xs"
+                                        >
+                                          {lead.errors[
+                                            lead.errors.length - 1
+                                          ] || "Duplicate detected"}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-sm max-w-40">
+                                        {lead.notes ? (
+                                          <div
+                                            className="truncate"
+                                            title={lead.notes}
+                                          >
+                                            {lead.notes}
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400">
+                                            None
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    {/* Invalid Leads Tab */}
+                    <TabsContent value="invalid" className="mt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-red-600">
+                            Invalid Leads ({invalidLeads.length} leads)
+                          </h4>
+                          {invalidLeads.length > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              Click cells to edit
+                            </Badge>
+                          )}
+                        </div>
+
+                        {invalidLeads.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <XCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                            <p>No invalid leads found</p>
+                            <p className="text-sm">
+                              All data meets requirements
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <Alert>
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>
+                                <div className="font-medium text-orange-800 mb-1">
+                                  Edit Invalid Fields
+                                </div>
+                                <div className="text-orange-700 text-sm">
+                                  Click on red fields to edit them. Fixed leads
+                                  will automatically move to the Valid tab.
+                                </div>
+                              </AlertDescription>
+                            </Alert>
+
+                            <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+                              <Table>
+                                <TableHeader className="sticky top-0 bg-background">
+                                  <TableRow>
+                                    <TableHead className="w-8">
+                                      Actions
+                                    </TableHead>
+                                    <TableHead className="w-8">#</TableHead>
+                                    <TableHead className="min-w-32">
+                                      Name *
+                                    </TableHead>
+                                    <TableHead className="min-w-40">
+                                      Email *
+                                    </TableHead>
+                                    <TableHead className="min-w-32">
+                                      Contact *
+                                    </TableHead>
+                                    <TableHead className="min-w-20">
+                                      Lead Score
+                                    </TableHead>
+                                    <TableHead className="min-w-32">
+                                      Errors
+                                    </TableHead>
+                                    <TableHead className="min-w-40">
+                                      Notes
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {invalidLeads.map((lead, leadIndex) => (
+                                    <TableRow
+                                      key={`invalid-${lead.index}-${leadIndex}`}
+                                      className="hover:bg-red-50"
+                                    >
+                                      <TableCell className="p-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            // Remove from invalid leads completely (poof!)
+                                            const updatedInvalid =
+                                              invalidLeads.filter(
+                                                (_, index) =>
+                                                  index !== leadIndex
+                                              );
+                                            setInvalidLeads(updatedInvalid);
+
+                                            // Also remove from parsedLeads
+                                            const updatedParsed =
+                                              parsedLeads.filter(
+                                                (parsedLead) =>
+                                                  parsedLead.index !==
+                                                  lead.index
+                                              );
+                                            setParsedLeads(updatedParsed);
+                                          }}
+                                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                                          title="Remove this lead completely"
+                                        >
+                                          <XCircle className="h-4 w-4" />
+                                        </Button>
+                                      </TableCell>
+                                      <TableCell className="text-xs font-mono">
+                                        {lead.index}
+                                      </TableCell>
+
+                                      {/* Editable Name Field */}
+                                      <TableCell className="p-1">
+                                        <EditableField
+                                          value={lead.name}
+                                          placeholder="Enter name"
+                                          hasError={
+                                            !lead.name ||
+                                            lead.name.trim() === ""
+                                          }
+                                          onSave={(newValue) =>
+                                            handleFieldEdit(
+                                              leadIndex,
+                                              "name",
+                                              newValue
+                                            )
+                                          }
+                                          type="text"
+                                        />
+                                      </TableCell>
+
+                                      {/* Editable Email Field */}
+                                      <TableCell className="p-1">
+                                        <EditableField
+                                          value={lead.email}
+                                          placeholder="Enter email"
+                                          hasError={
+                                            !lead.email ||
+                                            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                                              lead.email
+                                            )
+                                          }
+                                          onSave={(newValue) =>
+                                            handleFieldEdit(
+                                              leadIndex,
+                                              "email",
+                                              newValue
+                                            )
+                                          }
+                                          type="email"
+                                        />
+                                      </TableCell>
+
+                                      {/* Editable Contact Field */}
+                                      <TableCell className="p-1">
+                                        <EditableField
+                                          value={lead.contact_number}
+                                          placeholder="Enter phone"
+                                          hasError={
+                                            !lead.contact_number ||
+                                            !/^\d{10,15}$/.test(
+                                              lead.contact_number.replace(
+                                                /[\s\-\(\)\+]/g,
+                                                ""
+                                              )
+                                            )
+                                          }
+                                          onSave={(newValue) =>
+                                            handleFieldEdit(
+                                              leadIndex,
+                                              "contact_number",
+                                              newValue
+                                            )
+                                          }
+                                          type="tel"
+                                        />
+                                      </TableCell>
+
+                                      {/* Editable Lead Score Field */}
+                                      <TableCell className="p-1">
+                                        <EditableField
+                                          value={
+                                            lead.lead_score?.toString() || "0"
+                                          }
+                                          placeholder="0-100"
+                                          hasError={lead.errors.some((error) =>
+                                            error.includes("lead score")
+                                          )}
+                                          onSave={(newValue) =>
+                                            handleFieldEdit(
+                                              leadIndex,
+                                              "lead_score",
+                                              parseInt(newValue) || 0
+                                            )
+                                          }
+                                          type="number"
+                                        />
+                                      </TableCell>
+
+                                      <TableCell>
+                                        <div className="space-y-1">
+                                          {lead.errors
+                                            .slice(0, 2)
+                                            .map((error, idx) => (
+                                              <Badge
+                                                key={idx}
+                                                variant="destructive"
+                                                className="text-xs block"
+                                              >
+                                                {error}
+                                              </Badge>
+                                            ))}
+                                          {lead.errors.length > 2 && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs"
+                                              title={lead.errors
+                                                .slice(2)
+                                                .join(", ")}
+                                            >
+                                              +{lead.errors.length - 2} more
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-sm max-w-40">
+                                        {lead.notes ? (
+                                          <div
+                                            className="truncate"
+                                            title={lead.notes}
+                                          >
+                                            {lead.notes}
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400">
+                                            None
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  {/* Upload Progress */}
+                  {isUploading && (
+                    <div className="space-y-2 mt-4">
+                      <div className="flex justify-between text-sm">
+                        <span>Uploading leads...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} />
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  <Button
+                    onClick={handleUpload}
+                    disabled={
+                      validLeads.length === 0 ||
+                      isUploading ||
+                      !selectedCategory ||
+                      stagesLoading ||
+                      statusesLoading
+                    }
+                    className="w-full mt-4"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading {validLeads.length} leads...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload {validLeads.length} Valid Leads
+                      </>
+                    )}
+                  </Button>
+
+                  {errors.upload && (
+                    <Alert variant="destructive" className="mt-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{errors.upload}</AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              )}
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
