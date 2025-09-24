@@ -495,10 +495,10 @@ export interface FlatBulkLeadData {
   age?: number;
   experience?: string;
   nationality?: string;
-  date_of_birth?: string;
   current_location?: string;
   country_of_interest?: string;
   course_level?: string;
+  date_of_birth?: string;
   stage: string;
   status: string;
   lead_score?: number;

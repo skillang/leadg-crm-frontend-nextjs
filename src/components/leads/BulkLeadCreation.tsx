@@ -38,22 +38,21 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  Info,
-  FileType,
 } from "lucide-react";
 import {
   useBulkCreateLeadsFlatMutation,
+  useCheckDuplicatesMutation,
   // useGetAssignableUsersWithDetailsQuery,
 } from "@/redux/slices/leadsApi";
 import { useGetCategoriesQuery } from "@/redux/slices/categoriesApi";
 import { useGetStagesQuery } from "@/redux/slices/stagesApi";
 import { useGetStatusesQuery } from "@/redux/slices/statusesApi";
-// import MultiSelect, {
-//   transformUsersToOptions,
-// } from "@/components/common/MultiSelect";
 import { useNotifications } from "../common/NotificationSystem";
 import SourceDropdown from "../common/SourceDropdown";
 import LeadAssignmentDropdown from "../common/LeadAssignmentDropdown";
+import ImportantNotesCard from "@/sections/leads/create-leads-guidelines/ImportantNotesCard";
+import CSVFormatRulesCard from "@/sections/leads/create-leads-guidelines/CSVFormatRules";
+import HeaderMappingRulesCard from "@/sections/leads/create-leads-guidelines/HeaderMappingRulesCard";
 
 // Interface for the flat bulk lead data structure as required by backend
 interface FlatBulkLeadData {
@@ -119,18 +118,6 @@ interface UploadResult {
     duplicates_skipped: number;
     failed_creates: number;
     total_attempted: number;
-  };
-}
-
-interface ExistingLead {
-  id: string;
-  email?: string;
-  contact?: string;
-  contact_number?: string;
-  phoneNumber?: string;
-  basic_info?: {
-    email?: string;
-    contact_number?: string;
   };
 }
 
@@ -574,6 +561,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
   const [validLeads, setValidLeads] = useState<ParsedLead[]>([]);
   const [invalidLeads, setInvalidLeads] = useState<ParsedLead[]>([]);
+  const [checkDuplicates, { isLoading: isCheckingDuplicates }] =
+    useCheckDuplicatesMutation();
   const [duplicateLeads, setDuplicateLeads] = useState<ParsedLead[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -692,7 +681,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     return result;
   };
 
-  const parseCSV = (file: File) => {
+  const parseCSV = async (file: File) => {
     const reader = new FileReader();
 
     reader.onload = async (e) => {
@@ -707,14 +696,11 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           return;
         }
 
-        // ✅ FIXED: Use proper CSV parsing for headers
+        // Parse headers
         const rawHeaders = parseCSVLine(lines[0]).map((h) =>
           h.replace(/"/g, "").trim()
         );
         const headers = rawHeaders.map(normalizeHeader);
-
-        // console.log("🔍 DEBUG - Raw Headers:", rawHeaders);
-        // console.log("🔍 DEBUG - Normalized Headers:", headers);
 
         // Check for required columns
         const missingColumns = REQUIRED_COLUMNS.filter(
@@ -724,33 +710,25 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           setErrors({
             file: `Missing required columns: ${missingColumns.join(
               ", "
-            )}. Required: ${REQUIRED_COLUMNS.join(", ")}`,
+            )}.\nRequired: ${REQUIRED_COLUMNS.join(", ")}`,
           });
           return;
         }
 
         // Parse data rows
         const leads: ParsedLead[] = [];
-        const duplicateChecks: Array<{
-          email: string;
-          contact_number: string;
-        }> = [];
         const baseTimestamp = Date.now();
 
         for (let i = 1; i < lines.length; i++) {
-          // ✅ FIXED: Use proper CSV parsing for data rows
           const values = parseCSVLine(lines[i]).map((v) =>
             v.trim().replace(/"/g, "")
           );
 
           const errors: string[] = [];
           const notesData: string[] = [];
-
-          // Create unique identifier for this row
           const rowTimestamp = baseTimestamp + i;
           const uniqueId = `${rowTimestamp}${i.toString().padStart(3, "0")}`;
 
-          // Create lead object with defaults assigned upfront
           const lead: ParsedLead = {
             index: i,
             name: "",
@@ -767,8 +745,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             isValid: false,
           };
 
-          // Map CSV values to lead properties
-          headers.forEach((key, index) => {
+          // Map CSV values to lead properties (keep all your existing mapping logic)
+          headers.forEach((key: string, index: number) => {
             const value = values[index]?.trim().replace(/"/g, "") || "";
 
             switch (key) {
@@ -804,7 +782,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   lead.contact_number = generatedPhone;
                   notesData.push("Original Phone: Missing - Auto-generated");
                 } else {
-                  // ✅ NEW: Use enhanced phone cleaning that handles scientific notation
                   const cleanedPhone = cleanPhoneNumber(value);
                   if (cleanedPhone) {
                     lead.contact_number = cleanedPhone;
@@ -824,18 +801,14 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               case "age":
                 if (value && value.trim()) {
                   const normalizedAge = value.toLowerCase().trim();
-
-                  // ✅ Skip invalid/undefined values
                   if (
                     normalizedAge === "not defined" ||
                     normalizedAge === "undefined" ||
                     normalizedAge === "n/a" ||
                     normalizedAge === "not mentioned"
                   ) {
-                    break; // Skip processing
+                    break;
                   }
-
-                  // ✅ NEW: Use enhanced age extraction
                   const extractedAge = extractAge(value);
                   if (extractedAge) {
                     lead.age = extractedAge;
@@ -850,45 +823,39 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               case "date_of_birth":
                 if (value && value.trim()) {
                   const normalizedDob = value.toLowerCase().trim();
-
-                  // ✅ Skip invalid/undefined values
                   if (
                     normalizedDob === "not defined" ||
                     normalizedDob === "undefined" ||
                     normalizedDob === "n/a" ||
                     normalizedDob === "not mentioned"
                   ) {
-                    break; // Skip processing
+                    break;
                   }
-
-                  // ✅ NEW: Use enhanced date conversion that handles more formats
                   const convertedDate = convertToYYYYMMDD(value.trim());
                   if (convertedDate) {
                     lead.date_of_birth = convertedDate;
                     console.log(
-                      `✅ Date converted: "${value}" → "${convertedDate}"`
+                      `Date converted: "${value}" → "${convertedDate}"`
                     );
                   } else {
-                    // Invalid date - add to notes instead
                     notesData.push(
                       `Date of Birth: ${value} (unsupported format)`
                     );
-                    console.warn(`❌ Date conversion failed for: "${value}"`);
+                    console.warn(`Date conversion failed for: "${value}"`);
                   }
                 }
                 break;
+
               case "experience":
                 if (value && value.trim()) {
                   const normalizedExp = value.toLowerCase().trim();
-
-                  // ✅ Skip invalid/undefined values
                   if (
                     normalizedExp === "not defined" ||
                     normalizedExp === "undefined" ||
                     normalizedExp === "n/a" ||
                     normalizedExp === "not mentioned"
                   ) {
-                    break; // Skip processing
+                    break;
                   }
 
                   const validExperience = [
@@ -902,7 +869,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
                   let mappedExp = normalizedExp;
 
-                  // ✅ Enhanced pattern matching for your CSV format
                   if (
                     normalizedExp.includes("fresher") ||
                     normalizedExp.includes("fresh")
@@ -922,7 +888,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     (normalizedExp.includes("3") &&
                       normalizedExp.includes("year"))
                   ) {
-                    // Handle formats like "2 years 0 months", "1 year 6 months"
                     const yearMatch = normalizedExp.match(/(\d+)\s*year/);
                     if (yearMatch) {
                       const years = parseInt(yearMatch[1]);
@@ -957,7 +922,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   if (validExperience.includes(mappedExp)) {
                     lead.experience = mappedExp;
                   } else {
-                    // ✅ Put full experience details in notes for complex descriptions
                     notesData.push(`Experience: ${value}`);
                   }
                 }
@@ -969,25 +933,18 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 }
                 break;
 
-              // ✅ FIXED: Nationality processing
               case "nationality":
                 if (value && value.trim()) {
                   const normalizedNationality = value.toLowerCase().trim();
-
-                  // ✅ Skip invalid/undefined values
                   if (
                     normalizedNationality === "not defined" ||
                     normalizedNationality === "undefined" ||
                     normalizedNationality === "n/a" ||
                     normalizedNationality === "not mentioned"
                   ) {
-                    break; // Skip processing
+                    break;
                   }
-
-                  // Clean and validate nationality
                   const cleanedNationality = value.trim();
-
-                  // List of valid nationalities - you can expand this
                   const validNationalities = [
                     "Indian",
                     "American",
@@ -1007,23 +964,18 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     "European",
                     "Other",
                   ];
-
-                  // Try to find a match (case insensitive)
                   const matchedNationality = validNationalities.find(
                     (nat) =>
                       nat.toLowerCase() === cleanedNationality.toLowerCase()
                   );
-
                   if (matchedNationality) {
                     lead.nationality = matchedNationality;
                   } else {
-                    // If not in predefined list, use the cleaned value
                     lead.nationality = cleanedNationality;
                   }
                 }
                 break;
 
-              // ✅ FIXED: Current location processing (was missing break statement)
               case "current_location":
                 if (value && value.trim()) {
                   const normalizedLocation = value.toLowerCase().trim();
@@ -1033,13 +985,13 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     normalizedLocation === "n/a" ||
                     normalizedLocation === "not mentioned"
                   ) {
-                    break; // Skip processing
+                    break;
                   }
-
                   lead.current_location = value.trim();
                 }
                 break;
 
+              // Add all your other existing cases here (notes, contact_status, etc.)
               case "notes":
                 if (value && value.trim()) {
                   notesData.push(value.trim());
@@ -1086,8 +1038,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 if (value && value.trim()) {
                   lead.tags = value
                     .split(";")
-                    .map((tag) => tag.trim())
-                    .filter((tag) => tag);
+                    .map((tag: string) => tag.trim())
+                    .filter((tag: string) => tag);
                 }
                 break;
 
@@ -1144,7 +1096,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 break;
 
               default:
-                // Handle any unmapped columns by adding to notes
                 if (value && value.trim() && key !== "") {
                   const originalHeader = rawHeaders[headers.indexOf(key)];
                   notesData.push(`${originalHeader}: ${value}`);
@@ -1153,114 +1104,131 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             }
           });
 
-          console.log(`🔍 Row ${i} Debug:`, {
-            rawValues: values.slice(0, 15), // First 15 columns
-            extractedData: {
-              name: lead.name,
-              email: lead.email,
-              age: lead.age,
-              date_of_birth: lead.date_of_birth,
-              nationality: lead.nationality,
-              current_location: lead.current_location,
-              notes: lead.notes,
-            },
-          });
-
           // Combine all notes data
           if (notesData.length > 0) {
             lead.notes = notesData.join(" | ");
           }
 
-          // Set validation status - now only check for name since email/phone are auto-generated
+          // Set validation status
           lead.errors = errors;
           lead.isValid = errors.length === 0 && lead.name.trim() !== "";
 
-          if (!lead.isValid) {
-            console.log(`Lead ${i} is invalid:`, {
-              name: lead.name,
-              email: lead.email,
-              contact_number: lead.contact_number,
-              errors: errors,
-            });
-          }
-
           leads.push(lead);
-
-          // Add to duplicate check list (only for valid leads)
-          if (lead.isValid) {
-            duplicateChecks.push({
-              email: lead.email,
-              contact_number: lead.contact_number,
-            });
-          }
         }
 
-        // Check for duplicates against database before showing in modal
-        console.log("🔍 Checking for duplicates against database...");
-        const duplicateResults = checkForDuplicates(duplicateChecks);
-
-        // Filter out duplicates from valid leads
-        const finalValidLeads: ParsedLead[] = [];
-        const finalDuplicateLeads: ParsedLead[] = [];
-        const finalInvalidLeads: ParsedLead[] = [];
-
-        leads.forEach((lead) => {
-          if (!lead.isValid) {
-            finalInvalidLeads.push(lead);
-            return;
-          }
-
-          // Check if this lead is a duplicate
-          const duplicateInfo = duplicateResults.find(
-            (dup) =>
-              dup.email === lead.email ||
-              dup.contact_number === lead.contact_number
-          );
-
-          if (duplicateInfo) {
-            // Mark as duplicate and add note
-            lead.notes = `DUPLICATE: ${duplicateInfo.reason} | ${
-              lead.notes || ""
-            }`.trim();
-            lead.errors = [...lead.errors, duplicateInfo.reason];
-            lead.isValid = false;
-            finalDuplicateLeads.push(lead);
-          } else {
-            finalValidLeads.push(lead);
-          }
-        });
+        // Separate valid and invalid leads initially
+        const initialValidLeads = leads.filter((lead) => lead.isValid);
+        const initialInvalidLeads = leads.filter((lead) => !lead.isValid);
 
         console.log(
-          `🔍 Duplicate check complete: ${finalDuplicateLeads.length} duplicates found`
+          `Parsed ${leads.length} leads: ${initialValidLeads.length} valid, ${initialInvalidLeads.length} invalid`
         );
 
-        // Update state with separate duplicate tracking
-        setParsedLeads(leads);
-        setValidLeads(finalValidLeads);
-        setInvalidLeads(finalInvalidLeads);
-        setDuplicateLeads(finalDuplicateLeads);
-        setErrors({});
+        // Real-time duplicate checking for valid leads
+        if (initialValidLeads.length > 0) {
+          try {
+            console.log("Checking for duplicates against database...");
 
-        // Set active tab based on results
-        if (finalValidLeads.length > 0) {
-          setActiveTab("valid");
-        } else if (finalDuplicateLeads.length > 0) {
-          setActiveTab("duplicates");
+            // Prepare data for duplicate check
+            const duplicateCheckData = initialValidLeads.map((lead) => ({
+              email: lead.email,
+              contact_number: lead.contact_number,
+            }));
+
+            // Call the duplicate check API
+            const duplicateResults = await checkDuplicates(
+              duplicateCheckData
+            ).unwrap();
+
+            console.log("Duplicate check results:", duplicateResults);
+
+            // Process duplicate results
+            const finalValidLeads: ParsedLead[] = [];
+            const finalDuplicateLeads: ParsedLead[] = [];
+
+            initialValidLeads.forEach((lead, index) => {
+              // Find if this lead is a duplicate
+              const duplicateInfo = duplicateResults.duplicates?.find(
+                (dup) =>
+                  (dup.email &&
+                    dup.email.toLowerCase() === lead.email.toLowerCase()) ||
+                  (dup.contact_number &&
+                    dup.contact_number === lead.contact_number)
+              );
+
+              if (duplicateInfo) {
+                // Mark as duplicate
+                const duplicateReason =
+                  duplicateInfo.duplicate_field === "email"
+                    ? `Email '${duplicateInfo.duplicate_value}' already exists (Lead ID: ${duplicateInfo.existing_lead_id})`
+                    : `Phone '${duplicateInfo.duplicate_value}' already exists (Lead ID: ${duplicateInfo.existing_lead_id})`;
+
+                lead.notes = `DUPLICATE: ${duplicateReason} | ${
+                  lead.notes || ""
+                }`.trim();
+                lead.errors = [
+                  ...lead.errors,
+                  `Duplicate ${duplicateInfo.duplicate_field} detected`,
+                ];
+                lead.isValid = false;
+
+                finalDuplicateLeads.push(lead);
+              } else {
+                finalValidLeads.push(lead);
+              }
+            });
+
+            console.log(
+              `Final results: ${finalValidLeads.length} valid, ${finalDuplicateLeads.length} duplicates`
+            );
+
+            // Update state with all categorized leads
+            setParsedLeads(leads);
+            setValidLeads(finalValidLeads);
+            setInvalidLeads(initialInvalidLeads);
+            setDuplicateLeads(finalDuplicateLeads);
+            setErrors({});
+
+            // Set active tab and show notifications
+            if (finalValidLeads.length > 0) {
+              setActiveTab("valid");
+              showSuccess(
+                `${finalValidLeads.length} valid leads ready for upload. ${finalDuplicateLeads.length} duplicates detected.`,
+                "CSV Parsed Successfully"
+              );
+            } else if (finalDuplicateLeads.length > 0) {
+              setActiveTab("duplicates");
+              showError(
+                `${finalDuplicateLeads.length} leads are duplicates. Check the Duplicates tab.`,
+                "Duplicates Detected"
+              );
+            } else {
+              setActiveTab("invalid");
+              showError("No valid leads found.", "No Valid Leads");
+            }
+          } catch (duplicateCheckError) {
+            console.error("Duplicate check failed:", duplicateCheckError);
+
+            // Fallback: treat all initially valid leads as valid
+            setValidLeads(initialValidLeads);
+            setDuplicateLeads([]);
+            setInvalidLeads(initialInvalidLeads);
+
+            showError(
+              `${initialValidLeads.length} leads ready. Could not check duplicates - they will be detected during upload.`,
+              "Duplicate Check Failed"
+            );
+
+            setActiveTab(initialValidLeads.length > 0 ? "valid" : "invalid");
+          }
         } else {
+          // No valid leads to check
+          setValidLeads([]);
+          setDuplicateLeads([]);
+          setInvalidLeads(initialInvalidLeads);
           setActiveTab("invalid");
-        }
 
-        // Show summary notification
-        if (finalDuplicateLeads.length > 0) {
-          showError(
-            `${finalDuplicateLeads.length} leads already exist in the database and have been separated into the Duplicates tab.`,
-            "Duplicates Detected"
-          );
-        } else if (finalValidLeads.length > 0) {
-          showSuccess(
-            `${finalValidLeads.length} valid leads ready for upload. No duplicates detected.`,
-            "CSV Parsed Successfully"
-          );
+          showError("No valid leads found.", "No Valid Leads");
         }
       } catch (error) {
         console.error("Error parsing CSV:", error);
@@ -1273,74 +1241,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     };
 
     reader.readAsText(file);
-  };
-
-  // Helper function to check duplicates against existing leads
-  const checkForDuplicates = (
-    leads: Array<{ email: string; contact_number: string }>
-  ) => {
-    let existingLeads: ExistingLead[] = [];
-
-    if (existingLeadsResponse) {
-      if (Array.isArray(existingLeadsResponse)) {
-        // Direct array format
-        existingLeads = existingLeadsResponse;
-      } else if (
-        existingLeadsResponse.leads &&
-        Array.isArray(existingLeadsResponse.leads)
-      ) {
-        // Paginated response format
-        existingLeads = existingLeadsResponse.leads;
-      }
-    }
-
-    if (existingLeads.length === 0) {
-      console.log("No existing leads data available for duplicate check");
-      return [];
-    }
-
-    const duplicates: Array<{
-      email: string;
-      contact_number: string;
-      reason: string;
-    }> = [];
-
-    for (const lead of leads) {
-      // Check for email duplicates (case insensitive)
-      const isDuplicateEmail = existingLeads.some((existing: ExistingLead) => {
-        const existingEmail = existing.email || existing.basic_info?.email;
-        return (
-          existingEmail &&
-          existingEmail.toLowerCase() === lead.email.toLowerCase()
-        );
-      });
-
-      // Check for phone number duplicates
-      const isDuplicatePhone = existingLeads.some((existing: ExistingLead) => {
-        const existingPhone =
-          existing.contact ||
-          existing.contact_number ||
-          existing.phoneNumber ||
-          existing.basic_info?.contact_number;
-        return existingPhone && existingPhone === lead.contact_number;
-      });
-
-      if (isDuplicateEmail || isDuplicatePhone) {
-        duplicates.push({
-          email: lead.email,
-          contact_number: lead.contact_number,
-          reason: isDuplicateEmail
-            ? "Email already exists"
-            : "Phone number already exists",
-        });
-      }
-    }
-
-    console.log(
-      `🔍 Duplicate check complete: ${duplicates.length} duplicates found out of ${leads.length} leads`
-    );
-    console.log(`📊 Checked against ${existingLeads.length} existing leads`);
-    return duplicates;
   };
 
   // Helper function to generate unique phone numbers based on timestamp
@@ -1755,89 +1655,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 </Card>
 
                 {/* Important Notes */}
-                <Card className="hidden md:block">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-orange-500" />
-                      Auto-Generation Rules
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-xs">
-                    <div className="p-2 bg-green-50 border border-green-200 rounded">
-                      <div className="font-medium text-green-800">
-                        ✅ Smart Email Generation:
-                      </div>
-                      <div className="text-green-700">
-                        Missing or invalid emails will be auto-generated as
-                        notvalidxx123@gmail.com to prevent validation errors.
-                        Original values are saved in notes.
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-blue-50 border border-blue-200 rounded">
-                      <div className="font-medium text-blue-800">
-                        📱 Smart Phone Generation:
-                      </div>
-                      <div className="text-blue-700">
-                        Missing or invalid phone numbers will be auto-generated
-                        as unique 10-digit numbers starting with 9. Original
-                        values are preserved in notes.
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
-                      <div className="font-medium text-yellow-800">
-                        ⚠️ Auto-Assignment:
-                      </div>
-                      <div className="text-yellow-700">
-                        If stage/status columns are missing or contain invalid
-                        values, default values will be automatically assigned.
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-purple-50 border border-purple-200 rounded">
-                      <div className="font-medium text-purple-800">
-                        💡 Data Processing:
-                      </div>
-                      <div className="text-purple-700">
-                        Unmapped columns will be added to the notes field for
-                        reference. Invalid age/experience values are moved to
-                        notes instead of causing errors.
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-indigo-50 border border-indigo-200 rounded">
-                      <div className="font-medium text-indigo-800">
-                        ✅ Tags Format:
-                      </div>
-                      <div className="text-indigo-700">
-                        Separate multiple tags with semicolons (;). Example:
-                        urgent;qualified;follow-up
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-pink-50 border border-pink-200 rounded">
-                      <div className="font-medium text-pink-800">
-                        📊 Lead Score:
-                      </div>
-                      <div className="text-pink-700">
-                        Must be a number between 0-100. Invalid scores will
-                        cause validation errors.
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-gray-50 border border-gray-200 rounded">
-                      <div className="font-medium text-gray-800">
-                        🔍 Duplicate Detection:
-                      </div>
-                      <div className="text-gray-700">
-                        Backend detects duplicates based on email and phone
-                        number. Auto-generated values ensure unique entries
-                        while preserving original data.
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ImportantNotesCard />
               </div>
 
               {/* Middle - File Upload & Preview */}
@@ -1978,198 +1796,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               {/* Right Side - Rules & Guidelines */}
               <div className="space-y-4">
                 {/* CSV Format Rules */}
-                <Card className="hidden md:block">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Info className="h-4 w-4 text-blue-500" />
-                      CSV Upload Rules
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Required Columns */}
-                    <div>
-                      <h4 className="font-semibold text-sm text-red-600 mb-2">
-                        🔴 Required Columns (Must Include):
-                      </h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex flex-wrap items-center gap-1">
-                          <Badge variant="destructive" className="text-xs">
-                            name
-                          </Badge>
-                          <Badge variant="destructive" className="text-xs">
-                            email
-                          </Badge>
-                          <Badge variant="destructive" className="text-xs">
-                            contact_number
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Optional Columns */}
-                    <div>
-                      <h4 className="font-semibold text-sm text-green-600 mb-2">
-                        🟢 Optional Columns:
-                      </h4>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex flex-wrap items-center gap-1">
-                          <Badge variant="outline" className="text-xs">
-                            age
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            nationality
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            current_location
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            experience
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            country_of_interest
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            course_level
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            stage
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            status
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            notes
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            tags
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            lead_score
-                          </Badge>
-
-                          <Badge variant="outline" className="text-xs">
-                            date_of_birth
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CSVFormatRulesCard />
 
                 {/* Header Mapping Rules */}
-                <Card className="hidden md:block">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FileType className="h-4 w-4 text-purple-500" />
-                      Header Mapping Guide
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      System automatically maps these column names
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* Name Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        📝 Name Field:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ name, full name, fullname</div>
-                        <div>✓ lead name, customer name, student name</div>
-                        <div>✓ CANDIDATE NAME, Name</div>
-                      </div>
-                    </div>
-
-                    {/* Email Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        📧 Email Field:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ email, email address, e-mail</div>
-                        <div>✓ mail, email id, Mail ID, Mail id</div>
-                      </div>
-                    </div>
-
-                    {/* Phone Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        📞 Contact Field:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ contact_number, contact number</div>
-                        <div>✓ phone, phone number, mobile</div>
-                        <div>✓ mobile number, telephone, tel</div>
-                        <div>✓ PHONE NUMBER, Phone Number</div>
-                      </div>
-                    </div>
-
-                    {/* Country Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        🌍 Country Field:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ country_of_interest, country of interest</div>
-                        <div>✓ preferred country, destination country</div>
-                        <div>✓ target country, country, Interested Country</div>
-                      </div>
-                    </div>
-
-                    {/* Course Level Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        🎓 Course Level:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ course_level, course level</div>
-                        <div>✓ education level, degree level, study level</div>
-                      </div>
-                    </div>
-
-                    {/* Stage & Status Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        📊 Stage & Status:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ stage, lead stage, current stage</div>
-                        <div>
-                          ✓ opportunity stage, sales stage, pipeline stage
-                        </div>
-                        <div>✓ status, lead status, current status</div>
-                        <div>✓ Status, STATUS</div>
-                      </div>
-                    </div>
-
-                    {/* Experience Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        💼 Experience:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ experience, years of experience</div>
-                        <div>✓ total experience</div>
-                        <div className="text-blue-600 font-medium">
-                          Valid values: fresher, 1_to_3_years, 3_to_5_years,
-                          5_to_10_years, 10+_years
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Notes Mappings */}
-                    <div>
-                      <h5 className="font-medium text-xs mb-1">
-                        📝 Notes Field:
-                      </h5>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>✓ notes, note, comment, comments</div>
-                        <div>✓ remarks, description, areas of interest</div>
-                        <div>✓ other details</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <HeaderMappingRulesCard />
               </div>
             </div>
 

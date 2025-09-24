@@ -103,9 +103,14 @@ interface ValidationError {
   type: string;
 }
 
+interface ErrorDetail {
+  message: string;
+  error: string;
+}
+
 interface ApiError {
   data?: {
-    detail?: string | ValidationError[];
+    detail?: ValidationError[] | ErrorDetail | string; // ✅ Allow multiple types
     message?: string;
   };
   message?: string;
@@ -549,10 +554,9 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
       );
       onClose();
     } catch (error) {
-      console.error("❌ Failed to create lead:", error);
-
       const apiError = error as ApiError;
       let errorMessage = "Failed to create lead";
+      let errorTitle = "Error";
 
       if (apiError.data?.detail) {
         if (typeof apiError.data.detail === "string") {
@@ -562,6 +566,17 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
           errorMessage = validationErrors
             .map((err) => `${err.loc.join(".")}: ${err.msg}`)
             .join(", ");
+        } else if (apiError.data.detail.message) {
+          // ✅ Handle detail.message
+          errorMessage = apiError.data.detail.message;
+
+          // ✅ Check if it's a duplicate lead error
+          if (
+            errorMessage.toLowerCase().includes("duplicate") ||
+            errorMessage.toLowerCase().includes("already exists")
+          ) {
+            errorTitle = "Duplicate Lead";
+          }
         }
       } else if (apiError.data?.message) {
         errorMessage = apiError.data.message;
@@ -569,7 +584,7 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
         errorMessage = apiError.message;
       }
 
-      showError("Error", errorMessage);
+      showError(errorMessage, errorTitle);
     }
   };
   // Helper function to convert assignment mode to backend value

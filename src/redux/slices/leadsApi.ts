@@ -50,7 +50,7 @@ const createUnifiedPaginatedResponse = (response: unknown) => {
     obj: unknown
   ): obj is {
     leads: ApiLead[];
-    pagination: any;
+    pagination: PaginationMeta;
   } => {
     return (
       typeof obj === "object" &&
@@ -392,6 +392,34 @@ export const leadsApi = createApi({
       ],
     }),
 
+    checkDuplicates: builder.mutation<
+      {
+        success: boolean;
+        total_checked: number;
+        duplicates_found: number;
+        duplicates: Array<{
+          index: number;
+          email: string;
+          contact_number: string;
+          existing_lead_id: string;
+          existing_lead_name: string;
+          duplicate_field: string;
+          duplicate_value: string;
+          message: string;
+        }>;
+      },
+      Array<{
+        email: string;
+        contact_number: string;
+      }>
+    >({
+      query: (leads) => ({
+        url: "/leads/check-duplicates",
+        method: "POST",
+        body: leads,
+      }),
+    }),
+
     bulkCreateLeadsFlat: builder.mutation<
       BulkCreateResponse,
       {
@@ -605,6 +633,7 @@ export const {
   useGetAssignableUsersWithDetailsQuery,
   useGetUserLeadStatsQuery,
   useCreateLeadMutation,
+  useCheckDuplicatesMutation,
   useBulkCreateLeadsFlatMutation,
   useUpdateLeadMutation,
   useUpdateLeadStageMutation,
