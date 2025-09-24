@@ -709,20 +709,16 @@ export const createColumns = (
     ),
     cell: ({ row }) => {
       const lead = row.original;
-      const assignedToEmail = lead.assignedTo;
-      let displayName = null;
-      if (assignedToEmail) {
-        displayName = assignedToEmail.split("@")[0];
-      }
+      const assignedToName = lead.assignedToName;
 
       return (
         <div className="flex items-center">
-          {displayName ? (
+          {assignedToName ? (
             <Badge
               variant="outline"
               className="text-xs bg-blue-50 text-blue-700 border-blue-200"
             >
-              {displayName}
+              {assignedToName}
             </Badge>
           ) : (
             <Badge

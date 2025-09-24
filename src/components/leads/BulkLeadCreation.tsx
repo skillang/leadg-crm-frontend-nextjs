@@ -606,9 +606,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       active_only: true,
     });
 
-  // Get existing leads for duplicate checking
-  const { data: existingLeadsResponse } = useGetLeadsQuery({});
-
   const [bulkCreateLeads] = useBulkCreateLeadsFlatMutation();
 
   // const assignableUsers = assignableUsersResponse?.users || [];
@@ -1260,6 +1257,20 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     return phoneNumber;
   };
 
+  const getAssignmentValue = (config: any): string => {
+    switch (config.type) {
+      case "unassigned":
+        return "unassigned";
+      case "manual":
+        return config.assigned_to || "unassigned";
+      case "selective_round_robin":
+        // Let backend handle round-robin logic
+        return ""; // Empty string triggers round-robin
+      default:
+        return "unassigned";
+    }
+  };
+
   const handleUpload = async () => {
     if (validLeads.length === 0) {
       setErrors({ upload: "No valid leads to upload" });
@@ -1302,6 +1313,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         lead_score: lead.lead_score || 0,
         tags: lead.tags || [],
         notes: lead.notes || "",
+        assigned_to: getAssignmentValue(assignmentConfig),
       }));
 
       const progressInterval = setInterval(() => {
