@@ -28,6 +28,14 @@ const transformStage = (stage: Record<string, unknown>): Stage => ({
   created_by: String(stage.created_by || ""),
   created_at: String(stage.created_at || ""),
   updated_at: String(stage.updated_at || ""),
+  automation: Boolean(stage.automation || false),
+  automation_config: stage.automation_config
+    ? {
+        template_name: String(
+          (stage.automation_config as any)?.template_name || ""
+        ),
+      }
+    : null,
 });
 
 const baseQuery = createBaseQueryWithReauth(API_BASE_URL);

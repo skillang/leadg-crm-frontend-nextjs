@@ -223,7 +223,10 @@ export default function LeadDetailsPage() {
     : null;
 
   // Stage change handler using Select with StageDisplay
-  const handleStageChange = async (newStage: string) => {
+  const handleStageChange = async (
+    newStage: string,
+    options?: { automation_approved?: boolean }
+  ) => {
     if (!leadDetails || newStage === leadDetails.stage) return;
 
     setIsUpdatingStage(true);
@@ -266,6 +269,7 @@ export default function LeadDetailsPage() {
         leadId: leadDetails.leadId,
         stage: newStage,
         currentLead: currentLead,
+        automation_approved: options?.automation_approved,
       }).unwrap();
 
       const stageDisplayName = getStageDisplayName(newStage);

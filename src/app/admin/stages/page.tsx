@@ -13,6 +13,7 @@ import {
   useActivateStageMutation,
   useDeactivateStageMutation,
 } from "@/redux/slices/stagesApi";
+import WhatsAppTemplateMessage from "@/components/communication/whatsapp/WhatsAppTemplateMessage";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, CheckCircle, XCircle, Settings, Users } from "lucide-react";
+import {
+  Plus,
+  CheckCircle,
+  XCircle,
+  Settings,
+  Users,
+  MessageSquare,
+} from "lucide-react";
 import { Stage, CreateStageRequest, STAGE_COLORS } from "@/models/types/stage";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
@@ -51,12 +59,19 @@ import {
   sortStagesByOrder,
   calculateStageStats,
 } from "@/services/stageManagement/stageManagementService";
+import WhatsAppTemplateSelect from "@/components/communication/whatsapp/WhatsAppTemplateSelect";
 
 const StageManagementPage = () => {
   // State for forms and dialogs
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [currentStageForTemplate, setCurrentStageForTemplate] = useState<
+    "create" | "edit"
+  >("create");
+  const [isCreatePreviewMode, setIsCreatePreviewMode] = useState(false);
+  const [isEditPreviewMode, setIsEditPreviewMode] = useState(false);
   const [createFormData, setCreateFormData] = useState<CreateStageRequest>({
     name: "",
     display_name: "",
@@ -65,6 +80,8 @@ const StageManagementPage = () => {
     sort_order: 1,
     is_active: true,
     is_default: false,
+    automation: false,
+    automation_config: null,
   });
 
   // Auto-generate internal name when display name changes in create form
@@ -156,6 +173,8 @@ const StageManagementPage = () => {
           sort_order: 1,
           is_active: true,
           is_default: false,
+          automation: false,
+          automation_config: null,
         });
       },
     });
@@ -569,6 +588,40 @@ const StageManagementPage = () => {
                 <Label htmlFor="is_default">Default Stage</Label>
               </div>
             </div>
+            <div className="space-y-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="automation"
+                  checked={createFormData.automation}
+                  onCheckedChange={(checked) =>
+                    setCreateFormData((prev) => ({
+                      ...prev,
+                      automation: checked,
+                      automation_config: checked ? { template_name: "" } : null,
+                    }))
+                  }
+                />
+                <Label htmlFor="automation">Enable WhatsApp Automation</Label>
+              </div>
+
+              {createFormData.automation && (
+                <div className="space-y-2 ml-6">
+                  <WhatsAppTemplateSelect
+                    showLabel={false}
+                    value={
+                      createFormData.automation_config?.template_name || ""
+                    }
+                    onValueChange={(templateName) =>
+                      setCreateFormData((prev) => ({
+                        ...prev,
+                        automation_config: { template_name: templateName },
+                      }))
+                    }
+                    required
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button
@@ -713,6 +766,55 @@ const StageManagementPage = () => {
                   <Label htmlFor="edit_is_default">Default Stage</Label>
                 </div>
               </div>
+              <div className="space-y-4 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit_automation"
+                    checked={editingStage.automation || false}
+                    onCheckedChange={(checked) =>
+                      setEditingStage((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              automation: checked,
+                              automation_config: checked
+                                ? prev.automation_config || {
+                                    template_name: "",
+                                  }
+                                : null,
+                            }
+                          : null
+                      )
+                    }
+                  />
+                  <Label htmlFor="edit_automation">
+                    Enable WhatsApp Automation
+                  </Label>
+                </div>
+                {editingStage.automation && (
+                  <div className="space-y-2 ml-6">
+                    <WhatsAppTemplateSelect
+                      showLabel={false}
+                      value={
+                        editingStage.automation_config?.template_name || ""
+                      }
+                      onValueChange={(templateName) =>
+                        setEditingStage((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                automation_config: {
+                                  template_name: templateName,
+                                },
+                              }
+                            : null
+                        )
+                      }
+                      required
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
@@ -725,6 +827,18 @@ const StageManagementPage = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp Template Selection Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select WhatsApp Template</DialogTitle>
+            <DialogDescription>
+              Choose a template for automation when leads move to this stage
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>

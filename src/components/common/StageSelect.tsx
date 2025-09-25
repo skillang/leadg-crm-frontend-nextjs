@@ -9,17 +9,25 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { getColorVariations } from "@/utils/colorUtils";
+import { useNotifications } from "@/components/common/NotificationSystem";
 
 interface Stage {
   id: string;
   name: string;
   display_name: string;
   color: string;
+  automation?: boolean;
+  automation_config?: {
+    template_name: string;
+  } | null;
 }
 
 interface StageSelectProps {
   value: string;
-  onValueChange: (value: string) => void;
+  onValueChange: (
+    value: string,
+    options?: { automation_approved?: boolean }
+  ) => void;
   stages: Stage[];
   disabled?: boolean;
   isLoading?: boolean;
@@ -48,6 +56,31 @@ export const StageSelect = ({
   const selectedColors = selectedStage
     ? getColorVariations(selectedStage.color)
     : null;
+  const { showConfirm } = useNotifications();
+
+  const handleStageChange = async (newStage: string) => {
+    // Find the target stage
+    const targetStage = stages.find((stage) => stage.name === newStage);
+
+    // Check if stage has automation enabled
+    if (targetStage?.automation) {
+      showConfirm({
+        title: "Auto-send WhatsApp Message?",
+        description: `This stage has WhatsApp automation enabled with template "${targetStage.automation_config?.template_name}". Do you want to send the template message automatically?`,
+        confirmText: "Send Message",
+        cancelText: "Skip Message",
+        variant: "success",
+        onConfirm: async () => {
+          onValueChange(newStage, { automation_approved: true });
+        },
+        onCancel: async () => {
+          onValueChange(newStage, { automation_approved: false });
+        },
+      });
+    } else {
+      onValueChange(newStage);
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -58,7 +91,7 @@ export const StageSelect = ({
       )}
       <Select
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={handleStageChange}
         disabled={disabled || isLoading}
       >
         <SelectTrigger

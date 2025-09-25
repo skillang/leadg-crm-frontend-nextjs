@@ -34,6 +34,7 @@ import {
   getTemplateDisplayName,
   type TemplateMessageRequest,
 } from "@/models/types/whatsapp";
+import WhatsAppTemplateSelect from "./WhatsAppTemplateSelect";
 
 // Define error interfaces for type safety
 interface ApiErrorData {
@@ -243,27 +244,11 @@ const WhatsAppTemplateMessage: React.FC = () => {
       {/* Template Selection */}
       <div className="space-y-2">
         <Label htmlFor="template-select">Select Template:</Label>
-        <Select
+        <WhatsAppTemplateSelect
           value={selectedTemplate || ""}
           onValueChange={handleTemplateSelect}
-        >
-          <SelectTrigger id="template-select">
-            <SelectValue placeholder="Choose a template..." />
-          </SelectTrigger>
-          <SelectContent>
-            {templates.map((template) => {
-              const key = getTemplateIdentifier(template);
-              const label = getTemplateDisplayName(template);
-              const value = template.template_name || template.name || "";
-
-              return (
-                <SelectItem key={key} value={value}>
-                  {label}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+          label="Select Template"
+        />
       </div>
 
       {/* Template Parameters */}

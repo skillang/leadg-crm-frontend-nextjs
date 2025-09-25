@@ -48,7 +48,10 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
   const stage = row.getValue("stage") as string;
   const currentLead = row.original;
 
-  const handleStageChange = async (newStage: string) => {
+  const handleStageChange = async (
+    newStage: string,
+    options?: { automation_approved?: boolean }
+  ) => {
     if (newStage === stage) return;
 
     try {
@@ -56,6 +59,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
         leadId: currentLead.id,
         stage: newStage,
         currentLead,
+        automation_approved: options?.automation_approved,
       }).unwrap();
 
       // Get stage display name for notification

@@ -13,6 +13,10 @@ export interface Stage {
   created_by: string;
   created_at: string;
   updated_at: string;
+  automation: boolean;
+  automation_config?: {
+    template_name: string;
+  } | null;
 }
 
 export interface CreateStageRequest {
@@ -23,6 +27,10 @@ export interface CreateStageRequest {
   sort_order: number;
   is_active: boolean;
   is_default: boolean;
+  automation: boolean;
+  automation_config?: {
+    template_name: string;
+  } | null;
 }
 
 export interface UpdateStageRequest {
@@ -32,6 +40,10 @@ export interface UpdateStageRequest {
   sort_order?: number;
   is_active?: boolean;
   is_default?: boolean;
+  automation: boolean;
+  automation_config?: {
+    template_name: string;
+  } | null;
 }
 
 export interface StagesResponse {

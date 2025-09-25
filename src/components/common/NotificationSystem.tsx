@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -127,7 +127,7 @@ interface ConfirmDialogOptions {
   description: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: "default" | "destructive";
+  variant?: "default" | "destructive" | "success";
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
 }
@@ -335,8 +335,14 @@ export function NotificationProvider({
                 onClick={handleConfirm}
                 disabled={isConfirmLoading}
                 className={cn(
-                  confirmDialog.variant === "destructive" &&
-                    "bg-red-600 hover:bg-red-700"
+                  buttonVariants({
+                    variant:
+                      confirmDialog.variant === "success"
+                        ? "success"
+                        : confirmDialog.variant === "destructive"
+                        ? "destructive"
+                        : "default",
+                  })
                 )}
               >
                 {isConfirmLoading
