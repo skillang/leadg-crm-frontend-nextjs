@@ -150,7 +150,7 @@ const StatusManagement: React.FC = () => {
   return (
     <div className="container mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             Lead Status Management
@@ -181,7 +181,7 @@ const StatusManagement: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <StatsCard
           title="Total Statuses"
           value={stats.total}
@@ -221,10 +221,10 @@ const StatusManagement: React.FC = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value={activeTab} className="mt-6">
+            <TabsContent value={activeTab} className="mt-2">
               {/* Status Grid - Show actual data when available */}
               {filteredStatuses.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-4 grid grid-cols-3 gap-4">
                   {filteredStatuses.map((status) => (
                     <AdminDataConfCard
                       key={status.id}

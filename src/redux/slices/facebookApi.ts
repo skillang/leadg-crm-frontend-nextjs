@@ -73,8 +73,41 @@ export interface ImportLeadRequest {
 export interface ImportLeadResponse {
   success: boolean;
   message: string;
+  form_info?: {
+    form_id: string;
+    form_name: string;
+    assigned_category: string;
+  };
+  import_status?: "completed" | "in_progress";
+  stats?: {
+    total_facebook_leads: number;
+    imported_count: number;
+    failed_count: number;
+    skipped_count: number;
+  };
+  errors?: string[];
+}
+
+interface FacebookImportApiResponse {
+  success?: boolean;
+  message?: string;
+  form_info?: {
+    form_id: string;
+    form_name: string;
+    assigned_category: string;
+  };
+  import_status?: "completed" | "in_progress";
+  stats?: {
+    total_facebook_leads: number;
+    imported_count: number;
+    failed_count: number;
+    skipped_count: number;
+  };
+  // Old format fields
   imported_count?: number;
   skipped_count?: number;
+  imported?: number;
+  skipped?: number;
   errors?: string[];
 }
 
@@ -190,13 +223,29 @@ export const facebookApi = createApi({
       }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       transformResponse: (response: any): ImportLeadResponse => {
-        // Handle various response structures
+        // Handle new enhanced response format with stats
         if (response && typeof response === "object") {
+          if (response.stats) {
+            // New format with detailed stats
+            return {
+              success: response.success ?? true,
+              message: response.message || "Import completed successfully",
+              form_info: response.form_info,
+              import_status: response.import_status || "completed",
+              stats: {
+                total_facebook_leads: response.stats.total_facebook_leads || 0,
+                imported_count: response.stats.imported_count || 0,
+                failed_count: response.stats.failed_count || 0,
+                skipped_count: response.stats.skipped_count || 0,
+              },
+              errors: response.errors || [],
+            };
+          }
+
+          // Handle old format (existing logic)
           return {
             success: response.success ?? true,
             message: response.message || "Import completed successfully",
-            imported_count: response.imported_count || response.imported || 0,
-            skipped_count: response.skipped_count || response.skipped || 0,
             errors: response.errors || [],
           };
         }
