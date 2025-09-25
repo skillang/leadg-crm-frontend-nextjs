@@ -111,6 +111,8 @@ export const updateStageService = async (
         sort_order: editingStage.sort_order,
         is_active: editingStage.is_active,
         is_default: editingStage.is_default,
+        automation: editingStage.automation,
+        automation_config: editingStage.automation_config,
       },
     }).unwrap();
 
@@ -138,7 +140,7 @@ export const deleteStageService = async (
   }: {
     deleteMutation: any;
     showSuccess: (message: string) => void;
-    showError: (message: string) => void;
+    showError: (title: string, message: string) => void;
     showConfirm: (options: any) => void;
     refetchActive: () => void;
     onSuccess?: () => void;
@@ -150,7 +152,8 @@ export const deleteStageService = async (
   // Check if stage has leads before showing confirmation
   if (hasLeads) {
     showError(
-      `Cannot delete "${stage.display_name}" because it has ${stage.lead_count} associated leads. Please reassign or remove the leads first.`
+      `Cannot delete "${stage.display_name}" because it has ${stage.lead_count} associated leads. Please reassign or remove the leads first.`,
+      "Cannot delete stage"
     );
     return;
   }
@@ -173,7 +176,7 @@ export const deleteStageService = async (
           error,
           "Failed to delete stage"
         );
-        showError(errorMessage);
+        showError(errorMessage, "Unknown error occured");
         onError?.();
       }
     },

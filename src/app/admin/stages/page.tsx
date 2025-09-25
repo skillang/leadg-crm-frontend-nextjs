@@ -13,7 +13,6 @@ import {
   useActivateStageMutation,
   useDeactivateStageMutation,
 } from "@/redux/slices/stagesApi";
-import WhatsAppTemplateMessage from "@/components/communication/whatsapp/WhatsAppTemplateMessage";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
@@ -37,14 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Plus,
-  CheckCircle,
-  XCircle,
-  Settings,
-  Users,
-  MessageSquare,
-} from "lucide-react";
+import { Plus, CheckCircle, XCircle, Settings, Users } from "lucide-react";
 import { Stage, CreateStageRequest, STAGE_COLORS } from "@/models/types/stage";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
@@ -67,11 +59,8 @@ const StageManagementPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  const [currentStageForTemplate, setCurrentStageForTemplate] = useState<
-    "create" | "edit"
-  >("create");
-  const [isCreatePreviewMode, setIsCreatePreviewMode] = useState(false);
-  const [isEditPreviewMode, setIsEditPreviewMode] = useState(false);
+  // const [isCreatePreviewMode, setIsCreatePreviewMode] = useState(false);
+  // const [isEditPreviewMode, setIsEditPreviewMode] = useState(false);
   const [createFormData, setCreateFormData] = useState<CreateStageRequest>({
     name: "",
     display_name: "",
@@ -306,7 +295,7 @@ const StageManagementPage = () => {
         <TabsContent value="active" className="space-y-4">
           {/* Show actual data when available */}
           {sortedActiveStages.length > 0 && (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {sortedActiveStages.map((stage) => (
                 <AdminDataConfCard
                   key={stage.id}
@@ -338,7 +327,7 @@ const StageManagementPage = () => {
                   onMoveUp={() => handleReorder(stage.id, "up")}
                   onMoveDown={() => handleReorder(stage.id, "down")}
                   canEdit={true}
-                  canDelete={stage.lead_count === 0}
+                  canDelete={true}
                   canReorder={true}
                   showReorderOutside={true}
                   isLoading={false}
@@ -418,7 +407,7 @@ const StageManagementPage = () => {
                   onMoveUp={() => handleReorder(stage.id, "up")}
                   onMoveDown={() => handleReorder(stage.id, "down")}
                   canEdit={true}
-                  canDelete={stage.lead_count === 0}
+                  canDelete={true}
                   canReorder={true}
                   showReorderOutside={true}
                   isLoading={false}
@@ -766,7 +755,12 @@ const StageManagementPage = () => {
                   <Label htmlFor="edit_is_default">Default Stage</Label>
                 </div>
               </div>
-              <div className="space-y-4 flex items-center justify-between">
+              <div className="space-y-4 pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-900">
+                  WhatsApp Automation
+                </h4>
+
+                {/* Automation Toggle */}
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="edit_automation"
@@ -791,9 +785,15 @@ const StageManagementPage = () => {
                     Enable WhatsApp Automation
                   </Label>
                 </div>
+
+                {/* Template Selection - Full Width Below the Switch */}
                 {editingStage.automation && (
-                  <div className="space-y-2 ml-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_template_select">
+                      WhatsApp Template *
+                    </Label>
                     <WhatsAppTemplateSelect
+                      // id="edit_template_select"
                       showLabel={false}
                       value={
                         editingStage.automation_config?.template_name || ""

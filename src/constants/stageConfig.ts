@@ -1,6 +1,11 @@
 // constants/stageConfig.ts
 
-import { StageOption } from "@/components/StageSelectComponent";
+export interface StageOption {
+  value: string;
+  label: string;
+  variant: "default" | "secondary" | "destructive" | "outline";
+  className?: string;
+}
 
 export const LEAD_STAGES: StageOption[] = [
   {
