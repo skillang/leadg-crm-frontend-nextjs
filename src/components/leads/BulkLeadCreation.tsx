@@ -297,6 +297,24 @@ const cleanPhoneNumber = (phoneStr: string): string | null => {
   return null;
 };
 
+// ✅ New function to handle multiple phone numbers
+const parseMultiplePhoneNumbers = (
+  phoneStr: string
+): { primary: string | null; additional: string[] } => {
+  if (!phoneStr || !phoneStr.trim()) return { primary: null, additional: [] };
+
+  // Split by comma and clean each number
+  const phoneNumbers = phoneStr
+    .split(",")
+    .map((phone) => cleanPhoneNumber(phone))
+    .filter((phone) => phone !== null);
+
+  return {
+    primary: phoneNumbers.length > 0 ? phoneNumbers[0] : null,
+    additional: phoneNumbers.slice(1), // Get all except first
+  };
+};
+
 // ✅ Enhanced age extraction function
 const extractAge = (ageStr: string): number | null => {
   if (!ageStr || !ageStr.trim()) return null;
@@ -747,7 +765,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
             switch (key) {
               case "name":
-                lead.name = value;
                 if (!value) {
                   errors.push("Name is required");
                 } else {
@@ -757,13 +774,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
               case "email":
                 if (!value) {
-                  lead.email = `notvalid${uniqueId}@gmail.com`;
-                  notesData.push("Original Email: Missing - Auto-generated");
+                  // Skip lead if no email
+                  errors.push("Email is required");
                 } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                  lead.email = `notvalid${uniqueId}@gmail.com`;
-                  notesData.push(
-                    `Original Email: ${value} (Invalid format) - Auto-generated`
-                  );
+                  errors.push("Valid email format is required");
                 } else {
                   lead.email = value.toLowerCase().trim();
                 }
@@ -771,25 +785,24 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
               case "contact_number":
                 if (!value) {
-                  const generatedPhone = generateUniquePhoneNumber(
-                    rowTimestamp,
-                    i
-                  );
-                  lead.contact_number = generatedPhone;
-                  notesData.push("Original Phone: Missing - Auto-generated");
+                  // Skip lead if no phone number
+                  errors.push("Phone number is required");
                 } else {
-                  const cleanedPhone = cleanPhoneNumber(value);
-                  if (cleanedPhone) {
-                    lead.contact_number = cleanedPhone;
+                  const { primary, additional } =
+                    parseMultiplePhoneNumbers(value);
+
+                  if (primary) {
+                    lead.contact_number = primary;
+
+                    // Add additional numbers to notes if they exist
+                    if (additional.length > 0) {
+                      notesData.push(
+                        `Additional phone numbers: ${additional.join(", ")}`
+                      );
+                    }
                   } else {
-                    const generatedPhone = generateUniquePhoneNumber(
-                      rowTimestamp,
-                      i
-                    );
-                    lead.contact_number = generatedPhone;
-                    notesData.push(
-                      `Original Phone: ${value} (Invalid format/Scientific notation) - Auto-generated`
-                    );
+                    // No valid phone numbers found
+                    errors.push("Valid phone number is required");
                   }
                 }
                 break;
@@ -1107,9 +1120,25 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
           // Set validation status
           lead.errors = errors;
-          lead.isValid = errors.length === 0 && lead.name.trim() !== "";
+          lead.isValid = errors.length === 0;
 
-          leads.push(lead);
+          // Only add leads that have both email and phone (no skipping based on missing contact info)
+          if (
+            !errors.some(
+              (error) =>
+                error.includes("Email is required") ||
+                error.includes("Phone number is required")
+            )
+          ) {
+            leads.push(lead);
+          } else {
+            // Optionally log skipped leads
+            console.log(
+              `Skipped lead ${
+                lead.name || "Unknown"
+              }: Missing required contact info`
+            );
+          }
         }
 
         // Separate valid and invalid leads initially
@@ -1237,23 +1266,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     };
 
     reader.readAsText(file);
-  };
-
-  // Helper function to generate unique phone numbers based on timestamp
-  const generateUniquePhoneNumber = (
-    timestamp: number,
-    rowIndex: number
-  ): string => {
-    // Convert timestamp to string and extract digits
-    const timestampStr = timestamp.toString();
-    const rowStr = rowIndex.toString().padStart(3, "0");
-
-    // Create a 10-digit number using timestamp and row index
-    // Format: 9XXXXXXXXX (starting with 9 to make it look like a mobile number)
-    const lastDigits = timestampStr.slice(-6); // Get last 6 digits of timestamp
-    const phoneNumber = `9${lastDigits}${rowStr}`.slice(0, 10);
-
-    return phoneNumber;
   };
 
   const getAssignmentValue = (config: any): string => {

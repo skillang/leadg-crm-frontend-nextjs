@@ -450,7 +450,7 @@ const StageManagementPage = () => {
 
       {/* Create Stage Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] min-w-xl max-w-2xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-[500px] min-w-xl max-w-2xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Stage</DialogTitle>
             <DialogDescription>
@@ -627,13 +627,13 @@ const StageManagementPage = () => {
 
       {/* Edit Stage Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] min-w-xl max-w-2xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-[500px] min-w-xl max-w-2xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Stage</DialogTitle>
             <DialogDescription>Update stage information</DialogDescription>
           </DialogHeader>
           {editingStage && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="space-y-2">
                 <Label htmlFor="edit_display_name">Display Name *</Label>
                 <Input

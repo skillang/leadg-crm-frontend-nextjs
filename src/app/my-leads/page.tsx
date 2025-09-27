@@ -53,12 +53,35 @@ export default function DemoPage() {
     return limitParam ? parseInt(limitParam, 10) : 20;
   });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [userFilter, setUserFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState(() => {
+    const stageParam = searchParams.get("stage");
+    return stageParam || "all";
+  });
+
+  const [categoryFilter, setCategoryFilter] = useState<string>(() => {
+    const categoryParam = searchParams.get("category");
+    return categoryParam || "all";
+  });
+
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const statusParam = searchParams.get("status");
+    return statusParam || "all";
+  });
+
+  const [sourceFilter, setSourceFilter] = useState<string>(() => {
+    const sourceParam = searchParams.get("source");
+    return sourceParam || "all";
+  });
+
+  const [userFilter, setUserFilter] = useState(() => {
+    const userParam = searchParams.get("user");
+    return userParam || "all";
+  });
+
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const searchParam = searchParams.get("search");
+    return searchParam || "";
+  });
   const [dateFilter, setDateFilter] = useState<{
     created_from?: string;
     created_to?: string;
@@ -117,17 +140,53 @@ export default function DemoPage() {
 
   // 🔥 NEW: Function to update URL with pagination - MOVED BEFORE HANDLERS
   const updateURLWithPagination = useCallback(
-    (page: number, limit: number) => {
-      const params = new URLSearchParams(searchParams.toString());
+    (
+      page: number,
+      limit: number,
+      filters?: {
+        stage?: string;
+        status?: string;
+        category?: string;
+        source?: string;
+        search?: string;
+        user?: string;
+      }
+    ) => {
+      const params = new URLSearchParams();
 
-      // Update or add pagination params
+      // Add pagination
       params.set("page", page.toString());
       params.set("limit", limit.toString());
 
-      // Use replace to avoid cluttering browser history
+      // Add filters if they're not "all" or empty
+      const currentFilters = {
+        stage: filters?.stage || stageFilter,
+        status: filters?.status || statusFilter,
+        category: filters?.category || categoryFilter,
+        source: filters?.source || sourceFilter,
+        search: filters?.search || searchQuery,
+        user: filters?.user || userFilter,
+      };
+
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        if (value && value !== "all" && value !== "") {
+          params.set(key, value);
+        }
+      });
+
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [searchParams, pathname, router]
+    [
+      searchParams,
+      pathname,
+      router,
+      stageFilter,
+      statusFilter,
+      categoryFilter,
+      sourceFilter,
+      searchQuery,
+      userFilter,
+    ]
   );
 
   // 🔥 FIXED: Reset to page 1 when search changes
@@ -139,22 +198,43 @@ export default function DemoPage() {
   useEffect(() => {
     const pageParam = searchParams.get("page");
     const limitParam = searchParams.get("limit");
+    const stageParam = searchParams.get("stage");
+    const statusParam = searchParams.get("status");
+    const categoryParam = searchParams.get("category");
+    const sourceParam = searchParams.get("source");
+    const searchParam = searchParams.get("search");
+    const userParam = searchParams.get("user");
 
     const urlPage = pageParam ? parseInt(pageParam, 10) : 1;
     const urlLimit = limitParam ? parseInt(limitParam, 10) : 20;
+    const urlStage = stageParam || "all";
+    const urlStatus = statusParam || "all";
+    const urlCategory = categoryParam || "all";
+    const urlSource = sourceParam || "all";
+    const urlSearch = searchParam || "";
+    const urlUser = userParam || "all";
 
-    // console.log("🔄 URL changed - syncing state:", {
-    //   urlPage,
-    //   urlLimit,
-    //   currentPage,
-    //   pageSize,
-    //   searchParamsString: searchParams.toString(),
-    // });
+    console.log("🔄 URL changed - syncing ALL state:", {
+      urlPage,
+      urlLimit,
+      urlStage,
+      urlStatus,
+      urlCategory,
+      urlSource,
+      urlSearch,
+      urlUser,
+    });
 
-    // Force state update even if values seem the same
+    // Update all state to match URL
     setCurrentPage(urlPage);
     setPageSize(urlLimit);
-  }, [searchParams.toString()]); // 🔥 FIXED: Use searchParams.toString() instead of searchParams
+    setStageFilter(urlStage);
+    setStatusFilter(urlStatus);
+    setCategoryFilter(urlCategory);
+    setSourceFilter(urlSource);
+    setSearchQuery(urlSearch);
+    setUserFilter(urlUser);
+  }, [searchParams.toString()]);
 
   // useEffect(() => {
   //   // Force refetch when pagination changes
