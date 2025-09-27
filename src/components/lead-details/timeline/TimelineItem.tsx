@@ -33,6 +33,7 @@ import {
   Trash,
   CheckCircle,
   XCircle,
+  PlayIcon,
 } from "lucide-react";
 import {
   TimelineActivity,
@@ -41,6 +42,8 @@ import {
 } from "@/models/types/timeline";
 import { cn } from "@/lib/utils";
 import { twoTileDateTime } from "@/utils/formatDate";
+import { useAudio } from "@/contexts/AudioContext";
+import { Button } from "@/components/ui/button";
 
 interface TimelineItemProps {
   activity: TimelineActivity;
@@ -59,6 +62,7 @@ const isNonEmptyString = (value: unknown): value is string => {
 };
 
 const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
+  const { playAudio } = useAudio();
   // Get activity type configuration using the new dynamic system
   const typeConfig = getActivityTypeConfig(activity.activity_type);
 
@@ -239,6 +243,38 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ activity }) => {
         info.push(
           <div key="duration" className="text-sm text-gray-600">
             <span className="font-medium">Duration:</span> {duration}
+          </div>
+        );
+      }
+    }
+
+    // Replace your current recording URL display with:
+    if (metadata.has_recording === true && metadata.recording_url) {
+      const recording_url = safeString(metadata.recording_url);
+      if (recording_url) {
+        info.push(
+          <div key="recording" className="text-sm text-gray-600">
+            <span className="font-medium">Call Recording:</span>{" "}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                playAudio({
+                  url: recording_url,
+                  callInfo: {
+                    agent_name: metadata.agent_name as string,
+                    client_number: metadata.customer_number as string,
+                    date: activity.created_at?.split("T")[0],
+                    time: activity.created_at?.split("T")[1]?.split(".")[0],
+                    call_id: metadata.call_id as string,
+                  },
+                });
+              }}
+              className="ml-2 h-6 px-2 text-xs"
+            >
+              <PlayIcon className="h-3 w-3 mr-1" />
+              Play
+            </Button>
           </div>
         );
       }
