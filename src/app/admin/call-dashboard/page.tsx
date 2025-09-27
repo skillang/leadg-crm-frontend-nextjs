@@ -28,7 +28,6 @@ import { FilterState, SortState } from "@/models/types/callDashboard";
 import TemporalTrendsCard from "@/components/admin/dashboard/TemporalTrendsCard";
 import DurationDistributionCard from "@/components/admin/dashboard/DurationDistributionCard";
 import HeatmapCard from "@/components/admin/dashboard/HeatmapCard";
-import ForecastCard from "@/components/admin/dashboard/ForecastCard";
 
 // Default filter state
 const defaultFilters: FilterState = {
@@ -212,12 +211,9 @@ export default function AdminCallDashboardPage() {
             data={summaryStats!.peak_hours}
             loading={isLoadingData}
           />
-
-          <TrendsCard
-            data={summaryStats!.trends}
-            dateRange={summaryStats!.date_range}
+          <TemporalTrendsCard
+            data={summaryStats!.trends.temporal_trends}
             loading={isLoadingData}
-            variant="area"
           />
         </div>
       )}
@@ -225,25 +221,18 @@ export default function AdminCallDashboardPage() {
       {/* Row 4: Temporal + Forecast */}
       {summaryStats && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TemporalTrendsCard
-            data={summaryStats!.trends.temporal_trends}
-            loading={isLoadingData}
-          />
-          <ForecastCard
+          <TrendsCard
             data={summaryStats!.trends}
+            dateRange={summaryStats!.date_range}
             loading={isLoadingData}
-            // title="forecast"
+            variant="area"
+          />
+          <InsightsCard
+            data={summaryStats!.peak_hours?.insights}
+            analysisMetadata={summaryStats!.peak_hours?.analysis_metadata}
+            loading={isLoadingData}
           />
         </div>
-      )}
-
-      {/* Row 5: Insights (Keep existing) */}
-      {summaryStats && (
-        <InsightsCard
-          data={summaryStats!.peak_hours?.insights}
-          analysisMetadata={summaryStats!.peak_hours?.analysis_metadata}
-          loading={isLoadingData}
-        />
       )}
 
       {/* User Performance Table */}
