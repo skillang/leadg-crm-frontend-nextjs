@@ -477,22 +477,15 @@ export const leadsApi = createApi({
       {
         leadId: string;
         stage: string;
-        currentLead: Lead;
         automation_approved?: boolean;
       }
     >({
-      query: ({ leadId, stage, currentLead, automation_approved }) => ({
+      query: ({ leadId, stage, automation_approved }) => ({
         url: "leads/update",
         method: "PUT",
         body: {
           lead_id: leadId,
-          name: currentLead.name,
-          lead_score: currentLead.leadScore,
           stage: stage,
-          email: currentLead.email,
-          contact_number: currentLead.contact,
-          source: currentLead.source,
-          notes: currentLead.notes,
           automation_approved: automation_approved,
         },
       }),

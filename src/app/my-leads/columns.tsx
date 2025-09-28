@@ -58,7 +58,6 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
       await updateStage({
         leadId: currentLead.id,
         stage: newStage,
-        currentLead,
         automation_approved: options?.automation_approved,
       }).unwrap();
 

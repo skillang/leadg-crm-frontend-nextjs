@@ -231,44 +231,9 @@ export default function LeadDetailsPage() {
 
     setIsUpdatingStage(true);
     try {
-      // Create Lead object from leadDetails
-      const currentLead: Lead = {
-        id: leadDetails.leadId,
-        leadId: leadDetails.leadId,
-        name: leadDetails.name,
-        email: leadDetails.email,
-        contact: leadDetails.phoneNumber,
-        phoneNumber: leadDetails.phoneNumber,
-        source: leadDetails.source,
-        stage: leadDetails.stage,
-        leadScore: leadDetails.leadScore,
-        status: leadDetails.status || "active",
-        assignedTo: leadDetails.assignedTo || "",
-        assignedToName: leadDetails.assignedToName || "",
-        coAssignees: [],
-        coAssigneesNames: [],
-        isMultiAssigned: false,
-        assignmentMethod: leadDetails.assignmentMethod || "manual",
-        age: leadDetails.age,
-        experience: leadDetails.experience,
-        nationality: leadDetails.nationality,
-        date_of_birth: leadDetails.date_of_birth,
-        courseLevel: leadDetails.courseLevel || "",
-        countryOfInterest: leadDetails.countryOfInterest || "",
-        notes: leadDetails.notes || "",
-        createdAt: leadDetails.createdAt,
-        createdBy: leadDetails.createdBy || "",
-        updatedAt: leadDetails.updatedAt,
-        lastContacted: null,
-        leadCategory: leadDetails.leadCategory || "",
-        tags: leadDetails.tags || [],
-        priority: leadDetails.priority || "medium",
-      };
-
       await updateStage({
         leadId: leadDetails.leadId,
         stage: newStage,
-        currentLead: currentLead,
         automation_approved: options?.automation_approved,
       }).unwrap();
 
