@@ -21,7 +21,7 @@ export interface Contact {
 
 export interface CreateContactRequest {
   first_name: string;
-  last_name: string;
+  last_name?: string;
   email: string;
   phone: string;
   role: string;
@@ -124,7 +124,6 @@ export const validateContactData = (data: CreateContactRequest): string[] => {
   const errors: string[] = [];
 
   if (!data.first_name?.trim()) errors.push("First name is required");
-  if (!data.last_name?.trim()) errors.push("Last name is required");
 
   if (!data.email?.trim()) {
     errors.push("Email is required");

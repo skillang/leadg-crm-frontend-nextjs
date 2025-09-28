@@ -1,10 +1,6 @@
 // src/redux/slices/contactsApi.ts
 
-import {
-  createApi,
-  fetchBaseQuery,
-  BaseQueryFn,
-} from "@reduxjs/toolkit/query/react";
+import { createApi, BaseQueryFn } from "@reduxjs/toolkit/query/react";
 import {
   Contact,
   CreateContactRequest,
@@ -12,7 +8,6 @@ import {
   ContactsResponse,
   validateContactData,
 } from "@/models/types/contact";
-import type { RootState } from "../store";
 import type { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { transformContact, RawContact } from "@/models/types/contact";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
@@ -38,6 +33,7 @@ const baseQueryWithLogging: BaseQueryFn<
     console.error("❌ API Error:", {
       status: result.error.status,
       data: result.error.data,
+      originalArgs: args,
     });
   }
 
@@ -109,7 +105,9 @@ export const contactsApi = createApi({
 
         const cleanedData = {
           first_name: contactData.first_name.trim(),
-          last_name: contactData.last_name.trim(),
+          ...(contactData.last_name?.trim() && {
+            last_name: contactData.last_name?.trim(),
+          }),
           email: contactData.email.trim().toLowerCase(),
           phone: contactData.phone.trim(),
           role: contactData.role,
