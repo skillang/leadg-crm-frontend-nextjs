@@ -2,7 +2,8 @@
 "use client";
 
 import React from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { useAppDispatch } from "@/redux/hooks";
 import { CheckCircle, XCircle, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RootState } from "@/redux/store";
@@ -26,7 +27,7 @@ interface ValidationApiError {
 }
 
 const ContactValidator: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { currentLead, contactValidation } = useSelector(
     (state: RootState) => state.whatsapp
   );

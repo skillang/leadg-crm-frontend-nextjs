@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import {
   setBulkWhatsappStageFilter,
@@ -47,9 +47,10 @@ import { format, parseISO } from "date-fns";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import ServerPagination from "@/components/common/ServerPagination";
+import { useAppDispatch } from "@/redux/hooks";
 
 const BulkWhatsAppPage: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { bulkWhatsappFilters, selectedLeadsForBulk } = useSelector(
     (state: RootState) => state.whatsapp
   );

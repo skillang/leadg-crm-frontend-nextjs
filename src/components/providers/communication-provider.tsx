@@ -7,7 +7,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import {
   setConnectionStatus,
@@ -22,6 +22,7 @@ import {
   type MarkReadNotification,
   type ConnectionStatus,
 } from "@/models/types/whatsapp";
+import { useAppDispatch } from "@/redux/hooks";
 
 // Communication Context Interface
 interface CommunicationContextType {
@@ -53,7 +54,7 @@ interface CommunicationProviderProps {
 export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
   children,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { connectionStatus, isConnected, unreadCounts } = useSelector(
     (state: RootState) => state.whatsapp
   );

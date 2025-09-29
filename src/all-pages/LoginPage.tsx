@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import Image from "next/image";
-
+import { ApiErrorData } from "@/models/types/apiError";
 // 🔥 shadcn/ui imports
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-
-// Define proper error types based on your API structure
-interface ApiErrorData {
-  detail?: string;
-  message?: string;
-  error?: string;
-}
 
 // Type for RTK Query errors with proper API error data
 type RTKQueryError = FetchBaseQueryError & {

@@ -1,5 +1,5 @@
 // src/hooks/useWhatsApp.ts
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { useCallback } from "react";
 import type { RootState } from "@/redux/store";
 import {
@@ -61,6 +61,7 @@ import {
   type SendTemplateResponse,
   type SendTextResponse,
 } from "@/models/types/whatsapp";
+import { useAppDispatch } from "@/redux/hooks";
 
 interface UseWhatsAppReturn {
   // Existing state
@@ -152,7 +153,7 @@ interface UseWhatsAppReturn {
 }
 
 const useWhatsApp = (): UseWhatsAppReturn => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const whatsappState = useSelector((state: RootState) => state.whatsapp);
 
   // Existing RTK Query hooks

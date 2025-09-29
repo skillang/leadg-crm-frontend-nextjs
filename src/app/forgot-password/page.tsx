@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { ApiErrorData } from "@/models/types/apiError";
 
 // Zod validation schema
 const forgotPasswordSchema = z.object({
@@ -22,13 +23,6 @@ const forgotPasswordSchema = z.object({
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-
-// Define proper error types based on your API structure
-interface ApiErrorData {
-  detail?: string;
-  message?: string;
-  error?: string;
-}
 
 // Type for RTK Query errors with proper API error data
 type RTKQueryError = FetchBaseQueryError & {

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useCallback } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { useGetLeadDetailsQuery } from "@/redux/slices/leadsApi";
 import CallValidation from "./CallValidation";
 import CallControls from "./CallControls";
 import CallHistory from "./CallHistory";
+import { useAppDispatch } from "@/redux/hooks";
 
 // Define interface for error handling
 interface ValidationError {
@@ -34,7 +35,7 @@ interface ValidationError {
 }
 
 const TataTeliModal: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { isModalOpen, activeTab, currentLeadId, validation } = useSelector(
     (state: RootState) => state.tataTeli
   );

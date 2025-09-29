@@ -1,6 +1,6 @@
 // src/components/emails/EmailDialog.tsx
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import {
   closeEmailDialog,
@@ -53,9 +53,10 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { EmailTabType } from "@/models/types/email";
+import { useAppDispatch } from "@/redux/hooks";
 
 const EmailDialog: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const {
     emailDialogOpen,

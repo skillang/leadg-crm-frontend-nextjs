@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import {
   setSelectedTemplate,
@@ -48,6 +48,7 @@ import {
   AlertCircle,
   Users,
 } from "lucide-react";
+import { useAppDispatch } from "@/redux/hooks";
 
 interface BulkEmailPopUpProps {
   isOpen: boolean;
@@ -60,7 +61,7 @@ const BulkEmailPopUp: React.FC<BulkEmailPopUpProps> = ({
   onClose,
   selectedLeadIds,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     selectedTemplateKey,
     selectedSenderPrefix,

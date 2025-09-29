@@ -44,16 +44,7 @@ import {
 } from "@/components/ui/select";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { Loader2 } from "lucide-react";
-
-// Define API error interface for better type safety
-interface ApiError {
-  data?: {
-    detail?: string;
-    message?: string;
-  };
-  message?: string;
-  status?: number;
-}
+import { ApiError } from "@/models/types/apiError";
 
 // Form validation schema
 const statusSchema = z.object({

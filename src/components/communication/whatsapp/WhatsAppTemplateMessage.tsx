@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { useAppDispatch } from "@/redux/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,22 +29,10 @@ import {
   type TemplateMessageRequest,
 } from "@/models/types/whatsapp";
 import WhatsAppTemplateSelect from "./WhatsAppTemplateSelect";
-
-// Define error interfaces for type safety
-interface ApiErrorData {
-  detail?: string;
-  message?: string;
-  error?: string;
-}
-
-interface ApiError {
-  data?: ApiErrorData;
-  message?: string;
-  status?: number;
-}
+import { ApiError } from "@/models/types/apiError";
 
 const WhatsAppTemplateMessage: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { showSuccess, showError } = useNotifications();
 
   const {

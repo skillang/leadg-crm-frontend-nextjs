@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/redux/hooks";
 import AccessDeniedCard from "@/components/common/AccessDeniedCard";
-import type { CurrentUserResponse } from "@/models/types/auth"; // ✅ Use your existing CurrentUserResponse type
+import { selectCurrentUser, selectIsAdmin } from "@/redux/selectors";
 
 interface UseAdminAccessOptions {
   redirectPath?: string;
@@ -14,7 +14,6 @@ interface UseAdminAccessOptions {
 interface UseAdminAccessReturn {
   isAdmin: boolean;
   hasAccess: boolean;
-  user: CurrentUserResponse | null;
   AccessDeniedComponent: React.ReactNode | null;
 }
 
@@ -28,10 +27,7 @@ export const useAdminAccess = (
     requiredRole = "admin",
   } = options;
 
-  // ✅ Ensure fallback to null for typing
-  const user = useAppSelector((state) => state.auth.user) ?? null;
-
-  const isAdmin = user?.role === "admin";
+  const isAdmin = useAppSelector(selectIsAdmin);
   const hasAccess = requiredRole === "admin" ? isAdmin : true;
 
   const AccessDeniedComponent = !hasAccess ? (
@@ -47,7 +43,6 @@ export const useAdminAccess = (
   return {
     isAdmin,
     hasAccess,
-    user,
     AccessDeniedComponent,
   };
 };

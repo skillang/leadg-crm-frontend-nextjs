@@ -27,8 +27,6 @@ import {
 } from "@/components/common/StageDisplay";
 import WhatsAppButton from "@/components/communication/whatsapp/WhatsAppButton";
 import WhatsAppModal from "@/components/communication/whatsapp/WhatsAppModal";
-import { useSelector, useDispatch } from "react-redux";
-import type { RootState } from "@/redux/store";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
 import NotesContainer from "@/components/lead-details/notes/NotesContainer";
@@ -50,9 +48,11 @@ import TataTeliModal from "@/components/communication/calling/TataTeliModal";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 import TasksContainer from "@/components/lead-details/tasks/TasksContainer";
 import EditLeadModal from "@/components/leads/EditLeadModal";
+import { selectCurrentUser } from "@/redux/selectors";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 export default function LeadDetailsPage() {
-  const dispatch = useDispatch(); // ✅ ADD DISPATCH
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState("tasks");
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -76,7 +76,7 @@ export default function LeadDetailsPage() {
   const { data: statusesData, isLoading: statusesLoading } =
     useGetActiveStatusesQuery({});
   const [updateLead] = useUpdateLeadMutation();
-  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const currentUser = useAppSelector(selectCurrentUser);
 
   const { showSuccess, showError } = useNotifications();
 

@@ -62,7 +62,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useGetNotificationHistoryQuery } from "@/redux/slices/whatsappApi";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import {
   setNotificationHistoryDateFrom,
   setNotificationHistoryDateTo,
@@ -73,6 +73,7 @@ import {
 import type { RootState } from "@/redux/store";
 import ServerPagination from "@/components/common/ServerPagination";
 import type { PaginationMeta } from "@/models/types/pagination";
+import { useAppDispatch } from "@/redux/hooks";
 
 interface NotificationTableRowProps {
   notification: NotificationHistoryItem;
@@ -198,7 +199,7 @@ const NotificationTableRow: React.FC<NotificationTableRowProps> = ({
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState("current");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLimit, setHistoryLimit] = useState(10);

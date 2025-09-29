@@ -2,7 +2,8 @@
 "use client";
 
 import React from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { useAppDispatch } from "@/redux/hooks";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   className = "",
   disabled = false,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { showError } = useNotifications();
   const { isModalOpen } = useSelector((state: RootState) => state.whatsapp);
 

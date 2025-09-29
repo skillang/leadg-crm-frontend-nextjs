@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -11,20 +11,11 @@ import type { RootState } from "@/redux/store";
 import { setSending, closeModal } from "@/redux/slices/whatsappSlice";
 import { useSendTextMessageMutation } from "@/redux/slices/whatsappApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
-
-interface ApiErrorData {
-  detail?: string;
-  message?: string;
-}
-
-interface ApiError {
-  data?: ApiErrorData;
-  message?: string;
-  status?: number;
-}
+import { useAppDispatch } from "@/redux/hooks";
+import { ApiErrorData, ApiError } from "@/models/types/apiError";
 
 const WhatsAppTextMessage: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { showSuccess, showError } = useNotifications();
   const { isSending, currentLead } = useSelector(
     (state: RootState) => state.whatsapp

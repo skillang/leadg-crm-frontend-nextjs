@@ -13,8 +13,6 @@ import { StageSelect } from "@/components/common/StageSelect";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
 import {
   useUpdateLeadStageMutation,
   useUpdateLeadMutation,
@@ -26,6 +24,8 @@ import { openEmailDialog } from "@/redux/slices/emailSlice";
 import { openModal } from "@/redux/slices/whatsappSlice";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { selectCurrentUser } from "@/redux/selectors";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 interface MobileLeadCardProps {
   lead: Lead;
@@ -38,9 +38,9 @@ export const MobileLeadCard: React.FC<MobileLeadCardProps> = ({
   className = "",
   router,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { showSuccess, showError } = useNotifications();
-  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const currentUser = useAppSelector(selectCurrentUser);
 
   // Stage management
   const [updateStage, { isLoading: stageLoading }] =

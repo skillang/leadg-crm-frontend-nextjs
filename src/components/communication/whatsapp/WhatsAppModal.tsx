@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { useAppDispatch } from "@/redux/hooks";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,7 @@ import ChatHistoryTab from "./ChatHistoryTab"; // Import the new component
 import { MessageType } from "@/models/types/whatsapp";
 
 const WhatsAppModal: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { isModalOpen, messageType, currentLead } = useSelector(
     (state: RootState) => state.whatsapp
   );

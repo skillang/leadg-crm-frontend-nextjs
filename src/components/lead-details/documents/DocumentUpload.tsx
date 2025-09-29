@@ -31,20 +31,12 @@ import {
 import { cn } from "@/lib/utils";
 import { useNotifications } from "../../common/NotificationSystem";
 import { getFileIconForDocument } from "@/utils/getFileIconForDocument";
+import { ApiError, ApiErrorData } from "@/models/types/apiError";
 
 interface DocumentUploadProps {
   isOpen: boolean;
   onClose: () => void;
   leadId: string;
-}
-
-interface ApiError {
-  data?: {
-    detail?: string;
-    message?: string;
-  };
-  message?: string;
-  status?: number;
 }
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({

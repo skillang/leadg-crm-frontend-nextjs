@@ -25,10 +25,11 @@ import {
 } from "lucide-react";
 import { CurrentUserResponse } from "@/models/types/auth"; // ✅ Single interface
 import { useGetCurrentUserQuery } from "@/redux/slices/userApi";
+import { selectCurrentUser } from "@/redux/selectors";
 
 export default function ProfilePage() {
   // Get current user from Redux state
-  const currentUser = useAppSelector((state) => state.auth.user);
+  const currentUser = useAppSelector(selectCurrentUser);
 
   // Fetch fresh user data
   const {

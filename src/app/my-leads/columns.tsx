@@ -29,13 +29,13 @@ import { StatusSelect } from "@/components/common/StatusSelect";
 import { useUpdateLeadMutation } from "@/redux/slices/leadsApi";
 import { useGetActiveStatusesQuery } from "@/redux/slices/statusesApi";
 import { openEmailDialog } from "@/redux/slices/emailSlice";
-import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { openModal } from "@/redux/slices/whatsappSlice";
 import { openModal as openCallModal } from "@/redux/slices/tataTeliSlice";
 import { formatContactDate, formatDate } from "@/utils/formatDate";
 import { useCommunication } from "@/components/providers/communication-provider";
+import { useAppDispatch } from "@/redux/hooks";
 
 // StageSelectCell with StageDisplay in dropdown (UNCHANGED)
 const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
@@ -128,7 +128,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
 };
 
 const ContactCell = ({ row }: { row: Row<Lead> }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { user: currentUser } = useSelector((state: RootState) => state.auth); // ✅ Single declaration
   const { getUnreadCount, hasUnreadMessages } = useCommunication(); // ADD THIS LINE
   const lead = row.original;

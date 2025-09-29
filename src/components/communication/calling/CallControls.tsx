@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,7 @@ import { useCreateNoteMutation } from "@/redux/slices/notesApi";
 import { StatusSelect } from "@/components/common/StatusSelect";
 import { StageSelect } from "@/components/common/StageSelect";
 import { useStageUtils } from "@/components/common/StageDisplay";
+import { useAppDispatch } from "@/redux/hooks";
 
 interface CallControlsProps {
   leadDetails: Lead; // Lead details from API
@@ -61,7 +62,7 @@ const CallControls: React.FC<CallControlsProps> = ({
   leadDetails,
   refetch,
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { isCallInProgress, callError, currentLeadId } = useSelector(
     (state: RootState) => state.tataTeli
   );

@@ -1,6 +1,6 @@
 // src/hooks/useRealtime.ts
 import { useEffect, useRef, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import {
   setConnectionStatus,
@@ -14,6 +14,7 @@ import {
   type MarkReadNotification,
   type ConnectionStatus,
 } from "@/models/types/whatsapp";
+import { useAppDispatch } from "@/redux/hooks";
 
 interface UseRealtimeReturn {
   connectionStatus: ConnectionStatus;
@@ -24,7 +25,7 @@ interface UseRealtimeReturn {
 }
 
 const useRealtime = (): UseRealtimeReturn => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { connectionStatus, isConnected } = useSelector(
     (state: RootState) => state.whatsapp
   );
