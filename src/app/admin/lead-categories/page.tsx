@@ -20,11 +20,6 @@ import EditCategoryModal from "@/components/leads/EditCategoryModal";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard"; // Import AdminDataConfCard
 import type { Category } from "@/models/types/category";
 import StatsCard from "@/components/custom/cards/StatsCard";
-import {
-  createCategoryService,
-  updateCategoryService,
-  processCategoriesData,
-} from "@/services/leadCategories/leadCategoriesService";
 
 const CategoriesPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
@@ -63,30 +58,40 @@ const CategoriesPage = () => {
     return AccessDeniedComponent;
   }
 
+  // Filter categories based on search term
+  const filteredCategories =
+    categoriesData?.categories?.filter(
+      (category) =>
+        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        category.short_form.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (category.description &&
+          category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
+
   const handleOpenEditModal = (category: Category) => {
     setEditingCategory(category);
   };
 
-  const { filteredCategories, stats } = processCategoriesData(
-    categoriesData,
-    searchTerm
-  );
-
-  // REPLACE the handlers with these simplified versions:
   const handleCreateCategory = async (categoryData: {
     name: string;
     short_form: string;
     description?: string;
     is_active: boolean;
   }) => {
-    await createCategoryService(categoryData, {
-      createMutation: createCategory,
-      showSuccess,
-      showError,
-      onSuccess: () => {
-        setIsCreateModalOpen(false);
-      },
-    });
+    try {
+      await createCategory(categoryData).unwrap();
+      setIsCreateModalOpen(false);
+      showSuccess(
+        `Category "${categoryData.name}" created successfully!`,
+        "Category Created"
+      );
+    } catch (error) {
+      console.error("Failed to create category:", error);
+      showError(
+        "Failed to create category. Please try again.",
+        "Creation Failed"
+      );
+    }
   };
 
   const handleUpdateCategory = async (categoryData: {
@@ -96,14 +101,23 @@ const CategoriesPage = () => {
   }) => {
     if (!editingCategory) return;
 
-    await updateCategoryService(editingCategory, categoryData, {
-      updateMutation: updateCategory,
-      showSuccess,
-      showError,
-      onSuccess: () => {
-        setEditingCategory(null);
-      },
-    });
+    try {
+      await updateCategory({
+        categoryId: editingCategory.id,
+        data: categoryData,
+      }).unwrap();
+      setEditingCategory(null);
+      showSuccess(
+        `Category "${categoryData.name}" updated successfully!`,
+        "Category Updated"
+      );
+    } catch (error) {
+      console.error("Failed to update category:", error);
+      showError(
+        "Failed to update category. Please try again.",
+        "Update Failed"
+      );
+    }
   };
 
   return (
@@ -130,21 +144,21 @@ const CategoriesPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Total Categories"
-          value={stats.total}
+          value={categoriesData?.summary.total || 0}
           icon={<Hash className="h-8 w-8 text-blue-600" />}
           isLoading={isLoading}
         />
 
         <StatsCard
           title="Active Categories"
-          value={stats.active}
+          value={categoriesData?.summary.active || 0}
           icon={<Eye className="h-8 w-8 text-green-600" />}
           isLoading={isLoading}
         />
 
         <StatsCard
           title="Inactive Categories"
-          value={stats.inactive}
+          value={categoriesData?.summary.inactive || 0}
           icon={<EyeOff className="h-8 w-8 text-gray-500" />}
           isLoading={isLoading}
         />

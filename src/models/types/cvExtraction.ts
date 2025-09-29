@@ -76,7 +76,7 @@ export interface ConvertToLeadRequest {
   lead_score?: number;
   tags?: string[];
   notes?: string;
-  assignment_method?: string;
+  assignment_method?: string | "unassigned";
 }
 
 export interface ConvertToLeadResponse {

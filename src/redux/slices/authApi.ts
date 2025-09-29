@@ -18,16 +18,11 @@ import {
   LogoutResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
-  CurrentUserResponse,
-  AdminRegisterRequest,
-  AdminRegisterResponse,
-  DeleteUserResponse,
+  // CurrentUserResponse,
+  // AdminRegisterRequest,
+  // AdminRegisterResponse,
+  // DeleteUserResponse,
 } from "@/models/types/auth";
-import {
-  DepartmentsResponse,
-  CreateDepartmentRequest,
-  CreateDepartmentResponse,
-} from "@/models/types/department";
 
 // API Base URL
 const API_BASE_URL =

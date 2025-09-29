@@ -88,29 +88,6 @@ export interface ImportLeadResponse {
   errors?: string[];
 }
 
-interface FacebookImportApiResponse {
-  success?: boolean;
-  message?: string;
-  form_info?: {
-    form_id: string;
-    form_name: string;
-    assigned_category: string;
-  };
-  import_status?: "completed" | "in_progress";
-  stats?: {
-    total_facebook_leads: number;
-    imported_count: number;
-    failed_count: number;
-    skipped_count: number;
-  };
-  // Old format fields
-  imported_count?: number;
-  skipped_count?: number;
-  imported?: number;
-  skipped?: number;
-  errors?: string[];
-}
-
 // ============================
 // BASE QUERY
 // ============================

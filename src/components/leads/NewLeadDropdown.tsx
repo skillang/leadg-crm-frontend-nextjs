@@ -19,11 +19,10 @@ import SingleLeadCreationCVModal from "./SingleLeadCreationCV";
 const NewLeadDropdown: React.FC = () => {
   // 🔥 UPDATED: Use permission hooks instead of isAdmin
   const { canCreateSingleLead, canCreateBulkLeads } = useAuth();
-
   const [isSingleLeadModalOpen, setIsSingleLeadModalOpen] = useState(false);
   const [isBulkLeadModalOpen, setIsBulkLeadModalOpen] = useState(false);
   const [isCVToLeadModalOpen, setIsCVToLeadModalOpen] = useState(false); // ✅ FIXED: Consistent naming
-  const { showWarning } = useNotifications();
+  const { showWarning, showSuccess } = useNotifications();
 
   // 🔥 NEW: Handle single lead creation with permission check
   const handleSingleLeadClick = () => {
@@ -86,7 +85,7 @@ const NewLeadDropdown: React.FC = () => {
 
           <DropdownMenuSeparator />
           {/* ✅ FIXED: Now uses the correct handler */}
-          <DropdownMenuItem disabled onClick={handleCVToLeadClick}>
+          <DropdownMenuItem onClick={handleCVToLeadClick}>
             <FileText className="w-4 h-4" />
             Upload CV to Leads
           </DropdownMenuItem>
@@ -110,7 +109,7 @@ const NewLeadDropdown: React.FC = () => {
         isOpen={isCVToLeadModalOpen}
         onClose={() => setIsCVToLeadModalOpen(false)}
         onLeadCreated={(leadId: string) => {
-          console.log("Lead created from CV:", leadId);
+          showSuccess(`Lead id is ${leadId}`, "Leads Created Successfully");
           // Add any additional logic here like refreshing leads list
         }}
       />

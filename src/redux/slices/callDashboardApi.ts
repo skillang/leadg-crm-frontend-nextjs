@@ -1,8 +1,7 @@
 // src/redux/slices/callDashboardApi.ts
 // RTK Query API slice for Tata Tele Admin Call Dashboard
 
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { RootState } from "../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   AdminDashboardResponse,
   UserPerformanceResponse,

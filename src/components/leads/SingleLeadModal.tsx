@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Loader2, FileText, User } from "lucide-react";
+import { X, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,6 @@ import { StageSelect } from "../common/StageSelect";
 import { StatusSelect } from "../common/StatusSelect";
 import { CreateLeadApiRequest } from "@/models/types/lead";
 import LeadAssignmentDropdown from "../common/LeadAssignmentDropdown";
-import SingleLeadCreationCV from "./SingleLeadCreationCV";
 
 // ✅ FIXED: Helper function to convert countries array to string for backend
 const formatCountriesForBackend = (countries: string[]): string => {
@@ -211,9 +210,6 @@ const SingleLeadModal: React.FC<SingleLeadModalProps> = ({
   });
 
   const [newTag, setNewTag] = useState("");
-  const [leadCreationType, setLeadCreationType] = useState<"manual" | "cv">(
-    "manual"
-  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // API Hooks

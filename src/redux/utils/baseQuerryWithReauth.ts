@@ -199,7 +199,7 @@ const redirectToLogin = () => {
   if (typeof window !== "undefined" && window.location) {
     const currentPath = window.location.pathname;
     if (!currentPath.includes("/login") && !currentPath.includes("/auth")) {
-      // Add some delay to allow user to see any notifications
+      // Add some delay to allow user to see notifications
       setTimeout(() => {
         window.location.href = "/login";
       }, 1000);

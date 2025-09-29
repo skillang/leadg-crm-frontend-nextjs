@@ -26,6 +26,7 @@ import {
   UpdateContactRequest,
   CONTACT_ROLES,
   CONTACT_RELATIONSHIPS,
+  CreateContactRequest,
 } from "@/models/types/contact";
 import {
   useCreateContactMutation,
@@ -47,21 +48,6 @@ interface ContactFormData {
   is_primary: boolean;
 }
 
-interface ValidationError {
-  loc?: string[];
-  msg: string;
-  type: string;
-}
-
-interface ApiErrorResponse {
-  status?: number;
-  data?: {
-    detail?: ValidationError[] | string;
-    message?: string;
-  };
-  message?: string;
-}
-
 interface ContactEditorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -79,7 +65,7 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
   const [updateContact, { isLoading: isUpdating }] = useUpdateContactMutation();
 
   // Get notifications
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess } = useNotifications();
 
   const [formData, setFormData] = useState<ContactFormData>({
     first_name: "",
@@ -193,7 +179,7 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
           `Contact "${formData.first_name} ${formData.last_name}" updated successfully!`
         );
       } else {
-        const createData: any = {
+        const createData: CreateContactRequest = {
           first_name: formData.first_name.trim(),
           email: formData.email.trim(),
           phone: formData.phone.trim(),
@@ -221,6 +207,7 @@ const ContactEditor: React.FC<ContactEditorProps> = ({
       onClose();
     } catch (error) {
       // Error handling remains the same
+      console.log("error:", error);
     }
   };
 

@@ -14,7 +14,10 @@ import StatsCard from "@/components/custom/cards/StatsCard";
 import { Card, CardContent } from "@/components/ui/card";
 import EditLeadModal from "@/components/leads/EditLeadModal";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
-import { openEditModal, closeEditModal } from "@/redux/slices/leadsSlices";
+import {
+  // openEditModal,
+  closeEditModal,
+} from "@/redux/slices/leadsSlices";
 
 // Create a simple debounce hook
 function useDebounce(value: string, delay: number) {
@@ -58,7 +61,7 @@ export default function UnassignedLeadsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [isClearingSearch, setIsClearingSearch] = useState(false);
+  // const [isClearingSearch, setIsClearingSearch] = useState(false);
 
   // Redux state for edit modal
   const editModalOpen = useAppSelector((state) => state.leads.editModalOpen);
@@ -152,13 +155,13 @@ export default function UnassignedLeadsPage() {
   }, []);
 
   const handleClearSearch = useCallback(async () => {
-    setIsClearingSearch(true);
+    // setIsClearingSearch(true);
     setSearchQuery("");
     setCurrentPage(1);
 
     // Small delay for UX
     setTimeout(() => {
-      setIsClearingSearch(false);
+      // setIsClearingSearch(false);
     }, 300);
   }, []);
 

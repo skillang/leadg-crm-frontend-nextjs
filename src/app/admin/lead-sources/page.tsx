@@ -19,18 +19,8 @@ import {
 import CreateSourceModal from "@/components/leads/CreateSourceModal";
 import EditSourceModal from "@/components/leads/EditSourceModal";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard"; // Import AdminDataConfCard
-import {
-  CreateSourceRequest,
-  Source,
-  UpdateSourceRequest,
-} from "@/models/types/source";
+import { Source } from "@/models/types/source";
 import StatsCard from "@/components/custom/cards/StatsCard";
-import {
-  createSourceService,
-  updateSourceService,
-  combineAndFilterSources,
-  calculateSourceStats,
-} from "@/services/leadSources/leadSourcesService";
 
 const SourcesPage = () => {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditionals
@@ -72,56 +62,97 @@ const SourcesPage = () => {
   if (!hasAccess) {
     return AccessDeniedComponent;
   }
-  const activeSources = activeSourcesData?.sources || [];
-  const inactiveSources = inactiveSourcesData?.sources || [];
 
-  const filteredSources = combineAndFilterSources(
-    activeSources,
-    inactiveSources,
-    showInactive,
-    searchTerm
+  // Combine and filter sources
+  const allSources = [
+    ...(activeSourcesData?.sources || []),
+    ...(showInactive ? inactiveSourcesData?.sources || [] : []),
+  ];
+
+  const filteredSources = allSources.filter(
+    (source) =>
+      source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      source.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      source.short_form.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (source.description &&
+        source.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const {
-    totalSources,
-    activeSources: activeCount,
-    inactiveSources: inactiveCount,
-    totalLeads,
-  } = calculateSourceStats(
-    activeSourcesData,
-    inactiveSourcesData,
-    filteredSources
-  );
+  // Calculate summary stats
+  const totalSources =
+    (activeSourcesData?.total || 0) + (inactiveSourcesData?.total || 0);
+  const activeSources = activeSourcesData?.total || 0;
+  const inactiveSources = inactiveSourcesData?.total || 0;
 
-  // REPLACE the handlers with these simplified versions:
-  const handleCreateSource = async (sourceData: CreateSourceRequest) => {
-    await createSourceService(sourceData, {
-      createMutation: createSource,
-      showSuccess,
-      showError,
-      onSuccess: () => {
-        setIsCreateModalOpen(false);
-      },
-    });
-  };
-
-  const handleUpdateSource = async (sourceData: UpdateSourceRequest) => {
-    if (!editingSource) return;
-
-    await updateSourceService(editingSource, sourceData, {
-      updateMutation: updateSource,
-      showSuccess,
-      showError,
-      onSuccess: () => {
-        setEditingSource(null);
-      },
-    });
-  };
   const isLoading = isLoadingActive || isLoadingInactive;
 
   // Add this function to handle opening edit modal
   const handleOpenEditModal = (source: Source) => {
     setEditingSource(source);
+  };
+
+  const handleCreateSource = async (sourceData: {
+    name: string;
+    display_name: string;
+    short_form: string;
+    description?: string;
+    sort_order: number;
+    is_active: boolean;
+    is_default: boolean;
+  }) => {
+    try {
+      await createSource(sourceData).unwrap();
+      setIsCreateModalOpen(false);
+      showSuccess(
+        `Source "${sourceData.display_name}" created successfully!`,
+        "Source Created"
+      );
+    } catch (error) {
+      console.error("Failed to create source:", error);
+      showError(
+        "Failed to create source. Please try again.",
+        "Creation Failed"
+      );
+    }
+  };
+
+  const handleUpdateSource = async (sourceData: {
+    display_name: string;
+    description?: string;
+    sort_order: number;
+    is_active: boolean;
+    is_default: boolean;
+  }) => {
+    if (!editingSource) return;
+
+    try {
+      // Generate internal name from display name
+      const generateInternalName = (displayName: string): string => {
+        return displayName
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+      };
+
+      await updateSource({
+        sourceId: editingSource.id,
+        data: {
+          ...sourceData,
+          name: generateInternalName(sourceData.display_name),
+          // Keep existing short_form - don't allow editing to maintain lead ID consistency
+          short_form: editingSource.short_form,
+        },
+      }).unwrap();
+      setEditingSource(null);
+      showSuccess(
+        `Source "${sourceData.display_name}" updated successfully!`,
+        "Source Updated"
+      );
+    } catch (error) {
+      console.error("Failed to update source:", error);
+      showError("Failed to update source. Please try again.", "Update Failed");
+    }
   };
 
   return (
@@ -155,21 +186,24 @@ const SourcesPage = () => {
 
         <StatsCard
           title="Active Sources"
-          value={activeCount}
+          value={activeSources}
           icon={<Eye className="h-8 w-8 text-green-600" />}
           isLoading={isLoading}
         />
 
         <StatsCard
           title="Inactive Sources"
-          value={inactiveCount}
+          value={inactiveSources}
           icon={<EyeOff className="h-8 w-8 text-gray-500" />}
           isLoading={isLoading}
         />
 
         <StatsCard
           title="Total Leads"
-          value={totalLeads}
+          value={allSources.reduce(
+            (total, source) => total + (source.lead_count || 0),
+            0
+          )}
           icon={<TrendingUp className="h-8 w-8 text-purple-600" />}
           isLoading={isLoading}
         />

@@ -98,7 +98,6 @@ const CallControls: React.FC<CallControlsProps> = ({
       await updateStage({
         leadId: leadDetails.leadId,
         stage: newStage,
-        currentLead: leadDetails,
       }).unwrap();
 
       const stageDisplayName = getStageDisplayName(newStage);

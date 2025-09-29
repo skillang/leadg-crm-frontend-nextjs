@@ -578,8 +578,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [parsedLeads, setParsedLeads] = useState<ParsedLead[]>([]);
   const [validLeads, setValidLeads] = useState<ParsedLead[]>([]);
   const [invalidLeads, setInvalidLeads] = useState<ParsedLead[]>([]);
-  const [checkDuplicates, { isLoading: isCheckingDuplicates }] =
-    useCheckDuplicatesMutation();
   const [duplicateLeads, setDuplicateLeads] = useState<ParsedLead[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -587,7 +585,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [_uploadResults, setUploadResults] = useState<UploadResult | null>(
     null
   );
-  const [uploadType, setUploadType] = useState<"csv" | "cv">("csv");
   const [activeTab, setActiveTab] = useState("valid");
 
   // Form configuration
@@ -613,6 +610,11 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     isLoading: categoriesLoading,
     error: categoriesError,
   } = useGetCategoriesQuery({ include_inactive: false });
+
+  const [
+    checkDuplicates,
+    //  { isLoading: isCheckingDuplicates }
+  ] = useCheckDuplicatesMutation();
 
   const { data: stagesResponse, isLoading: stagesLoading } = useGetStagesQuery({
     active_only: true,
@@ -731,7 +733,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
         // Parse data rows
         const leads: ParsedLead[] = [];
-        const baseTimestamp = Date.now();
 
         for (let i = 1; i < lines.length; i++) {
           const values = parseCSVLine(lines[i]).map((v) =>
@@ -740,8 +741,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
           const errors: string[] = [];
           const notesData: string[] = [];
-          const rowTimestamp = baseTimestamp + i;
-          const uniqueId = `${rowTimestamp}${i.toString().padStart(3, "0")}`;
 
           const lead: ParsedLead = {
             index: i,
@@ -1171,7 +1170,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             const finalValidLeads: ParsedLead[] = [];
             const finalDuplicateLeads: ParsedLead[] = [];
 
-            initialValidLeads.forEach((lead, index) => {
+            initialValidLeads.forEach((lead) => {
               // Find if this lead is a duplicate
               const duplicateInfo = duplicateResults.duplicates?.find(
                 (dup) =>
@@ -1268,7 +1267,11 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     reader.readAsText(file);
   };
 
-  const getAssignmentValue = (config: any): string => {
+  const getAssignmentValue = (config: {
+    type: "unassigned" | "selective_round_robin" | "manual";
+    assigned_to?: string;
+    assigned_users?: string[];
+  }): string => {
     switch (config.type) {
       case "unassigned":
         return "unassigned";

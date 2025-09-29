@@ -177,7 +177,7 @@ export default function DemoPage() {
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
     [
-      searchParams,
+      // searchParams,
       pathname,
       router,
       stageFilter,
@@ -234,7 +234,7 @@ export default function DemoPage() {
     setSourceFilter(urlSource);
     setSearchQuery(urlSearch);
     setUserFilter(urlUser);
-  }, [searchParams.toString()]);
+  }, [searchParams]);
 
   // useEffect(() => {
   //   // Force refetch when pagination changes
@@ -267,12 +267,12 @@ export default function DemoPage() {
     setSearchQuery(newSearch);
   }, []);
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
-    if (stageFilter !== "all" || statusFilter !== "all") {
-      setIsClearingFilters(true);
-    }
-  }, [stageFilter, statusFilter]);
+  // const handleClearSearch = useCallback(() => {
+  //   setSearchQuery("");
+  //   if (stageFilter !== "all" || statusFilter !== "all") {
+  //     setIsClearingFilters(true);
+  //   }
+  // }, [stageFilter, statusFilter]);
 
   const handleStageFilterChange = useCallback(
     (value: string) => {

@@ -10,7 +10,6 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

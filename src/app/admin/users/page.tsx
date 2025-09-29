@@ -32,11 +32,6 @@ import {
 } from "lucide-react";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import { ApiError } from "@/models/types/apiError";
-import {
-  deleteUserService,
-  sortUsers,
-  canDeleteUser,
-} from "@/services/adminUsers/adminUsersService";
 
 // Use the correct interface from API (matches leadsApi.ts)
 interface UserStats {
@@ -138,21 +133,90 @@ const AdminUsersPage = () => {
 
   const { user_stats, summary } = userStatsData;
 
+  // Correct sorting with UserStats type
+  const sortedUsers = [...user_stats].sort((a: UserStats, b: UserStats) => {
+    // Admins first
+    if (a.role === "admin" && b.role !== "admin") return -1;
+    if (a.role !== "admin" && b.role === "admin") return 1;
+
+    // Then by assigned leads count (descending)
+    if (a.assigned_leads_count !== b.assigned_leads_count) {
+      return b.assigned_leads_count - a.assigned_leads_count;
+    }
+
+    // Finally by name (ascending)
+    return a.name.localeCompare(b.name);
+  });
+
+  const getRoleBadgeVariant = (role: string) => {
+    return role === "admin" ? "default" : "secondary";
+  };
+
+  const getRoleIcon = (role: string) => {
+    return role === "admin" ? Crown : UserCheck;
+  };
+
   const handleRefresh = () => {
     refetch();
   };
 
-  const sortedUsers = sortUsers(user_stats);
-
-  // REPLACE the handler with this simplified version:
+  // ✅ FIXED: Using showConfirm instead of AlertDialog
   const handleDeleteUser = (user: UserStats) => {
-    deleteUserService(user, currentUser?.email || "", user_stats, {
-      deleteMutation: deleteUser,
-      showWarning,
-      showError,
-      showConfirm,
-      refetch,
+    // Prevent self-deletion
+    if (user.email === currentUser?.email) {
+      showWarning("You cannot delete your own account.");
+      return;
+    }
+
+    // Use showConfirm from notification system
+    showConfirm({
+      title: "Delete User Account",
+      description: `Are you sure you want to delete "${user.name}" (${user.email})? This action cannot be undone. The user will be deactivated and their data will be preserved for audit purposes.`,
+      confirmText: "Delete User",
+      cancelText: "Cancel",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          // Call delete user API using user email
+          await deleteUser(user.email).unwrap();
+
+          // Success handling
+          showWarning(
+            `User "${user.name}" has been successfully deleted`,
+            "User Deleted"
+          );
+
+          // Refresh user stats
+          refetch();
+        } catch (error: unknown) {
+          console.error("Failed to delete user:", error);
+
+          // Extract error message
+          const apiError = error as ApiError;
+          const errorMessage =
+            apiError?.data?.detail ||
+            apiError?.data?.message ||
+            apiError?.message ||
+            "Failed to delete user. Please try again.";
+
+          showError(errorMessage, "Deletion Failed");
+        }
+      },
     });
+  };
+
+  // Check if user can be deleted with correct type
+  const canDeleteUser = (user: UserStats): boolean => {
+    // Cannot delete self
+    if (user.email === currentUser?.email) return false;
+
+    // Check if this is the last admin
+    const adminCount = user_stats.filter(
+      (u: UserStats) => u.role === "admin"
+    ).length;
+    if (user.role === "admin" && adminCount <= 1) return false;
+
+    return true;
   };
 
   return (
@@ -201,6 +265,9 @@ const AdminUsersPage = () => {
           title="Assigned Leads"
           value={summary.assigned_leads}
           icon={<UserCheck className="h-8 w-8 text-orange-500" />}
+          // subtitle={`${Math.round(
+          //   (summary.assigned_leads / summary.total_leads) * 100
+          // )}% of total`}
           isLoading={isLoading}
         />
 
@@ -208,6 +275,9 @@ const AdminUsersPage = () => {
           title="Unassigned Leads"
           value={summary.unassigned_leads}
           icon={<AlertTriangle className="h-8 w-8 text-red-500" />}
+          // subtitle={`${Math.round(
+          //   (summary.unassigned_leads / summary.total_leads) * 100
+          // )}% of total`}
           isLoading={isLoading}
         />
       </div>
@@ -234,13 +304,14 @@ const AdminUsersPage = () => {
             </TableHeader>
             <TableBody>
               {sortedUsers.map((user) => {
-                const RoleIcon = user.role === "admin" ? Crown : UserCheck;
+                const RoleIcon = getRoleIcon(user.role);
                 const workloadPercentage =
                   summary.total_leads > 0
                     ? Math.round(
                         (user.assigned_leads_count / summary.total_leads) * 100
                       )
                     : 0;
+                const isDeletable = canDeleteUser(user);
 
                 return (
                   <TableRow key={user.user_id}>
@@ -251,11 +322,7 @@ const AdminUsersPage = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          user.role === "admin" ? "default" : "secondary"
-                        }
-                      >
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
                         {user.role === "admin" ? "Admin" : "User"}
                       </Badge>
                     </TableCell>
@@ -275,45 +342,49 @@ const AdminUsersPage = () => {
                         {workloadPercentage}%
                       </span>
                     </TableCell>
-                    <TableCell className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          router.push(
-                            `/admin/users/${user.user_id}/permissions`
-                          );
-                        }}
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Debug log to check user data structure
+                            // console.log("User data:", user);
+                            // Navigate using the correct ID field
+                            router.push(
+                              `/admin/users/${user.user_id}/permissions`
+                            );
+                          }}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteUser(user)}
-                        className="text-red-600 border-red-300 hover:bg-red-50"
-                        disabled={
-                          !canDeleteUser(
-                            user,
-                            currentUser?.email || "",
-                            user_stats
-                          ) || isDeletingUser
-                        }
-                        title={
-                          !canDeleteUser(
-                            user,
-                            currentUser?.email || "",
-                            user_stats
-                          )
-                            ? user.email === currentUser?.email
-                              ? "Cannot delete your own account"
-                              : "Cannot delete the last admin"
-                            : undefined
-                        }
-                      >
-                        <UserX className="h-4 w-4" />
-                      </Button>
+                        {isDeletable ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                            disabled={isDeletingUser}
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="text-gray-400 cursor-not-allowed"
+                            title={
+                              user.email === currentUser?.email
+                                ? "Cannot delete your own account"
+                                : "Cannot delete the last admin"
+                            }
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

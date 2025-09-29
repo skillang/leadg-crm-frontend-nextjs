@@ -14,15 +14,15 @@ import type {
   BulkWhatsAppJobsResponse,
   BulkWhatsAppJobStatusResponse,
   // CancelBulkJobRequest,
-  BulkWhatsAppStatsResponse,
+  // BulkWhatsAppStatsResponse,
   ValidatePhoneNumbersResponse,
   ChatHistoryResponse,
   SendChatMessageRequest,
   SendChatMessageResponse,
   ActiveChatsResponse,
   BulkUnreadStatusResponse,
-  NotificationHistoryItem,
-  NotificationHistoryFilters,
+  // NotificationHistoryItem,
+  // NotificationHistoryFilters,
   NotificationHistoryResponse,
   BulkWhatsAppStats,
 } from "@/models/types/whatsapp";
@@ -300,7 +300,7 @@ export const whatsappApi = createApi({
       // Cache for 5 minutes since notification history doesn't change frequently
       keepUnusedDataFor: 300,
       // Provide tags for potential cache invalidation
-      providesTags: (result) => [
+      providesTags: () => [
         { type: "WhatsAppStatus" as const, id: "NOTIFICATION_HISTORY" },
       ],
     }),

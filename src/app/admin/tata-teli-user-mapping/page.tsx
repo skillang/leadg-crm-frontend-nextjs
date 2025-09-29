@@ -47,10 +47,12 @@ import {
 } from "@/redux/slices/tataTeliApi";
 import { useGetUserLeadStatsQuery } from "@/redux/slices/leadsApi"; // ✅ CHANGED: Use this instead
 import { useNotifications } from "@/components/common/NotificationSystem";
-import {
-  createMappingService,
-  CreateMappingForm,
-} from "@/services/tataTeliMapping/tataTeliMappingService";
+
+interface CreateMappingForm {
+  crm_user_id: string;
+  tata_email: string;
+  auto_create_agent: boolean;
+}
 
 const TataTeliMappings: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -86,35 +88,59 @@ const TataTeliMappings: React.FC = () => {
     }
   };
 
-  const handleRefresh = () => {
-    refetchMappings();
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.crm_user_id) {
+      newErrors.crm_user_id = "Please select a user";
+    }
+
+    if (!formData.tata_email) {
+      newErrors.tata_email = "Tata email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.tata_email)) {
+      newErrors.tata_email = "Please enter a valid email address";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleCreateMapping = async () => {
-    await createMappingService(formData, {
-      createMutation: createMapping,
-      showSuccess,
-      showError,
-      onSuccess: () => {
-        setIsCreateModalOpen(false);
-        setFormData({
-          crm_user_id: "",
-          tata_email: "",
-          auto_create_agent: false,
-        });
-        setErrors({});
-      },
-      onValidationError: (validationErrors) => {
-        setErrors(validationErrors);
-      },
-    });
+    if (!validateForm()) return;
+
+    try {
+      await createMapping(formData).unwrap();
+      showSuccess("", "User mapping created successfully!");
+      setIsCreateModalOpen(false);
+      setFormData({
+        crm_user_id: "",
+        tata_email: "",
+        auto_create_agent: false,
+      });
+      setErrors({});
+    } catch (error: unknown) {
+      let errorMessage = "Failed to create mapping";
+
+      if (error && typeof error === "object" && "data" in error) {
+        errorMessage =
+          (error as { data?: { detail?: string } }).data?.detail ||
+          errorMessage;
+      } else if (error && typeof error === "object" && "message" in error) {
+        errorMessage = (error as { message: string }).message;
+      }
+      showError(errorMessage);
+    }
+  };
+
+  const handleRefresh = () => {
+    refetchMappings();
   };
 
   const getSyncStatusBadge = (status: string) => {
     switch (status) {
       case "synced":
         return (
-          <Badge variant={"success-light"}>
+          <Badge className="bg-green-100 text-green-800 border-green-200">
             <CheckCircle className="w-3 h-3 mr-1" />
             Synced
           </Badge>
@@ -171,7 +197,7 @@ const TataTeliMappings: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

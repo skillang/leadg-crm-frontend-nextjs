@@ -40,18 +40,17 @@ import { Plus, CheckCircle, XCircle, Settings, Users } from "lucide-react";
 import { Stage, CreateStageRequest, STAGE_COLORS } from "@/models/types/stage";
 import StatsCard from "@/components/custom/cards/StatsCard";
 import AdminDataConfCard from "@/components/custom/cards/AdminDataConfCard";
-import {
-  generateInternalName,
-  createStageService,
-  updateStageService,
-  deleteStageService,
-  toggleStageStatusService,
-  reorderStageService,
-  setupDefaultStagesService,
-  sortStagesByOrder,
-  calculateStageStats,
-} from "@/services/stageManagement/stageManagementService";
+import { ApiError } from "@/models/types/apiError";
 import WhatsAppTemplateSelect from "@/components/communication/whatsapp/WhatsAppTemplateSelect";
+
+// Function to generate internal name from display name
+const generateInternalName = (displayName: string): string => {
+  return displayName
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+};
 
 const StageManagementPage = () => {
   // State for forms and dialogs
@@ -59,8 +58,6 @@ const StageManagementPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  // const [isCreatePreviewMode, setIsCreatePreviewMode] = useState(false);
-  // const [isEditPreviewMode, setIsEditPreviewMode] = useState(false);
   const [createFormData, setCreateFormData] = useState<CreateStageRequest>({
     name: "",
     display_name: "",
@@ -73,7 +70,6 @@ const StageManagementPage = () => {
     automation_config: null,
   });
 
-  // Auto-generate internal name when display name changes in create form
   useEffect(() => {
     if (createFormData.display_name) {
       const generatedName = generateInternalName(createFormData.display_name);
@@ -140,95 +136,216 @@ const StageManagementPage = () => {
     );
   }
 
+  // Handle create stage
+  const handleCreateStage = async () => {
+    try {
+      await createStage(createFormData).unwrap();
+      showSuccess(
+        `Stage "${createFormData.display_name}" created successfully!`
+      );
+      setIsCreateDialogOpen(false);
+      setCreateFormData({
+        name: "",
+        display_name: "",
+        description: "",
+        color: "#6B7280",
+        sort_order: 1,
+        is_active: true,
+        is_default: false,
+        automation: false,
+        automation_config: null,
+      });
+      refetchActive();
+    } catch (error: unknown) {
+      console.error("Create stage error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
+        "Failed to create stage";
+      showError(errorMessage);
+    }
+  };
+
   const handleOpenEditModal = (stage: Stage) => {
     setEditingStage(stage);
     setIsEditDialogOpen(true);
   };
 
-  //handlers
-  const handleCreateStage = async () => {
-    await createStageService(createFormData, {
-      createMutation: createStage,
-      showSuccess,
-      showError,
-      refetchActive,
-      onSuccess: () => {
-        setIsCreateDialogOpen(false);
-        setCreateFormData({
-          name: "",
-          display_name: "",
-          description: "",
-          color: "#6B7280",
-          sort_order: 1,
-          is_active: true,
-          is_default: false,
-          automation: false,
-          automation_config: null,
-        });
-      },
-    });
-  };
-
+  // Handle edit stage
   const handleEditStage = async () => {
     if (!editingStage) return;
 
-    await updateStageService(editingStage, {
-      updateMutation: updateStage,
-      showSuccess,
-      showError,
-      onSuccess: () => {
-        setIsEditDialogOpen(false);
-        setEditingStage(null);
+    try {
+      // Exclude 'name' from updates since it shouldn't be changed
+      await updateStage({
+        stageId: editingStage.id,
+        stageData: {
+          display_name: editingStage.display_name,
+          description: editingStage.description,
+          color: editingStage.color,
+          sort_order: editingStage.sort_order,
+          is_active: editingStage.is_active,
+          is_default: editingStage.is_default,
+          automation: editingStage.automation,
+          automation_config: editingStage.automation_config,
+        },
+      }).unwrap();
+      showSuccess(`Stage "${editingStage.display_name}" updated successfully!`);
+      setIsEditDialogOpen(false);
+      setEditingStage(null);
+    } catch (error: unknown) {
+      console.error("Update stage error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
+        "Failed to update stage";
+      showError(errorMessage);
+    }
+  };
+
+  // Handle delete stage using notification system
+  const handleDeleteStage = async (stage: Stage) => {
+    const hasLeads = stage.lead_count > 0;
+
+    // Check if stage has leads before showing confirmation
+    if (hasLeads) {
+      showError(
+        `Cannot delete "${stage.display_name}" because it has ${stage.lead_count} associated leads. Please reassign or remove the leads first.`
+      );
+      return;
+    }
+
+    showConfirm({
+      title: "Delete Stage",
+      description: `Are you sure you want to permanently delete the stage "${stage.display_name}"? This action cannot be undone.`,
+      confirmText: "Delete Stage",
+      cancelText: "Cancel",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await deleteStage({ stageId: stage.id, force: hasLeads }).unwrap();
+          showSuccess(`Stage "${stage.display_name}" deleted successfully!`);
+          refetchActive();
+        } catch (error: unknown) {
+          console.error("Delete stage error:", error);
+          const apiError = error as ApiError;
+          const errorMessage =
+            apiError?.data?.detail ||
+            apiError?.data?.message ||
+            apiError?.message ||
+            "Failed to delete stage";
+          showError(errorMessage);
+        }
       },
     });
   };
 
-  const handleDeleteStage = async (stage: Stage) => {
-    await deleteStageService(stage, {
-      deleteMutation: deleteStage,
-      showSuccess,
-      showError,
-      showConfirm,
-      refetchActive,
-    });
-  };
-
+  // Handle activate/deactivate
   const handleToggleStageStatus = async (
     stageId: string,
     currentlyActive: boolean
   ) => {
-    await toggleStageStatusService(stageId, currentlyActive, {
-      activateMutation: activateStage,
-      deactivateMutation: deactivateStage,
-      showSuccess,
-      showError,
-    });
+    try {
+      let result;
+      if (currentlyActive) {
+        // Currently active, so deactivate it
+        result = await deactivateStage(stageId).unwrap();
+        showSuccess("Stage deactivated successfully!");
+      } else {
+        // Currently inactive, so activate it
+        result = await activateStage(stageId).unwrap();
+        showSuccess(result.message, "Stage activated successfully!");
+      }
+    } catch (error: unknown) {
+      console.error("Toggle stage status error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
+        `Failed to ${currentlyActive ? "deactivate" : "activate"} stage`;
+      showError(errorMessage);
+    }
   };
 
-  const handleReorder = async (stageId: string, direction: "up" | "down") => {
-    await reorderStageService(stageId, direction, activeStages, {
-      reorderMutation: reorderStages,
-      showSuccess,
-      showError,
-    });
-  };
-
+  // Handle setup default stages using notification system
   const handleSetupDefaults = async () => {
-    await setupDefaultStagesService({
-      setupDefaultMutation: setupDefaultStages,
-      showSuccess,
-      showError,
-      showConfirm,
-      refetchActive,
+    showConfirm({
+      title: "Setup Default Stages",
+      description:
+        "This will create default stages for your CRM. This will add standard lead workflow stages. Continue?",
+      confirmText: "Setup Default Stages",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          await setupDefaultStages().unwrap();
+          showSuccess("Default stages created successfully!");
+          refetchActive();
+        } catch (error: unknown) {
+          console.error("Setup defaults error:", error);
+          const apiError = error as ApiError;
+          const errorMessage =
+            apiError?.data?.detail ||
+            apiError?.data?.message ||
+            apiError?.message ||
+            "Failed to setup default stages";
+          showError(errorMessage);
+        }
+      },
     });
   };
+
+  // Handle reorder stages
+  const handleReorder = async (stageId: string, direction: "up" | "down") => {
+    if (!activeStagesData?.stages) return;
+
+    const stages = [...activeStagesData.stages].sort(
+      (a, b) => a.sort_order - b.sort_order
+    );
+    const currentIndex = stages.findIndex((s) => s.id === stageId);
+
+    if (currentIndex === -1) return;
+    if (direction === "up" && currentIndex === 0) return;
+    if (direction === "down" && currentIndex === stages.length - 1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const reorderData = stages.map((stage, index) => ({
+      id: stage.id,
+      sort_order:
+        index === currentIndex
+          ? newIndex + 1
+          : index === newIndex
+          ? currentIndex + 1
+          : index + 1,
+    }));
+
+    try {
+      await reorderStages(reorderData).unwrap();
+      showSuccess("Stages reordered successfully!");
+    } catch (error: unknown) {
+      console.error("Reorder error:", error);
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError?.data?.detail ||
+        apiError?.data?.message ||
+        apiError?.message ||
+        "Failed to reorder stages";
+      showError(errorMessage);
+    }
+  };
+
+  // Get stage data with proper defaults
   const activeStages = activeStagesData?.stages || [];
   const inactiveStages = inactiveStagesData?.stages || [];
-  const sortedActiveStages = sortStagesByOrder(activeStages);
-  const { totalActive, totalInactive, totalStages } = calculateStageStats(
-    activeStagesData,
-    inactiveStagesData
+  const sortedActiveStages = [...activeStages].sort(
+    (a, b) => a.sort_order - b.sort_order
   );
+
   return (
     <div className="container mx-auto space-y-6">
       {/* Header */}
@@ -264,21 +381,23 @@ const StageManagementPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <StatsCard
           title="Active Stages"
-          value={totalActive}
+          value={activeStagesData?.active_count || 0}
           icon={<CheckCircle className="w-8 h-8 text-green-600" />}
           isLoading={loadingActive}
         />
 
         <StatsCard
           title="Inactive Stages"
-          value={totalInactive}
+          value={inactiveStagesData?.inactive_count || 0}
           icon={<XCircle className="w-8 h-8 text-gray-600" />}
           isLoading={loadingInactive}
         />
 
         <StatsCard
           title="Total Leads"
-          value={totalStages}
+          value={
+            activeStages.reduce((sum, stage) => sum + stage.lead_count, 0) || 0
+          }
           icon={<Users className="w-8 h-8 text-blue-600" />}
           isLoading={loadingActive}
         />

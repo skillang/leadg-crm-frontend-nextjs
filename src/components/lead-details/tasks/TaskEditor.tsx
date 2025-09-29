@@ -151,7 +151,7 @@ const TaskEditor: React.FC<TaskEditorProps> = ({
         });
       }
     }
-  }, [isOpen, task]);
+  }, [isOpen, task, assignableUsersData?.users]);
 
   // FIXED: Properly typed function with mapped types for each field
   const handleInputChange = <K extends keyof TaskFormData>(

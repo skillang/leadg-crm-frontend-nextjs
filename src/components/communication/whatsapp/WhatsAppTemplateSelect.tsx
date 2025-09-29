@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetTemplatesQuery } from "@/redux/slices/whatsappApi";
 import {

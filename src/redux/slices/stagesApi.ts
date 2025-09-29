@@ -32,7 +32,8 @@ const transformStage = (stage: Record<string, unknown>): Stage => ({
   automation_config: stage.automation_config
     ? {
         template_name: String(
-          (stage.automation_config as any)?.template_name || ""
+          (stage.automation_config as { template_name?: string })
+            ?.template_name || ""
         ),
       }
     : null,

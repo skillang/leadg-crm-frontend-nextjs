@@ -6,13 +6,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Send, Eye, EyeOff, FileText } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import {
@@ -30,8 +23,8 @@ import TemplatePreview from "./TemplatePreview";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import {
   processTemplatesResponse,
-  getTemplateIdentifier,
-  getTemplateDisplayName,
+  // getTemplateIdentifier,
+  // getTemplateDisplayName,
   type TemplateMessageRequest,
 } from "@/models/types/whatsapp";
 import WhatsAppTemplateSelect from "./WhatsAppTemplateSelect";

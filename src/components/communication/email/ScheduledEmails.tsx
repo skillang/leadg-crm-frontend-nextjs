@@ -67,7 +67,6 @@ const ScheduledEmails: React.FC = () => {
           await cancelEmail(emailId).unwrap();
           showSuccess("Email cancelled successfully");
         } catch (error: unknown) {
-          // Changed from 'any' to 'unknown'
           const errorMessage =
             error &&
             typeof error === "object" &&

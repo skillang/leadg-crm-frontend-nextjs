@@ -111,21 +111,21 @@ const NotificationTableRow: React.FC<NotificationTableRowProps> = ({
     };
   };
 
-  const formatReadAt = (readAt: string | null) => {
-    if (!readAt) return "-";
+  // const formatReadAt = (readAt: string | null) => {
+  //   if (!readAt) return "-";
 
-    const date = new Date(readAt);
-    return (
-      <div className="text-xs text-gray-600">
-        <div>
-          {date.toLocaleDateString([], { month: "short", day: "numeric" })}
-        </div>
-        <div>
-          {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </div>
-      </div>
-    );
-  };
+  //   const date = new Date(readAt);
+  //   return (
+  //     <div className="text-xs text-gray-600">
+  //       <div>
+  //         {date.toLocaleDateString([], { month: "short", day: "numeric" })}
+  //       </div>
+  //       <div>
+  //         {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   const handleViewLead = () => {
     if (notification.lead_id) {
@@ -334,7 +334,10 @@ export default function NotificationsPage() {
     setShowFilters(false);
   };
 
-  const handleTempFilterChange = (key: string, value: any) => {
+  const handleTempFilterChange = (
+    key: string,
+    value: string | DateRange | undefined
+  ) => {
     setTempFilters((prev) => ({ ...prev, [key]: value }));
   };
 

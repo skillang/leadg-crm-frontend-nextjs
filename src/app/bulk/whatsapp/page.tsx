@@ -34,7 +34,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Users,
   Loader2,
@@ -42,7 +41,6 @@ import {
   BarChart3,
   PlayCircle,
   StopCircle,
-  RefreshCw,
   TrendingUp,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";

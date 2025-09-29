@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Phone, Mail, Pen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,6 @@ import {
   // StageDisplay,
   useStageUtils,
 } from "@/components/common/StageDisplay";
-import { Lead } from "@/models/types/lead";
 import WhatsAppButton from "@/components/communication/whatsapp/WhatsAppButton";
 import WhatsAppModal from "@/components/communication/whatsapp/WhatsAppModal";
 import { useSelector, useDispatch } from "react-redux";

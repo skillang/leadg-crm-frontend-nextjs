@@ -204,7 +204,7 @@ export function UnassignedLeadsDataTable({
       {/* Search Status */}
       {isSearching && (
         <div className="text-sm text-muted-foreground">
-          Searching for "{searchQuery}"...
+          Searching for &quot;{searchQuery}&quot;...
         </div>
       )}
 
@@ -270,7 +270,7 @@ export function UnassignedLeadsDataTable({
                 >
                   {searchQuery ? (
                     <div className="space-y-2">
-                      <p>No leads found matching "{searchQuery}"</p>
+                      <p>No leads found matching &quot;{searchQuery}&quot;</p>
                       <Button variant="link" onClick={onClearSearch}>
                         Clear search
                       </Button>

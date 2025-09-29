@@ -62,7 +62,6 @@ export const MobileLeadCard: React.FC<MobileLeadCardProps> = ({
       await updateStage({
         leadId: lead.id,
         stage: newStage,
-        currentLead: lead,
       }).unwrap();
 
       const selectedStage = stagesData?.stages.find((s) => s.name === newStage);
