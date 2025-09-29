@@ -11,6 +11,7 @@ import {
   AssignableUsersResponse,
 } from "@/models/types/task";
 import { createBaseQueryWithReauth } from "../utils/baseQuerryWithReauth";
+import { PaginationMeta } from "@/models/types/pagination";
 
 // Base query with authentication and auto-refresh
 const baseQuery = createBaseQueryWithReauth(
@@ -183,10 +184,16 @@ export const tasksApi = createApi({
       ],
     }),
 
-    getMyTasks: builder.query<TasksResponse, { status_filter?: string }>({
-      query: ({ status_filter }) => {
+    getMyTasks: builder.query<
+      TasksResponse & { pagination?: PaginationMeta },
+      { status_filter?: string; page?: number; limit?: number; search?: string }
+    >({
+      query: ({ status_filter, page = 1, limit = 20, search }) => {
         const params = new URLSearchParams();
         if (status_filter) params.append("status_filter", status_filter);
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
+        if (search) params.append("search", search);
         return `/tasks/tasks/my-tasks?${params.toString()}`;
       },
       transformResponse: (response: unknown): TasksResponse => {

@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import { createColumns } from "./columns";
 import { DataTable } from "./data-table";
 import { useAppSelector } from "@/redux/hooks";
-import { createFilteredLeadsSelector, selectIsAdmin } from "@/redux/selectors";
+import { selectIsAdmin } from "@/redux/selectors";
 import { useGetLeadsQuery, useGetMyLeadsQuery } from "@/redux/slices/leadsApi";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation"; // 🔥 FIXED: Moved imports together
@@ -464,13 +464,7 @@ export default function DemoPage() {
     return { leads: extractedLeads, paginationMeta: extractedPaginationMeta };
   }, [leadsResponse, currentPage, pageSize]);
 
-  // Smart data selection: server search vs Redux filters
-  const filteredLeadsSelector = useMemo(
-    () => createFilteredLeadsSelector(leads),
-    [leads]
-  );
-  const reduxFilteredLeads = useAppSelector(filteredLeadsSelector);
-  const finalLeads = debouncedSearchQuery.trim() ? leads : reduxFilteredLeads;
+  const finalLeads = leads;
 
   // Helper function to extract error message
   const getErrorMessage = (error: unknown): string => {

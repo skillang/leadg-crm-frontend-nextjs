@@ -87,40 +87,6 @@ export const callDashboardApi = createApi({
     }),
 
     // ========================================================================
-    // WEEKLY/MONTHLY PERFORMERS
-    // ========================================================================
-
-    getWeeklyPerformers: builder.query<
-      any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      { week_offset?: number; top_n?: number }
-    >({
-      query: (params) => {
-        const queryParams = new URLSearchParams();
-        if (params.week_offset !== undefined)
-          queryParams.append("week_offset", String(params.week_offset));
-        if (params.top_n) queryParams.append("top_n", String(params.top_n));
-
-        return `/weekly-performers?${queryParams.toString()}`;
-      },
-      providesTags: ["CallDashboard"],
-    }),
-
-    getMonthlyPerformers: builder.query<
-      any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      { year?: number; month?: number; top_n?: number }
-    >({
-      query: (params) => {
-        const queryParams = new URLSearchParams();
-        if (params.year) queryParams.append("year", String(params.year));
-        if (params.month) queryParams.append("month", String(params.month));
-        if (params.top_n) queryParams.append("top_n", String(params.top_n));
-
-        return `/monthly-performers?${queryParams.toString()}`;
-      },
-      providesTags: ["CallDashboard"],
-    }),
-
-    // ========================================================================
     // RECORDING ENDPOINTS
     // ========================================================================
 
@@ -279,10 +245,6 @@ export const {
   // User performance
   useGetUserPerformanceQuery,
   useLazyGetUserPerformanceQuery,
-
-  // Performers
-  useGetWeeklyPerformersQuery,
-  useGetMonthlyPerformersQuery,
 
   // Recordings
   usePlayRecordingMutation,
