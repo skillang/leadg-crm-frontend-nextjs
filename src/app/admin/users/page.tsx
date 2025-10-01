@@ -46,11 +46,7 @@ const AdminUsersPage = () => {
   const router = useRouter();
 
   // Admin access control (must be called first)
-  const {
-    hasAccess,
-    AccessDeniedComponent,
-    user: currentUser,
-  } = useAdminAccess({
+  const { hasAccess, AccessDeniedComponent } = useAdminAccess({
     title: "Admin Access Required",
     description: "You need admin privileges to view user management.",
   });
@@ -162,12 +158,6 @@ const AdminUsersPage = () => {
 
   // ✅ FIXED: Using showConfirm instead of AlertDialog
   const handleDeleteUser = (user: UserStats) => {
-    // Prevent self-deletion
-    if (user.email === currentUser?.email) {
-      showWarning("You cannot delete your own account.");
-      return;
-    }
-
     // Use showConfirm from notification system
     showConfirm({
       title: "Delete User Account",
@@ -207,9 +197,6 @@ const AdminUsersPage = () => {
 
   // Check if user can be deleted with correct type
   const canDeleteUser = (user: UserStats): boolean => {
-    // Cannot delete self
-    if (user.email === currentUser?.email) return false;
-
     // Check if this is the last admin
     const adminCount = user_stats.filter(
       (u: UserStats) => u.role === "admin"
@@ -375,11 +362,7 @@ const AdminUsersPage = () => {
                             size="sm"
                             disabled
                             className="text-gray-400 cursor-not-allowed"
-                            title={
-                              user.email === currentUser?.email
-                                ? "Cannot delete your own account"
-                                : "Cannot delete the last admin"
-                            }
+                            title={"Cannot delete the last admin"}
                           >
                             <UserX className="h-4 w-4" />
                           </Button>

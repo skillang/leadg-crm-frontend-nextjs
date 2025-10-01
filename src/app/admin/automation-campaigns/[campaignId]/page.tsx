@@ -257,7 +257,11 @@ const CampaignDetailsPage = () => {
               Resume
             </Button>
           ) : null}
-          <Button variant="destructive" onClick={handleDelete}>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>

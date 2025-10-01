@@ -105,7 +105,7 @@ const AutomationCampaignPage = () => {
   };
 
   const handleResumeCampaign = async (campaign: Campaign) => {
-    await showConfirm({
+    showConfirm({
       title: "Resume Campaign?",
       description: `Are you sure you want to resume "${campaign.campaign_name}"? This will restart enrollments.`,
       confirmText: "Resume",
@@ -352,6 +352,7 @@ const AutomationCampaignPage = () => {
                               size="icon"
                               variant="destructive"
                               onClick={() => handleDeleteCampaign(campaign)}
+                              disabled={isDeleting}
                             >
                               <Trash2 />
                             </Button>

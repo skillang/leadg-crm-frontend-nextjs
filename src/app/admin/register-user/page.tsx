@@ -62,7 +62,7 @@ const AdminRegisterUserPage = () => {
 
   // 🔥 ALL HOOKS MUST BE CALLED FIRST - before any conditionals
   const { showSuccess, showError, showWarning } = useNotifications();
-  const { hasAccess, AccessDeniedComponent, user } = useAdminAccess({
+  const { hasAccess, AccessDeniedComponent } = useAdminAccess({
     title: "Admin Access Required",
     description: "You need admin privileges to register new users.",
   });
@@ -438,7 +438,7 @@ const AdminRegisterUserPage = () => {
         </div>
 
         {/* Current Admin Info */}
-        <Card className="mb-4 border-blue-200 bg-blue-50/50">
+        {/* <Card className="mb-4 border-blue-200 bg-blue-50/50">
           <CardContent className="">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -453,7 +453,7 @@ const AdminRegisterUserPage = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Registration Form */}
         <Card>
