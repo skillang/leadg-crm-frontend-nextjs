@@ -33,6 +33,7 @@ import { cvExtractionApi } from "../slices/cvExtractionApi";
 import cvExtractionReducer from "../slices/cvExtractionSlice";
 import { facebookApi } from "../slices/facebookApi";
 import { userApi } from "../slices/userApi";
+import { campaignsApi } from "../slices/campaignsApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -59,6 +60,7 @@ const rootReducer = combineReducers({
   [passwordResetApi.reducerPath]: passwordResetApi.reducer, // ADDED: passwordResetApi reducer
   [experienceLevelsApi.reducerPath]: experienceLevelsApi.reducer,
   [facebookApi.reducerPath]: facebookApi.reducer, //
+  [campaignsApi.reducerPath]: campaignsApi.reducer,
   whatsapp: whatsappReducer, // ADD THIS
   whatsappApi: whatsappApi.reducer,
   [courseLevelsApi.reducerPath]: courseLevelsApi.reducer,
@@ -124,7 +126,8 @@ export const store = configureStore({
       tataTeliApi.middleware,
       callDashboardApi.middleware,
       cvExtractionApi.middleware,
-      facebookApi.middleware
+      facebookApi.middleware,
+      campaignsApi.middleware
     ),
 });
 

@@ -276,6 +276,7 @@ export const MobileLeadCard: React.FC<MobileLeadCardProps> = ({
                       placeholder="Select stage"
                       className="w-full"
                       showLabel={false}
+                      showAutomationDialog={true}
                     />
                   )}
 

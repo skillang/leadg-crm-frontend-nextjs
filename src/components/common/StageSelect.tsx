@@ -37,6 +37,7 @@ interface StageSelectProps {
   placeholder?: string;
   className?: string;
   showLabel?: boolean;
+  showAutomationDialog?: boolean;
 }
 
 export const StageSelect = ({
@@ -51,6 +52,7 @@ export const StageSelect = ({
   placeholder = "Select stage",
   className = "",
   showLabel = true,
+  showAutomationDialog = false,
 }: StageSelectProps) => {
   const selectedStage = stages.find((stage) => stage.name === value);
   const selectedColors = selectedStage
@@ -63,7 +65,7 @@ export const StageSelect = ({
     const targetStage = stages.find((stage) => stage.name === newStage);
 
     // Check if stage has automation enabled
-    if (targetStage?.automation) {
+    if (showAutomationDialog && targetStage?.automation) {
       showConfirm({
         title: "Auto-send WhatsApp Message?",
         description: `This stage has WhatsApp automation enabled with template "${targetStage.automation_config?.template_name}". Do you want to send the template message automatically?`,

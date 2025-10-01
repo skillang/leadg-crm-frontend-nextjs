@@ -12,7 +12,7 @@ import { setSending, closeModal } from "@/redux/slices/whatsappSlice";
 import { useSendTextMessageMutation } from "@/redux/slices/whatsappApi";
 import { useNotifications } from "@/components/common/NotificationSystem";
 import { useAppDispatch } from "@/redux/hooks";
-import { ApiErrorData, ApiError } from "@/models/types/apiError";
+import { ApiError } from "@/models/types/apiError";
 
 const WhatsAppTextMessage: React.FC = () => {
   const dispatch = useAppDispatch();

@@ -31,7 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useNotifications } from "../../common/NotificationSystem";
 import { getFileIconForDocument } from "@/utils/getFileIconForDocument";
-import { ApiError, ApiErrorData } from "@/models/types/apiError";
+import { ApiError } from "@/models/types/apiError";
 
 interface DocumentUploadProps {
   isOpen: boolean;

@@ -410,6 +410,7 @@ export default function LeadDetailsPage() {
                   isLoading={stagesLoading}
                   placeholder="Select stage"
                   className="w-[160px]"
+                  showAutomationDialog={true}
                 />
                 {isUpdatingStage && (
                   <div className="absolute top-full left-0 mt-1 p-2 bg-blue-100 border border-blue-200 rounded text-xs text-blue-600 z-10">

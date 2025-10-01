@@ -116,6 +116,7 @@ const StageSelectCell = ({ row }: { row: Row<Lead> }) => {
         placeholder="Select stage"
         className="w-[140px]"
         showLabel={false}
+        showAutomationDialog={true}
       />
 
       {isLoading && (

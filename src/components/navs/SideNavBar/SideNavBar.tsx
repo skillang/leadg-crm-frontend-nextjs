@@ -30,6 +30,7 @@ import {
   Facebook,
   UserPlus2,
   UserRoundMinus,
+  Waypoints,
 } from "lucide-react";
 import {
   Sidebar,
@@ -100,6 +101,12 @@ const mainMenuItems = [
     title: "Reports",
     url: "#",
     icon: BarChart2,
+    adminOnly: true,
+  },
+  {
+    title: "Automations",
+    url: "/admin/automation-campaigns",
+    icon: Waypoints,
     adminOnly: true,
   },
   {

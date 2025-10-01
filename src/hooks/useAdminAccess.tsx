@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/redux/hooks";
 import AccessDeniedCard from "@/components/common/AccessDeniedCard";
-import { selectCurrentUser, selectIsAdmin } from "@/redux/selectors";
+import { selectIsAdmin } from "@/redux/selectors";
 
 interface UseAdminAccessOptions {
   redirectPath?: string;
