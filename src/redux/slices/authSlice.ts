@@ -2,6 +2,7 @@
 
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AuthState, CurrentUserResponse } from "@/models/types/auth";
+import { setCookie } from "@/lib/cookie";
 
 // Define the initial state
 const initialState: AuthState = {
@@ -59,15 +60,18 @@ const authSlice = createSlice({
       state.error = null;
 
       // Store in localStorage - 🔥 FIXED: Store refresh token too
-      if (typeof window !== "undefined") {
-        localStorage.setItem("access_token", action.payload.access_token);
-        localStorage.setItem("refresh_token", action.payload.refresh_token); // ✅ FIXED
-        localStorage.setItem("user_data", JSON.stringify(action.payload.user));
-        localStorage.setItem("token_created_at", now.toString());
-        // console.log("🔥 AUTH STORED:", {
-        //    user: action.payload.user,
-        // });
-      }
+      // if (typeof window !== "undefined") {
+      //   localStorage.setItem("access_token", action.payload.access_token);
+      //   localStorage.setItem("refresh_token", action.payload.refresh_token); // ✅ FIXED
+      //   localStorage.setItem("user_data", JSON.stringify(action.payload.user));
+      //   localStorage.setItem("token_created_at", now.toString());
+      //   // console.log("🔥 AUTH STORED:", {
+      //   //    user: action.payload.user,
+      //   // });
+      // }
+
+      setCookie("access_token", action.payload.access_token, 30); // 30 days
+      // setCookie("user_role", action.payload.user.role, 30);
     },
 
     // Set auth state from localStorage (for page refresh/reload)
@@ -140,10 +144,12 @@ const authSlice = createSlice({
 
       // Clear localStorage - 🔥 FIXED: Clear refresh token too
       if (typeof window !== "undefined") {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token"); // ✅ FIXED
-        localStorage.removeItem("user_data");
-        localStorage.removeItem("token_created_at");
+        // localStorage.removeItem("access_token");
+        // localStorage.removeItem("refresh_token"); // ✅ FIXED
+        // localStorage.removeItem("user_data");
+        // localStorage.removeItem("token_created_at");
+        document.cookie = "access_token=; path=/; max-age=0";
+        // document.cookie = "user_role=; path=/; max-age=0";
       }
     },
 

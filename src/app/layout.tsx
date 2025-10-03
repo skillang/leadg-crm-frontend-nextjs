@@ -1,11 +1,12 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NotificationProvider } from "@/components/common/NotificationSystem";
 import { ReduxProvider } from "@/components/providers/redux-providers";
-import AuthLayout from "@/components/layouts/AuthLayout";
 import CommunicationProvider from "@/components/providers/communication-provider";
 import { AudioProvider } from "@/contexts/AudioContext";
+import { AuthInitializer } from "@/components/providers/auth-initializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,11 +42,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
+          <AuthInitializer />
           <NotificationProvider>
             <AudioProvider>
-              <CommunicationProvider>
-                <AuthLayout>{children}</AuthLayout>
-              </CommunicationProvider>
+              <CommunicationProvider>{children}</CommunicationProvider>
             </AudioProvider>
           </NotificationProvider>
         </ReduxProvider>

@@ -1,10 +1,10 @@
-// pages/LoginPage.tsx (TypeScript with Zod validation + shadcn/ui + Light Blue Theme)
+// src/app/(auth)/login/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { useLoginMutation } from "@/redux/slices/authApi";
-import { setAuthState, clearError, setError } from "@/redux/slices/authSlice";
+import { setAuthState, clearError } from "@/redux/slices/authSlice";
 import { z } from "zod";
 import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
@@ -18,6 +18,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import useFcmToken from "@/hooks/useFcmToken";
+import { useRouter } from "next/navigation";
 
 // Type for RTK Query errors with proper API error data
 type RTKQueryError = FetchBaseQueryError & {
@@ -36,6 +38,7 @@ const loginSchema = z.object({
     .min(1, "Password is required")
     .min(6, "Password must be at least 6 characters long"),
   remember_me: z.boolean().optional().default(false),
+  fcm_token: z.string().optional(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -50,10 +53,12 @@ interface LoginFormErrors {
 
 const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { error } = useAppSelector((state) => state.auth);
+  const { error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const router = useRouter();
 
   // RTK Query mutation hook
   const [login, { isLoading: loginLoading }] = useLoginMutation();
+  const { token: fcmToken } = useFcmToken();
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -73,6 +78,16 @@ const LoginPage: React.FC = () => {
       }
     };
   }, [dispatch, error]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  if (isAuthenticated) {
+    return null;
+  }
 
   // Validate single field
   const validateField = (
@@ -275,49 +290,36 @@ const LoginPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Validate form data with Zod
       const validatedData = loginSchema.parse(formData);
-
-      // Clear any existing validation errors
       setValidationErrors({});
 
-      // console.log("Attempting login with:", { email: validatedData.email }); // Debug log
+      const loginPayload = {
+        ...validatedData,
+        fcm_token: fcmToken || undefined,
+      };
 
-      // Use RTK Query mutation
-      const result = await login(validatedData).unwrap();
+      const result = await login(loginPayload).unwrap();
 
-      // console.log("Login successful:", result); // Debug log
-
-      // 🔥 UPDATED: Store both access and refresh tokens in localStorage for persistence
+      // Store in localStorage
       localStorage.setItem("access_token", result.access_token);
       localStorage.setItem("refresh_token", result.refresh_token);
       localStorage.setItem("user_data", JSON.stringify(result.user));
 
-      // Update Redux state with the API response
+      // 🔥 NEW: Set cookies for middleware
+      document.cookie = `access_token=${result.access_token}; path=/; max-age=${
+        30 * 24 * 60 * 60
+      }`;
+      document.cookie = `user_role=${result.user.role}; path=/; max-age=${
+        30 * 24 * 60 * 60
+      }`;
+
+      // Update Redux state
       dispatch(setAuthState(result));
 
-      // Success feedback could be added here if needed
-      // console.log("Login completed successfully");
+      // 🔥 Force redirect (router.push might not work due to middleware)
+      window.location.href = "/dashboard";
     } catch (err: unknown) {
-      if (err instanceof z.ZodError) {
-        // Handle Zod validation errors
-        const errors: LoginFormErrors = {};
-        err.issues.forEach((issue) => {
-          const field = issue.path[0] as keyof LoginFormData;
-          if (
-            field === "email" ||
-            field === "password" ||
-            field === "remember_me"
-          ) {
-            errors[field] = issue.message;
-          }
-        });
-        setValidationErrors(errors);
-      } else {
-        // Handle API errors - RTK Query errors
-        const errorMessage = getErrorMessage(err);
-        dispatch(setError(errorMessage));
-      }
+      console.error("Login error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -326,7 +328,7 @@ const LoginPage: React.FC = () => {
   const isFormDisabled = loginLoading || isSubmitting;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className=" flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-xl">
         {/* Login Card */}
         <Card className="bg-white border-blue-200 shadow-xl">

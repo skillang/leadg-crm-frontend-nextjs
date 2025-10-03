@@ -7,6 +7,7 @@ export interface LoginRequest {
   email: string;
   password: string;
   remember_me?: boolean;
+  fcm_token?: string;
 }
 
 export interface LoginResponse {
