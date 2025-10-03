@@ -34,6 +34,7 @@ import cvExtractionReducer from "../slices/cvExtractionSlice";
 import { facebookApi } from "../slices/facebookApi";
 import { userApi } from "../slices/userApi";
 import { campaignsApi } from "../slices/campaignsApi";
+import { fcmApi } from "../slices/fcmApi";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -61,6 +62,7 @@ const rootReducer = combineReducers({
   [experienceLevelsApi.reducerPath]: experienceLevelsApi.reducer,
   [facebookApi.reducerPath]: facebookApi.reducer, //
   [campaignsApi.reducerPath]: campaignsApi.reducer,
+  [fcmApi.reducerPath]: fcmApi.reducer,
   whatsapp: whatsappReducer, // ADD THIS
   whatsappApi: whatsappApi.reducer,
   [courseLevelsApi.reducerPath]: courseLevelsApi.reducer,
@@ -127,7 +129,8 @@ export const store = configureStore({
       callDashboardApi.middleware,
       cvExtractionApi.middleware,
       facebookApi.middleware,
-      campaignsApi.middleware
+      campaignsApi.middleware,
+      fcmApi.middleware
     ),
 });
 
