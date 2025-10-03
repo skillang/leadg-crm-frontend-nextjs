@@ -214,16 +214,16 @@ export default function DemoPage() {
     const urlSearch = searchParam || "";
     const urlUser = userParam || "all";
 
-    console.log("🔄 URL changed - syncing ALL state:", {
-      urlPage,
-      urlLimit,
-      urlStage,
-      urlStatus,
-      urlCategory,
-      urlSource,
-      urlSearch,
-      urlUser,
-    });
+    // console.log("🔄 URL changed - syncing ALL state:", {
+    //   urlPage,
+    //   urlLimit,
+    //   urlStage,
+    //   urlStatus,
+    //   urlCategory,
+    //   urlSource,
+    //   urlSearch,
+    //   urlUser,
+    // });
 
     // Update all state to match URL
     setCurrentPage(urlPage);

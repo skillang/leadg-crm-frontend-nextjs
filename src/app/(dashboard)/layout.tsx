@@ -6,7 +6,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import SideNavBarComp from "@/components/navs/SideNavBar/SideNavBar";
 import TopBarComp from "@/components/navs/TopBar/TopBar";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
-import useRealtime from "@/hooks/useRealtime";
 import { updateUserWithPermissions } from "@/redux/slices/authSlice";
 import { useGetCurrentUserQuery } from "@/redux/slices/userApi";
 
@@ -26,7 +25,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const dispatch = useAppDispatch();
-  const { connectionStatus, isConnected } = useRealtime();
   const { token } = useAppSelector((state) => state.auth);
 
   // Fetch current user data (permissions, profile, etc.)
@@ -34,12 +32,6 @@ export default function DashboardLayout({
     useGetCurrentUserQuery(undefined, {
       skip: !token,
     });
-
-  // Log real-time connection status
-  useEffect(() => {
-    console.log("🔄 Real-time connection status:", connectionStatus);
-    console.log("🔄 Real-time isConnected status:", isConnected);
-  }, [connectionStatus, isConnected]);
 
   // Sync user permissions when data is fetched
   useEffect(() => {

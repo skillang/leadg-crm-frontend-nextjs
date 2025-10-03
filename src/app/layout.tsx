@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NotificationProvider } from "@/components/common/NotificationSystem";
 import { ReduxProvider } from "@/components/providers/redux-providers";
-import CommunicationProvider from "@/components/providers/communication-provider";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { AuthInitializer } from "@/components/providers/auth-initializer";
 
@@ -44,9 +43,7 @@ export default function RootLayout({
         <ReduxProvider>
           <AuthInitializer />
           <NotificationProvider>
-            <AudioProvider>
-              <CommunicationProvider>{children}</CommunicationProvider>
-            </AudioProvider>
+            <AudioProvider>{children}</AudioProvider>
           </NotificationProvider>
         </ReduxProvider>
       </body>
