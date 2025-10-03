@@ -137,10 +137,10 @@ const handleForceLogout = async (api: BaseQueryApi) => {
 
   try {
     // Clear tokens from localStorage
-    // localStorage.removeItem("access_token");
-    // localStorage.removeItem("refresh_token");
-    // localStorage.removeItem("user_data");
-    // localStorage.removeItem("token_created_at");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user_data");
+    localStorage.removeItem("token_created_at");
 
     document.cookie = "access_token=; path=/; max-age=0";
     document.cookie = "user_role=; path=/; max-age=0";

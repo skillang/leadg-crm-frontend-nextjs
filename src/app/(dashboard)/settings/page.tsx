@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -335,14 +336,14 @@ export default function SettingsPage() {
   const getFCMTokenBadge = () => {
     if (tokenStatus?.has_token || myFcmStatus?.has_fcm_token) {
       return (
-        <Badge variant="default" className="gap-1 bg-blue-500">
+        <Badge variant="success" className="gap-1">
           <CheckCircle className="w-3 h-3" />
           Token Registered
         </Badge>
       );
     } else if (token) {
       return (
-        <Badge variant="secondary" className="gap-1">
+        <Badge variant={"destructive"} className="gap-1">
           <AlertTriangle className="w-3 h-3" />
           Token Not Registered
         </Badge>
@@ -358,8 +359,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-8">
+    <div className="container mx-auto space-y-4">
+      <div className="">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Settings className="w-8 h-8" />
           Settings
@@ -370,7 +371,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Notification Settings Card */}
-      <Card className="mb-6">
+      <Card className="">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5" />
@@ -380,160 +381,170 @@ export default function SettingsPage() {
             Configure how you receive notifications from LeadG CRM
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Browser Support Status */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h3 className="font-medium">Browser Support</h3>
-              <p className="text-sm text-muted-foreground">
-                {notificationState.isSupported
-                  ? "Your browser supports web notifications"
-                  : "Your browser doesn't support web notifications"}
-              </p>
-            </div>
-            {getStatusBadge()}
-          </div>
-
-          {/* Firebase Status */}
-          {firebaseStatus && (
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+        <CardContent className="grid grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {/* Browser Support Status */}
+            <div className=" flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <h3 className="font-medium">Firebase Status</h3>
+                <h3 className="font-medium">Browser Support</h3>
                 <p className="text-sm text-muted-foreground">
-                  {firebaseStatus.message}
+                  {notificationState.isSupported
+                    ? "Your browser supports web notifications"
+                    : "Your browser doesn't support web notifications"}
                 </p>
               </div>
-              <Badge
-                variant={
-                  firebaseStatus.firebase_initialized ? "default" : "secondary"
-                }
-                className={
-                  firebaseStatus.firebase_initialized
-                    ? "gap-1 bg-green-500"
-                    : "gap-1"
-                }
-              >
-                <CheckCircle className="w-3 h-3" />
-                {firebaseStatus.firebase_initialized
-                  ? "Initialized"
-                  : "Not Ready"}
-              </Badge>
+              {getStatusBadge()}
             </div>
-          )}
 
-          {/* FCM Token Status */}
-          <div className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Firebase Cloud Messaging</h3>
-                {myFcmStatus && (
+            {/* Firebase Status */}
+            {firebaseStatus && (
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h3 className="font-medium">Firebase Status</h3>
                   <p className="text-sm text-muted-foreground">
-                    {myFcmStatus.user_email} • {myFcmStatus.device_info}
-                  </p>
-                )}
-                {token && (
-                  <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    {token.substring(0, 40)}...
-                  </p>
-                )}
-              </div>
-              {getFCMTokenBadge()}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRegisterToken}
-                disabled={!token || isRegistering}
-                size="sm"
-                variant="outline"
-              >
-                {isRegistering ? "Registering..." : "Register Token"}
-              </Button>
-              <Button
-                onClick={handleUpdateToken}
-                disabled={!token || isUpdating}
-                size="sm"
-                variant="outline"
-              >
-                {isUpdating ? "Updating..." : "Update Token"}
-              </Button>
-              <Button
-                onClick={handleRemoveToken}
-                disabled={isRemoving}
-                size="sm"
-                variant="destructive"
-              >
-                {isRemoving ? "Removing..." : "Remove Token"}
-              </Button>
-              <Button
-                onClick={() => {
-                  refetchTokenStatus();
-                  refetchMyStatus();
-                  toast.success("Status refreshed");
-                }}
-                size="sm"
-                variant="ghost"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Notification Toggle */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="space-y-1">
-              <Label htmlFor="notifications" className="text-base font-medium">
-                Enable Notifications
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Receive browser notifications for important updates and new
-                leads
-              </p>
-            </div>
-            <Switch
-              id="notifications"
-              checked={notificationState.isEnabled}
-              onCheckedChange={handleNotificationToggle}
-              disabled={!notificationState.isSupported}
-            />
-          </div>
-
-          {/* Status Information */}
-          {notificationState.permission === "denied" && (
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-orange-800">
-                    Notifications Blocked
-                  </h4>
-                  <p className="text-sm text-orange-700 mt-1">
-                    To enable notifications, click the notification icon in your
-                    browser's address bar or go to Settings → Privacy and
-                    Security → Notifications.
+                    {firebaseStatus.message}
                   </p>
                 </div>
+                <Badge
+                  variant={
+                    firebaseStatus.firebase_initialized
+                      ? "default"
+                      : "secondary"
+                  }
+                  className={
+                    firebaseStatus.firebase_initialized
+                      ? "gap-1 bg-green-500"
+                      : "gap-1"
+                  }
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  {firebaseStatus.firebase_initialized
+                    ? "Initialized"
+                    : "Not Ready"}
+                </Badge>
+              </div>
+            )}
+
+            {/* Notification Toggle */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="notifications"
+                  className="text-base font-medium"
+                >
+                  Enable Notifications
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive browser notifications for important updates and new
+                  leads
+                </p>
+              </div>
+              <Switch
+                id="notifications"
+                checked={notificationState.isEnabled}
+                onCheckedChange={handleNotificationToggle}
+                disabled={!notificationState.isSupported}
+              />
+            </div>
+          </div>
+          <div className="space-y-4">
+            {/* FCM Token Status */}
+            <div className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Firebase Cloud Messaging</h3>
+                  {myFcmStatus && (
+                    <p className="text-sm text-muted-foreground">
+                      {myFcmStatus.user_email} • {myFcmStatus.device_info}
+                    </p>
+                  )}
+                  {token && (
+                    <p className="text-xs text-muted-foreground mt-1 font-mono">
+                      {token.substring(0, 40)}...
+                    </p>
+                  )}
+                </div>
+                {getFCMTokenBadge()}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRegisterToken}
+                  disabled={!token || isRegistering}
+                  size="sm"
+                  variant="outline"
+                >
+                  {isRegistering ? "Registering..." : "Register Token"}
+                </Button>
+                <Button
+                  onClick={handleUpdateToken}
+                  disabled={!token || isUpdating}
+                  size="sm"
+                  variant="outline"
+                >
+                  {isUpdating ? "Updating..." : "Update Token"}
+                </Button>
+                <Button
+                  onClick={handleRemoveToken}
+                  disabled={isRemoving}
+                  size="sm"
+                  variant="destructive"
+                >
+                  {isRemoving ? "Removing..." : "Remove Token"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    refetchTokenStatus();
+                    refetchMyStatus();
+                    toast.success("Status refreshed");
+                  }}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          )}
 
-          {myFcmStatus?.has_fcm_token && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-green-800">
-                    Notifications Ready
-                  </h4>
-                  <p className="text-sm text-green-700 mt-1">
-                    FCM token registered at{" "}
-                    {new Date(myFcmStatus.token_registered_at).toLocaleString()}
-                    . You'll receive notifications for new leads and updates.
-                  </p>
+            {/* Status Information */}
+            {notificationState.permission === "denied" && (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-orange-800">
+                      Notifications Blocked
+                    </h4>
+                    <p className="text-sm text-orange-700 mt-1">
+                      To enable notifications, click the notification icon in
+                      your browser's address bar or go to Settings → Privacy and
+                      Security → Notifications.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {myFcmStatus?.has_fcm_token && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-green-800">
+                      Notifications Ready
+                    </h4>
+                    <p className="text-sm text-green-700 mt-1">
+                      FCM token registered at{" "}
+                      {new Date(
+                        myFcmStatus.token_registered_at
+                      ).toLocaleString()}
+                      . You'll receive notifications for new leads and updates.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -548,9 +559,9 @@ export default function SettingsPage() {
             Send test notifications to verify your setup
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="grid grid-cols-2 gap-4">
           {/* Local Test Notification */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="flex items-start gap-4 justify-center flex-col p-4 border rounded-lg">
             <div className="flex items-center gap-3">
               <Globe className="w-5 h-5 text-blue-500" />
               <div>
@@ -579,7 +590,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-3">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="test-title">Notification Title</Label>
                 <Input
                   id="test-title"
@@ -589,7 +600,7 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="test-message">Notification Message</Label>
                 <Textarea
                   id="test-message"
@@ -638,7 +649,7 @@ export default function SettingsPage() {
                   <span>Send notification to a specific user</span>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="target-email">Target User Email</Label>
                   <Input
                     id="target-email"
@@ -672,14 +683,16 @@ export default function SettingsPage() {
           </div>
 
           {/* Info Message */}
-          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        </CardContent>
+        <CardFooter>
+          <div className="flex w-full items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-blue-700">
               Test notifications will be sent via Firebase Cloud Messaging. Make
               sure the target user has FCM token registered.
             </p>
           </div>
-        </CardContent>
+        </CardFooter>
       </Card>
     </div>
   );

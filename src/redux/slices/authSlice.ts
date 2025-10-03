@@ -144,12 +144,13 @@ const authSlice = createSlice({
 
       // Clear localStorage - 🔥 FIXED: Clear refresh token too
       if (typeof window !== "undefined") {
-        // localStorage.removeItem("access_token");
-        // localStorage.removeItem("refresh_token"); // ✅ FIXED
-        // localStorage.removeItem("user_data");
-        // localStorage.removeItem("token_created_at");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token"); // ✅ FIXED
+        localStorage.removeItem("user_data");
+        localStorage.removeItem("token_created_at");
+
         document.cookie = "access_token=; path=/; max-age=0";
-        // document.cookie = "user_role=; path=/; max-age=0";
+        document.cookie = "user_role=; path=/; max-age=0";
       }
     },
 

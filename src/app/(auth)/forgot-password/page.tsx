@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiErrorData } from "@/models/types/apiError";
+import { useRouter } from "next/navigation";
 
 // Zod validation schema
 const forgotPasswordSchema = z.object({
@@ -37,6 +38,7 @@ interface ForgotPasswordFormErrors {
 }
 
 const ForgotPasswordPage: React.FC = () => {
+  const router = useRouter();
   // RTK Query mutation hook
   const [forgotPassword, { isLoading: forgotPasswordLoading }] =
     useForgotPasswordMutation();
@@ -251,7 +253,7 @@ const ForgotPasswordPage: React.FC = () => {
   };
 
   const handleBackToLogin = () => {
-    console.log("Navigate back to login");
+    router.push("/login");
   };
 
   const handleTryAgain = () => {

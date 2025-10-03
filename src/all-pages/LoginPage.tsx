@@ -328,7 +328,7 @@ const LoginPage: React.FC = () => {
   const isFormDisabled = loginLoading || isSubmitting;
 
   return (
-    <div className=" flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-xl">
         {/* Login Card */}
         <Card className="bg-white border-blue-200 shadow-xl">
